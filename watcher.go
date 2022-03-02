@@ -22,6 +22,10 @@ func watcherShow(server string, showWhat string) (result string) {
 			""
 	}
 
+	if server == "r" {
+		return watcherShowServer("api.ray.blues.tools", showWhat)
+	}
+
 	if server == "p" || server == "prod" || server == "production" {
 		return watcherShowServer("api.notefile.net", showWhat)
 	}
