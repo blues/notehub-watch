@@ -64,7 +64,7 @@ func watcherShowServer(server string, showWhat string) (response string) {
 // Get the list of handlers
 func watcherGetHandlers(server string) (handlerNodeIDs []string, handlerAddrs []string, response string) {
 
-	rsp, err := http.Get(server + "/ping")
+	rsp, err := http.Get("http://" + server + "/ping")
 	if err != nil {
 		response = err.Error()
 		return
@@ -102,7 +102,7 @@ func watcherShowHandler(addr string, showWhat string) (response string, errstr s
 	}
 
 	// Get the data
-	url := fmt.Sprintf("%s/ping?show=\"%s\"", addr, showWhat)
+	url := fmt.Sprintf("http://%s/ping?show=\"%s\"", addr, showWhat)
 	rsp, err := http.Get(url)
 	if err != nil {
 		errstr = err.Error()
