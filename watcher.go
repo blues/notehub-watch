@@ -90,7 +90,7 @@ func watcherGetHandlers(server string) (handlerNodeIDs []string, handlerAddrs []
 	var pb PingBody
 	err = json.Unmarshal(rspJSON, &pb)
 	if err != nil {
-		errstr = string(rspJSON)
+		errstr = fmt.Sprintf("%s: %s", err, string(rspJSON))
 		return
 	}
 
@@ -138,7 +138,7 @@ func getHandlerInfo(addr string, showWhat string) (pb PingBody, errstr string) {
 	// Unmarshal it
 	err = json.Unmarshal(rspJSON, &pb)
 	if err != nil {
-		errstr = err.Error()
+		errstr = fmt.Sprintf("%s: %s", err, string(rspJSON))
 		return
 	}
 
