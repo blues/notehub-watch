@@ -40,11 +40,11 @@ func watcherShowServer(server string, showWhat string) (response string) {
 	var errstr string
 	var handlerNodeIDs, handlerAddrs []string
 
-	if server == "api.r" {
+	if server == "api.local" {
 
-		// Special case debugging for server "r" meaning Ray's localhost
+		// Special case debugging for server "local" meaning Ray's localhost
 		// Local dev doesn't support http, and staging/production don't support https
-		handlerNodeIDs = []string{"Ray's Local Dev"}
+		handlerNodeIDs = []string{"Local Dev"}
 		handlerAddrs = []string{"https://api.ray.blues.tools"}
 
 	} else {
