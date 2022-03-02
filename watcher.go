@@ -107,6 +107,9 @@ func watcherShowHandler(addr string, showWhat string) (response string, errstr s
 
 	// Get the data
 	url := fmt.Sprintf("https://%s/ping?show=\"%s\"", addr, showWhat)
+
+	response = url
+	return
 	rsp, err := http.Get(url)
 	if err != nil {
 		errstr = err.Error()
@@ -126,9 +129,6 @@ func watcherShowHandler(addr string, showWhat string) (response string, errstr s
 		errstr = err.Error()
 		return
 	}
-
-	response = showWhat
-	return
 
 	// Return it
 	switch showWhat {
