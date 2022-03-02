@@ -5,12 +5,12 @@
 package main
 
 import (
+	"bytes"
+	"flag"
 	"fmt"
 	"net/http"
-	"os"
 	"strings"
 
-	"github.com/jessevdk/go-flags"
 	"github.com/slack-go/slack"
 )
 
@@ -87,13 +87,34 @@ func inboundSlackRequestHandler(w http.ResponseWriter, r *http.Request) {
 // Slack /watcher request handler
 func slackCommandWatcher(s slack.SlashCommand) (response string) {
 
-	os.Args[0] = "//watcher"
-	var opts watcherOptions
-	_, err := flags.ParseArgs(&opts, strings.Split(s.Text, " "))
-	if err != nil {
-		return fmt.Sprintf("%s", err)
+	f := flag.NewFlagSet("/watcher", flag.ContinueOnError)
+
+	// Pre-generate error output
+	errOutput := bytes.NewBufferString("")
+	errOutput.WriteString("\nUsage:\n")
+	defer f.SetOutput(nil)
+	f.SetOutput(errOutput)
+	f.PrintDefaults()
+
+	var fInterface string
+	f.StringVar(&fInterface, "interface", "", "select 'serial' or 'i2c' interface for notecard")
+
+	// Parse flags
+	f.Parse(strings.Split(s.Text, " "))
+
+	// If no args, the request wasn't specified
+	if f.NArg() == 0 {
+		return "request type not specified" + errOutput.String()
 	}
 
-	return fmt.Sprintf("%+v", opts)
+	// Dispatch based on primary arg
+	switch f.Arg(0) {
+	case "register":
+		return "register"
+	default:
+		return fmt.Sprintf("request '%s' not recognized\n"+errOutput.String(), f.Arg(0))
+	}
+
+	return fmt.Sprintf("%+v", f)
 
 }
