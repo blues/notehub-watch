@@ -25,7 +25,7 @@ type watcherOptions struct {
 	Call func(string) `short:"c" description:"Call phone number"`
 
 	// Example of a required flag
-	Name string `short:"n" long:"name" description:"A name" required:"true"`
+	Name string `short:"n" long:"name" description:"A name"`
 
 	// Example of a value name
 	File string `short:"f" long:"file" description:"A file" value-name:"FILE"`
@@ -42,12 +42,8 @@ type watcherOptions struct {
 	// Example of a map
 	IntMap map[string]int `long:"intmap" description:"A map from string to int"`
 
-	// Example of positional arguments
-	Args struct {
-		ID   string
-		Num  int
-		Rest []string
-	} `positional-args:"yes" required:"yes"`
+	// Example of positional string arguments
+	Args string `positional-args:"yes" description:"Watcher request" required:"true"`
 }
 
 // Send a message to Slack.  See:
