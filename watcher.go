@@ -64,7 +64,7 @@ func watcherShowServer(server string, showWhat string) (response string) {
 // Get the list of handlers
 func watcherGetHandlers(server string) (handlerNodeIDs []string, handlerAddrs []string, errstr string) {
 
-	rsp, err := http.Get("http://" + server + "/ping")
+	rsp, err := http.Get("http://" + server + "/ping?show=\"handlers\"")
 	if err != nil {
 		errstr = err.Error()
 		return
@@ -144,19 +144,6 @@ func watcherShowHandler(addr string, showWhat string) (response string, errstr s
 			return
 		}
 		rspJSON, err := json.Marshal(*pr.LBStatus)
-		if err != nil {
-			errstr = err.Error()
-		} else {
-			response = string(rspJSON)
-		}
-		return
-
-	case "handlers":
-		if pr.AppHandlers == nil {
-			response = "no handler information available"
-			return
-		}
-		rspJSON, err := json.Marshal(*pr.AppHandlers)
 		if err != nil {
 			errstr = err.Error()
 		} else {
