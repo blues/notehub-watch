@@ -13,8 +13,10 @@ require (
 	github.com/creack/goselect v0.1.1 // indirect
 	github.com/go-ole/go-ole v1.2.4 // indirect
 	github.com/gofrs/flock v0.7.1 // indirect
+	github.com/gorilla/websocket v1.5.0 // indirect
 	github.com/sendgrid/rest v2.6.8+incompatible // indirect
 	github.com/shirou/gopsutil/v3 v3.21.6 // indirect
+	github.com/slack-go/slack v0.10.2 // indirect
 	github.com/tklauser/go-sysconf v0.3.6 // indirect
 	github.com/tklauser/numcpus v0.2.2 // indirect
 	go.bug.st/serial v1.0.0 // indirect

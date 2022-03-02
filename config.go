@@ -25,6 +25,9 @@ type ServiceConfig struct {
 
 	// Twilio Sendgrid API key
 	TwilioSendgridAPIKey string `json:"twilio_sendgrid_api_key,omitempty"`
+
+	// Slack app integration
+	SlackWebhookURL string `json:"slack_webhook_url,omitempty"`
 }
 
 // ConfigPath (here for golint)

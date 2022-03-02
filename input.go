@@ -65,6 +65,9 @@ func inputHandler() {
 
 		switch arg0LC {
 
+		case "slack":
+			slackSendMessage(messageAfterFirstWord)
+
 		case "":
 
 		default:
@@ -84,7 +87,7 @@ func inputHandler() {
 
 // Our app's signal handler
 func signalHandler() {
-	ch := make(chan os.Signal)
+	ch := make(chan os.Signal, 100)
 	signal.Notify(ch, syscall.SIGTERM)
 	signal.Notify(ch, syscall.SIGINT)
 	signal.Notify(ch, syscall.SIGSEGV)
