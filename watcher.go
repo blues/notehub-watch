@@ -62,7 +62,7 @@ func watcherShowServer(server string, showWhat string) (response string) {
 		response += fmt.Sprintf("%s\n", handlerNodeIDs[i])
 		r, errstr := watcherShowHandler(addr, showWhat)
 		if errstr != "" {
-			response += "  " + errstr
+			response += "  " + errstr + "\n"
 		} else {
 			response += r
 		}
