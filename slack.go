@@ -7,6 +7,7 @@ package main
 import (
 	"fmt"
 	"net/http"
+	"os"
 	"strings"
 
 	"github.com/jessevdk/go-flags"
@@ -14,8 +15,6 @@ import (
 )
 
 type watcherOptions struct {
-	Command string `/watcher`
-	Options string `watcher-options`
 
 	// Slice of bool will append 'true' each time the option
 	// is encountered (can be set multiple times, like -vvv)
@@ -88,6 +87,7 @@ func inboundSlackRequestHandler(w http.ResponseWriter, r *http.Request) {
 // Slack /watcher request handler
 func slackCommandWatcher(s slack.SlashCommand) (response string) {
 
+	os.Args[0] = "/watcher"
 	var opts watcherOptions
 	_, err := flags.ParseArgs(&opts, strings.Split(s.Text, " "))
 	if err != nil {
