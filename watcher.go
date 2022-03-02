@@ -23,10 +23,6 @@ func watcherShow(server string, showWhat string) (result string) {
 			""
 	}
 
-	if server == "r" {
-		return watcherShowServer("api.ray.blues.tools", showWhat)
-	}
-
 	if server == "p" || server == "prod" || server == "production" {
 		return watcherShowServer("api.notefile.net", showWhat)
 	}
@@ -41,11 +37,24 @@ func watcherShow(server string, showWhat string) (result string) {
 
 // Show something about the server
 func watcherShowServer(server string, showWhat string) (response string) {
+	var errstr string
+	var handlerNodeIDs, handlerAddrs []string
 
-	// Get the list of handlers on the server
-	handlerNodeIDs, handlerAddrs, errstr := watcherGetHandlers(server)
-	if errstr != "" {
-		return errstr
+	if server == "api.r" {
+
+		// Special case debugging for server "r" meaning Ray's localhost
+		// Local dev doesn't support http, and staging/production don't support https
+		handlerNodeIDs = []string{"Ray's Local Dev"}
+		handlerAddrs = []string{"https://api.ray.blues.tools"}
+
+	} else {
+
+		// Get the list of handlers on the server
+		handlerNodeIDs, handlerAddrs, errstr = watcherGetHandlers(server)
+		if errstr != "" {
+			return errstr
+		}
+
 	}
 
 	// Show the handlers
@@ -99,13 +108,7 @@ func watcherGetHandlers(server string) (handlerNodeIDs []string, handlerAddrs []
 
 }
 
-// Show something about a handler
-func watcherShowHandler(addr string, showWhat string) (response string, errstr string) {
-
-	// If showing nothing, done
-	if showWhat == "" {
-		return
-	}
+func getHandlerInfo(addr string, showWhat string) (pb PingBody, errstr string) {
 
 	// Get the data
 	url := fmt.Sprintf("%s/ping?show=\"%s\"", addr, showWhat)
@@ -118,25 +121,44 @@ func watcherShowHandler(addr string, showWhat string) (response string, errstr s
 	httpclient := &http.Client{
 		Timeout: time.Second * time.Duration(30),
 	}
-	fmt.Printf("%s\n", url)
 	rsp, err := httpclient.Do(req)
-	fmt.Printf("%s\n", err)
 	if err != nil {
 		errstr = err.Error()
 		return
 	}
 	defer rsp.Body.Close()
 
+	// Read the body
 	rspJSON, err := io.ReadAll(rsp.Body)
 	if err != nil {
 		errstr = err.Error()
 		return
 	}
 
-	var pb PingBody
+	// Unmarshal it
 	err = json.Unmarshal(rspJSON, &pb)
 	if err != nil {
 		errstr = err.Error()
+		return
+	}
+
+	// Done
+	return
+
+}
+
+// Show something about a handler
+func watcherShowHandler(addr string, showWhat string) (response string, errstr string) {
+
+	// If showing nothing, done
+	if showWhat == "" {
+		return
+	}
+
+	// Get the info from the handler
+	var pb PingBody
+	pb, errstr = getHandlerInfo(addr, showWhat)
+	if errstr != "" {
 		return
 	}
 
