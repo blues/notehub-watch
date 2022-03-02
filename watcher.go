@@ -90,7 +90,7 @@ func watcherGetHandlers(server string) (handlerNodeIDs []string, handlerAddrs []
 	}
 	for _, h := range *pb.Body.AppHandlers {
 		handlerNodeIDs = append(handlerNodeIDs, h.NodeID)
-		handlerAddrs = append(handlerAddrs, h.Ipv4)
+		handlerAddrs = append(handlerAddrs, h.PublicIpv4)
 	}
 
 	return
@@ -107,9 +107,6 @@ func watcherShowHandler(addr string, showWhat string) (response string, errstr s
 
 	// Get the data
 	url := fmt.Sprintf("https://%s/ping?show=\"%s\"", addr, showWhat)
-
-	response = url
-	return
 	rsp, err := http.Get(url)
 	if err != nil {
 		errstr = err.Error()
