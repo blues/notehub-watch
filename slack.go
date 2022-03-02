@@ -14,43 +14,6 @@ import (
 	"github.com/slack-go/slack"
 )
 
-type watcherOptions struct {
-
-	// Slice of bool will append 'true' each time the option
-	// is encountered (can be set multiple times, like -vvv)
-	Verbose []bool `short:"v" long:"verbose" description:"Show verbose debug information"`
-
-	// Example of automatic marshalling to desired type (uint)
-	Offset uint `long:"offset" description:"Offset"`
-
-	// Example of a callback, called each time the option is found.
-	Call func(string) `short:"c" description:"Call phone number"`
-
-	// Example of a required flag
-	Name string `short:"n" long:"name" description:"A name"`
-
-	// Example of a value name
-	File string `short:"f" long:"file" description:"A file" value-name:"FILE"`
-
-	// Example of a pointer
-	Ptr *int `short:"p" description:"A pointer to an integer"`
-
-	// Example of a slice of strings
-	StringSlice []string `short:"s" description:"A slice of strings"`
-
-	// Example of a slice of pointers
-	PtrSlice []*string `long:"ptrslice" description:"A slice of pointers to string"`
-
-	// Example of a map
-	IntMap map[string]int `long:"intmap" description:"A map from string to int"`
-
-	// Example of positional string arguments
-	Args struct {
-		Request string
-		//		Other   []string
-	} `positional-args:"yes" description:"Watcher request" required:"true"`
-}
-
 // Send a message to Slack.  See:
 // https://api.slack.com/reference/messaging/payload
 // https://github.com/slack-go/slack
@@ -94,7 +57,7 @@ func slackCommandWatcher(s slack.SlashCommand) (response string) {
 
 	// Pre-generate error output
 	errOutput := bytes.NewBufferString("")
-	errOutput.WriteString("\nUsage:\n")
+	errOutput.WriteString("\nOptions:\n")
 	defer f.SetOutput(nil)
 	f.SetOutput(errOutput)
 	f.PrintDefaults()
@@ -109,12 +72,12 @@ func slackCommandWatcher(s slack.SlashCommand) (response string) {
 
 	// Dispatch based on primary arg
 	switch f.Arg(0) {
-	case "register":
-		return "register"
-	default:
-		return fmt.Sprintf("request '%s' not recognized\n"+errOutput.String(), f.Arg(0))
+
+	case "show":
+		return watcherShow(f.Arg(1), f.Arg(2))
+
 	}
 
-	return fmt.Sprintf("%+v", f)
+	return fmt.Sprintf("request '%s' not recognized\n"+errOutput.String(), f.Arg(0))
 
 }
