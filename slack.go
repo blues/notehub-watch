@@ -43,7 +43,10 @@ type watcherOptions struct {
 	IntMap map[string]int `long:"intmap" description:"A map from string to int"`
 
 	// Example of positional string arguments
-	Args string `positional-args:"yes" description:"Watcher request" required:"true"`
+	Args struct {
+		Request string
+		Other   []string
+	} `positional-args:"yes" description:"Watcher request" required:"true"`
 }
 
 // Send a message to Slack.  See:
