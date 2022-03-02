@@ -6,6 +6,7 @@
 # by default runs our code unprivileged.
 
 set -v
+export PATH=$PATH:/usr/local/go/bin
 git reset --hard
 git pull
 go get -u
