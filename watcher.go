@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"time"
 )
 
 // Watcher show command
@@ -108,9 +109,18 @@ func watcherShowHandler(addr string, showWhat string) (response string, errstr s
 
 	// Get the data
 	url := fmt.Sprintf("%s/ping?show=\"%s\"", addr, showWhat)
-	response = url
-	return
-	rsp, err := http.Get(url)
+
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		errstr = err.Error()
+		return
+	}
+	httpclient := &http.Client{
+		Timeout: time.Second * time.Duration(30),
+	}
+	fmt.Printf("%s\n", url)
+	rsp, err := httpclient.Do(req)
+	fmt.Printf("%s\n", err)
 	if err != nil {
 		errstr = err.Error()
 		return
