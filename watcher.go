@@ -17,9 +17,9 @@ func watcherShow(server string, showWhat string) (result string) {
 
 	if server == "" {
 		return "" +
-			"/watcher prod show <what>\n" +
-			"/watcher staging show <what>\n" +
-			"/watcher <yourserver> show <what>\n" +
+			"/notehub prod show <what>\n" +
+			"/notehub staging show <what>\n" +
+			"/notehub <yourserver> show <what>\n" +
 			""
 	}
 

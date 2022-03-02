@@ -37,7 +37,7 @@ func inboundSlackRequestHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	switch s.Command {
-	case "/watcher":
+	case "/notehub":
 		w.Write([]byte(slackCommandWatcher(s)))
 	default:
 		w.Write([]byte("unknown command"))
@@ -47,11 +47,11 @@ func inboundSlackRequestHandler(w http.ResponseWriter, r *http.Request) {
 
 }
 
-// Slack /watcher request handler
+// Slack /notehub request handler
 func slackCommandWatcher(s slack.SlashCommand) (response string) {
 
 	// Register flags
-	f := flag.NewFlagSet("/watcher", flag.ContinueOnError)
+	f := flag.NewFlagSet("/notehub", flag.ContinueOnError)
 	var fInterface string
 	f.StringVar(&fInterface, "interface", "", "select 'serial' or 'i2c' interface for notecard")
 
