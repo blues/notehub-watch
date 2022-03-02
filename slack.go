@@ -24,8 +24,8 @@ func slackSendMessage(message string) (err error) {
 
 }
 
-// /watcher handler
-func inboundWebWatcherHandler(w http.ResponseWriter, r *http.Request) {
+// Slack inbound 'slash command' request handler
+func inboundSlackRequestHandler(w http.ResponseWriter, r *http.Request) {
 
 	s, err := slack.SlashCommandParse(r)
 	if err != nil {
@@ -35,13 +35,17 @@ func inboundWebWatcherHandler(w http.ResponseWriter, r *http.Request) {
 
 	switch s.Command {
 	case "/watcher":
-		params := &slack.Msg{Text: s.Text}
-		response := fmt.Sprintf("You asked for the weather for %v", params.Text)
-		w.Write([]byte(response))
+		w.Write([]byte(slackCommandWatcher(s)))
 	default:
 		w.Write([]byte("unknown command"))
 	}
 
 	return
 
+}
+
+// Slack /watcher request handler
+func slackCommandWatcher(s slack.SlashCommand) (response string) {
+	response = fmt.Sprintf("echo: %v", s.Text)
+	return
 }
