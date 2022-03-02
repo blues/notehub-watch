@@ -66,15 +66,15 @@ func slackCommandWatcher(s slack.SlashCommand) (response string) {
 	f.Parse(strings.Split(s.Text, " "))
 
 	// If no args, the request wasn't specified
-	if f.NArg() == 0 {
-		return "request type not specified" + errOutput.String()
+	if f.NArg() < 2 {
+		return "/watcher staging [command] [args]"
 	}
 
 	// Dispatch based on primary arg
-	switch f.Arg(0) {
+	switch f.Arg(1) {
 
 	case "show":
-		return watcherShow(f.Arg(1), f.Arg(2))
+		return watcherShow(f.Arg(0), f.Arg(2))
 
 	}
 
