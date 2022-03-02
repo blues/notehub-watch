@@ -179,7 +179,7 @@ func watcherShowHandler(addr string, showWhat string) (response string, errstr s
 			response = "no load balancer information available"
 			return
 		}
-		rspJSON, err := json.Marshal(*pb.Body.LBStatus)
+		rspJSON, err := json.MarshalIndent(*pb.Body.LBStatus, "", "    ")
 		if err != nil {
 			errstr = err.Error()
 		} else {
