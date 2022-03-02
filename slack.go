@@ -65,11 +65,6 @@ func slackCommandWatcher(s slack.SlashCommand) (response string) {
 	// Parse flags
 	f.Parse(strings.Split(s.Text, " "))
 
-	// If no args, the request wasn't specified
-	if f.NArg() < 2 {
-		return "/watcher staging [command] [args]"
-	}
-
 	// Dispatch based on primary arg
 	switch f.Arg(1) {
 

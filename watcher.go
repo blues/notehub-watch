@@ -16,9 +16,9 @@ func watcherShow(server string, showWhat string) (result string) {
 
 	if server == "" {
 		return "" +
-			"show prod <what>\n" +
-			"show staging <what>\n" +
-			"show <yourserver> <what>\n" +
+			"/watcher prod show <what>\n" +
+			"/watcher staging show <what>\n" +
+			"/watcher <yourserver> show <what>\n" +
 			""
 	}
 
@@ -126,6 +126,9 @@ func watcherShowHandler(addr string, showWhat string) (response string, errstr s
 		errstr = err.Error()
 		return
 	}
+
+	response = showWhat
+	return
 
 	// Return it
 	switch showWhat {
