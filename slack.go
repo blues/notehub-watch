@@ -87,7 +87,7 @@ func inboundSlackRequestHandler(w http.ResponseWriter, r *http.Request) {
 // Slack /watcher request handler
 func slackCommandWatcher(s slack.SlashCommand) (response string) {
 
-	os.Args[0] = "/watcher"
+	os.Args[0] = "//watcher"
 	var opts watcherOptions
 	_, err := flags.ParseArgs(&opts, strings.Split(s.Text, " "))
 	if err != nil {
