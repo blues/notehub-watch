@@ -5,6 +5,9 @@
 package main
 
 import (
+	"fmt"
+	"net/http"
+
 	"github.com/slack-go/slack"
 )
 
@@ -18,5 +21,27 @@ func slackSendMessage(message string) (err error) {
 	}
 
 	return slack.PostWebhook(Config.SlackWebhookURL, payload)
+
+}
+
+// /watcher handler
+func inboundWebWatcherHandler(w http.ResponseWriter, r *http.Request) {
+
+	s, err := slack.SlashCommandParse(r)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	switch s.Command {
+	case "/watcher":
+		params := &slack.Msg{Text: s.Text}
+		response := fmt.Sprintf("You asked for the weather for %v", params.Text)
+		w.Write([]byte(response))
+	default:
+		w.Write([]byte("unknown command"))
+	}
+
+	return
 
 }
