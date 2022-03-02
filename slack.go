@@ -14,8 +14,8 @@ import (
 )
 
 type watcherOptions struct {
-	Command string "/watcher"
-	Options string "watcher-options"
+	Command string `/watcher`
+	Options string `watcher-options`
 
 	// Slice of bool will append 'true' each time the option
 	// is encountered (can be set multiple times, like -vvv)
