@@ -11,4 +11,4 @@ git pull
 go get -u
 go build
 
-sudo ./myjson
+sudo ./notehub-watch
