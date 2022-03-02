@@ -12,17 +12,41 @@ import (
 	"github.com/slack-go/slack"
 )
 
-// Request parameters
-type readParameters struct {
-}
+type watcherOptions struct {
+	// Slice of bool will append 'true' each time the option
+	// is encountered (can be set multiple times, like -vvv)
+	Verbose []bool `short:"v" long:"verbose" description:"Show verbose debug information"`
 
-type writeParameters struct {
-}
+	// Example of automatic marshalling to desired type (uint)
+	Offset uint `long:"offset" description:"Offset"`
 
-type watcherArgs struct {
-	Verbose bool           `short:"v" long:"verbose" description:"Display logging"`
-	Read    readParameters `command:"read" alias:"r" description:"Read functions"`
-	Write   readParameters `command:"write" alias:"w" description:"Write functions"`
+	// Example of a callback, called each time the option is found.
+	Call func(string) `short:"c" description:"Call phone number"`
+
+	// Example of a required flag
+	Name string `short:"n" long:"name" description:"A name" required:"true"`
+
+	// Example of a value name
+	File string `short:"f" long:"file" description:"A file" value-name:"FILE"`
+
+	// Example of a pointer
+	Ptr *int `short:"p" description:"A pointer to an integer"`
+
+	// Example of a slice of strings
+	StringSlice []string `short:"s" description:"A slice of strings"`
+
+	// Example of a slice of pointers
+	PtrSlice []*string `long:"ptrslice" description:"A slice of pointers to string"`
+
+	// Example of a map
+	IntMap map[string]int `long:"intmap" description:"A map from string to int"`
+
+	// Example of positional arguments
+	Args struct {
+		ID   string
+		Num  int
+		Rest []string
+	} `positional-args:"yes" required:"yes"`
 }
 
 // Send a message to Slack.  See:
@@ -61,12 +85,13 @@ func inboundSlackRequestHandler(w http.ResponseWriter, r *http.Request) {
 // Slack /watcher request handler
 func slackCommandWatcher(s slack.SlashCommand) (response string) {
 
-	p := flags.NewParser(new(watcherArgs), flags.Default)
+	var opts watcherOptions
+	p := flags.NewParser(&opts, flags.Default)
 	_, err := p.Parse()
 	if err != nil {
 		return fmt.Sprintf("%s", err)
 	}
 
-	return fmt.Sprintf("%v", p)
+	return fmt.Sprintf("%v", opts)
 
 }
