@@ -9,7 +9,7 @@ import (
 	"time"
 )
 
-// Directory in the home directory that will be used for data
+// Directory that will be used for data
 const configDataDirectoryBase = "/data/"
 
 var configDataDirectory = ""
