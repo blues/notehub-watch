@@ -90,7 +90,7 @@ func watcherGetHandlers(server string) (handlerNodeIDs []string, handlerAddrs []
 	var pb PingBody
 	err = json.Unmarshal(rspJSON, &pb)
 	if err != nil {
-		errstr = err.Error()
+		errstr = string(rspJSON)
 		return
 	}
 
