@@ -14,6 +14,9 @@ import (
 )
 
 type watcherOptions struct {
+	Command string "/watcher"
+	Options string "watcher-options"
+
 	// Slice of bool will append 'true' each time the option
 	// is encountered (can be set multiple times, like -vvv)
 	Verbose []bool `short:"v" long:"verbose" description:"Show verbose debug information"`
@@ -45,7 +48,7 @@ type watcherOptions struct {
 	// Example of positional string arguments
 	Args struct {
 		Request string
-		Other   []string
+		//		Other   []string
 	} `positional-args:"yes" description:"Watcher request" required:"true"`
 }
 
