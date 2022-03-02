@@ -8,6 +8,11 @@ package main
 // notehub/http-ping.go
 //
 
+// PingBody is the structure wrapping the ping request structure
+type PingBody struct {
+	Body PingRequest `json:"body,omitempty"`
+}
+
 // PingRequest is the structure returned to the caller
 type PingRequest struct {
 	Protocol        string        `json:"protocol,omitempty"`

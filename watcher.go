@@ -77,18 +77,18 @@ func watcherGetHandlers(server string) (handlerNodeIDs []string, handlerAddrs []
 		return
 	}
 
-	var pr PingRequest
-	err = json.Unmarshal(rspJSON, &pr)
+	var pb PingBody
+	err = json.Unmarshal(rspJSON, &pb)
 	if err != nil {
 		errstr = err.Error()
 		return
 	}
 
-	if pr.AppHandlers == nil {
+	if pb.Body.AppHandlers == nil {
 		errstr = "no handlers in " + string(rspJSON)
 		return
 	}
-	for _, h := range *pr.AppHandlers {
+	for _, h := range *pb.Body.AppHandlers {
 		handlerNodeIDs = append(handlerNodeIDs, h.NodeID)
 		handlerAddrs = append(handlerAddrs, h.Ipv4)
 	}
@@ -120,8 +120,8 @@ func watcherShowHandler(addr string, showWhat string) (response string, errstr s
 		return
 	}
 
-	var pr PingRequest
-	err = json.Unmarshal(rspJSON, &pr)
+	var pb PingBody
+	err = json.Unmarshal(rspJSON, &pb)
 	if err != nil {
 		errstr = err.Error()
 		return
@@ -131,19 +131,19 @@ func watcherShowHandler(addr string, showWhat string) (response string, errstr s
 	switch showWhat {
 
 	case "goroutines":
-		response = pr.GoroutineStatus
+		response = pb.Body.GoroutineStatus
 		return
 
 	case "heap":
-		response = pr.HeapStatus
+		response = pb.Body.HeapStatus
 		return
 
 	case "lb":
-		if pr.LBStatus == nil {
+		if pb.Body.LBStatus == nil {
 			response = "no load balancer information available"
 			return
 		}
-		rspJSON, err := json.Marshal(*pr.LBStatus)
+		rspJSON, err := json.Marshal(*pb.Body.LBStatus)
 		if err != nil {
 			errstr = err.Error()
 		} else {
