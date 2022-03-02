@@ -7,6 +7,7 @@ package main
 import (
 	"fmt"
 	"net/http"
+	"strings"
 
 	"github.com/jessevdk/go-flags"
 	"github.com/slack-go/slack"
@@ -86,8 +87,7 @@ func inboundSlackRequestHandler(w http.ResponseWriter, r *http.Request) {
 func slackCommandWatcher(s slack.SlashCommand) (response string) {
 
 	var opts watcherOptions
-	p := flags.NewParser(&opts, flags.Default)
-	_, err := p.Parse()
+	_, err := flags.ParseArgs(&opts, strings.Split(s.Text, " "))
 	if err != nil {
 		return fmt.Sprintf("%s", err)
 	}
