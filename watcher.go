@@ -62,28 +62,32 @@ func watcherShowServer(server string, showWhat string) (response string) {
 }
 
 // Get the list of handlers
-func watcherGetHandlers(server string) (handlerNodeIDs []string, handlerAddrs []string, response string) {
+func watcherGetHandlers(server string) (handlerNodeIDs []string, handlerAddrs []string, errstr string) {
 
 	rsp, err := http.Get("http://" + server + "/ping")
 	if err != nil {
-		response = err.Error()
+		errstr = err.Error()
 		return
 	}
 	defer rsp.Body.Close()
 
 	rspJSON, err := io.ReadAll(rsp.Body)
 	if err != nil {
-		response = err.Error()
+		errstr = err.Error()
 		return
 	}
 
 	var pr PingRequest
 	err = json.Unmarshal(rspJSON, &pr)
 	if err != nil {
-		response = err.Error()
+		errstr = err.Error()
 		return
 	}
 
+	if pr.AppHandlers == nil {
+		errstr = "no handlers in " + string(rspJSON)
+		return
+	}
 	for _, h := range *pr.AppHandlers {
 		handlerNodeIDs = append(handlerNodeIDs, h.NodeID)
 		handlerAddrs = append(handlerAddrs, h.Ipv4)
