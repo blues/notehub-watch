@@ -91,6 +91,6 @@ func slackCommandWatcher(s slack.SlashCommand) (response string) {
 		return fmt.Sprintf("%s", err)
 	}
 
-	return fmt.Sprintf("%v", opts)
+	return fmt.Sprintf("%+v", opts)
 
 }
