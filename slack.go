@@ -87,7 +87,10 @@ func inboundSlackRequestHandler(w http.ResponseWriter, r *http.Request) {
 // Slack /watcher request handler
 func slackCommandWatcher(s slack.SlashCommand) (response string) {
 
+	// Register flags
 	f := flag.NewFlagSet("/watcher", flag.ContinueOnError)
+	var fInterface string
+	f.StringVar(&fInterface, "interface", "", "select 'serial' or 'i2c' interface for notecard")
 
 	// Pre-generate error output
 	errOutput := bytes.NewBufferString("")
@@ -95,9 +98,6 @@ func slackCommandWatcher(s slack.SlashCommand) (response string) {
 	defer f.SetOutput(nil)
 	f.SetOutput(errOutput)
 	f.PrintDefaults()
-
-	var fInterface string
-	f.StringVar(&fInterface, "interface", "", "select 'serial' or 'i2c' interface for notecard")
 
 	// Parse flags
 	f.Parse(strings.Split(s.Text, " "))
