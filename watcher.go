@@ -219,7 +219,6 @@ func watcherGetHandlerStats(addr string) (response string, errstr string) {
 	if pb.Body.LBStatus != nil && len(*pb.Body.LBStatus) >= 1 {
 
 		// Uptime
-		response += bol
 		uptimeSecs := time.Now().Unix() - (*pb.Body.LBStatus)[0].Started
 		uptimeDays := uptimeSecs / (24 * 60 * 60)
 		uptimeSecs -= uptimeDays * (24 * 60 * 60)
@@ -227,6 +226,7 @@ func watcherGetHandlerStats(addr string) (response string, errstr string) {
 		uptimeSecs -= uptimeHours * (60 * 60)
 		uptimeMins := uptimeSecs / 60
 		uptimeSecs -= uptimeMins * 60
+		response += bol
 		response += fmt.Sprintf("Uptime: %dd:%dh:%dm", uptimeDays, uptimeHours, uptimeMins)
 		response += eol
 
@@ -252,7 +252,7 @@ func watcherGetHandlerStats(addr string) (response string, errstr string) {
 		bucketMins := (*pb.Body.LBStatus)[0].BucketMins
 		response += bol
 		for i := range stats {
-			response += fmt.Sprintf("\t%dm", i*bucketMins)
+			response += fmt.Sprintf("\t%dm", (i+1)*bucketMins)
 		}
 		response += eol
 
@@ -278,7 +278,7 @@ func watcherGetHandlerStats(addr string) (response string, errstr string) {
 		response += "Databases r/w: "
 		response += eol
 		for k, _ := range stats[0].Databases {
-			response += bol
+			response += bol + bol
 			response += k
 			for _, stat := range stats {
 				response += fmt.Sprintf("\t%d/%d", stat.Databases[k].Reads, stat.Databases[k].Writes)
@@ -291,7 +291,7 @@ func watcherGetHandlerStats(addr string) (response string, errstr string) {
 		response += "Cache invalidations/size/hwm: "
 		response += eol
 		for k, _ := range stats[0].Caches {
-			response += bol
+			response += bol + bol
 			response += k
 			for _, stat := range stats {
 				response += fmt.Sprintf("\t%d/%d/%d",
@@ -301,29 +301,33 @@ func watcherGetHandlerStats(addr string) (response string, errstr string) {
 		}
 
 		// Auth/API stats
-		response += bol
-		response += "Authorizations: "
-		response += eol
-		for k, _ := range stats[0].Authorizations {
+		if len(stats[0].Authorizations) > 0 {
 			response += bol
-			response += k
-			for _, stat := range stats {
-				response += fmt.Sprintf("\t%d", stat.Authorizations[k])
-			}
+			response += "Authorizations: "
 			response += eol
+			for k, _ := range stats[0].Authorizations {
+				response += bol + bol
+				response += k
+				for _, stat := range stats {
+					response += fmt.Sprintf("\t%d", stat.Authorizations[k])
+				}
+				response += eol
+			}
 		}
 
 		// Errors stats
-		response += bol
-		response += "Errors: "
-		response += eol
-		for k, _ := range stats[0].Errors {
+		if len(stats[0].Errors) > 0 {
 			response += bol
-			response += k
-			for _, stat := range stats {
-				response += fmt.Sprintf("\t%d", stat.Errors[k])
-			}
+			response += "Errors: "
 			response += eol
+			for k, _ := range stats[0].Errors {
+				response += bol + bol
+				response += k
+				for _, stat := range stats {
+					response += fmt.Sprintf("\t%d", stat.Errors[k])
+				}
+				response += eol
+			}
 		}
 
 	}
