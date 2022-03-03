@@ -52,7 +52,7 @@ func watcherShowServer(server string, showWhat string) (response string) {
 
 	// Show the handlers
 	for i, addr := range handlerAddrs {
-		response += fmt.Sprintf("%s\n", handlerNodeIDs[i])
+		response += fmt.Sprintf("NODE %s\n", handlerNodeIDs[i])
 		r, errstr := watcherShowHandler(addr, showWhat)
 		if errstr != "" {
 			response += "  " + errstr + "\n"
