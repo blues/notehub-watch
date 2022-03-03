@@ -273,7 +273,7 @@ func watcherGetHandlerStats(addr string) (response string, errstr string) {
 		response += eol
 
 		// Event stats
-		response += indent + indent + "Events" + eol
+		response += indent + indent + "Events Routed" + eol
 		response += indent + indent + indent
 		for _, stat := range stats {
 			response += fmt.Sprintf("%d\t", stat.EventsRouted)
