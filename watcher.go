@@ -138,8 +138,6 @@ func getHandlerInfo(addr string, showWhat string) (pb PingBody, errstr string) {
 		return
 	}
 
-	// OZZIE
-	fmt.Printf("%s\n", string(rspJSON))
 	// Unmarshal it
 	err = json.Unmarshal(rspJSON, &pb)
 	if err != nil {
@@ -222,6 +220,7 @@ func watcherGetHandlerStats(addr string) (response string, errstr string) {
 	if errstr != "" {
 		return
 	}
+	fmt.Printf("%+v", (*pb.Body.LBStatus)[0]) // OZZIE
 
 	// Generate summary info
 	if pb.Body.LBStatus != nil && len(*pb.Body.LBStatus) >= 1 {
