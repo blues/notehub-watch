@@ -239,10 +239,11 @@ func watcherGetHandlerStats(addr string) (response string, errstr string) {
 
 		// Handlers
 		response += indent + indent + "Handlers "
-		response += fmt.Sprintf("continuous: %d", (*pb.Body.LBStatus)[0].EphemeralHandlers)
-		response += fmt.Sprintf("notification: %d", (*pb.Body.LBStatus)[0].NotificationHandlers)
-		response += fmt.Sprintf("ephemeral: %d", (*pb.Body.LBStatus)[0].EphemeralHandlers)
-		response += fmt.Sprintf("discovery: %d", (*pb.Body.LBStatus)[0].DiscoveryHandlers)
+		response += fmt.Sprintf("continuous:%d ", (*pb.Body.LBStatus)[0].EphemeralHandlers)
+		response += fmt.Sprintf("notification:%d ", (*pb.Body.LBStatus)[0].NotificationHandlers)
+		response += fmt.Sprintf("ephemeral:%d ", (*pb.Body.LBStatus)[0].EphemeralHandlers)
+		response += fmt.Sprintf("discovery:%d ", (*pb.Body.LBStatus)[0].DiscoveryHandlers)
+		response += eol
 
 	}
 
@@ -283,7 +284,7 @@ func watcherGetHandlerStats(addr string) (response string, errstr string) {
 		response += indent + indent + "Databases (r/w)" + eol
 		for k, _ := range stats[0].Databases {
 			response += indent + indent + indent + k + eol
-			response += indent + indent + indent
+			response += indent + indent + indent + indent
 			for _, stat := range stats {
 				response += fmt.Sprintf("%d/%d\t", stat.Databases[k].Reads, stat.Databases[k].Writes)
 			}
@@ -294,7 +295,7 @@ func watcherGetHandlerStats(addr string) (response string, errstr string) {
 		response += indent + indent + "Caches (invalidations/size/hwm)" + eol
 		for k, _ := range stats[0].Caches {
 			response += indent + indent + indent + k + eol
-			response += indent + indent + indent
+			response += indent + indent + indent + indent
 			for _, stat := range stats {
 				response += fmt.Sprintf("%d/%d/%d\t",
 					stat.Caches[k].Invalidations, stat.Caches[k].Entries, stat.Caches[k].EntriesHWM)
@@ -307,7 +308,7 @@ func watcherGetHandlerStats(addr string) (response string, errstr string) {
 			response += indent + indent + "Authorizations (API)" + eol
 			for k, _ := range stats[0].Authorizations {
 				response += indent + indent + indent + k + eol
-				response += indent + indent + indent
+				response += indent + indent + indent + indent
 				for _, stat := range stats {
 					response += fmt.Sprintf("%d\t", stat.Authorizations[k])
 				}
@@ -320,7 +321,7 @@ func watcherGetHandlerStats(addr string) (response string, errstr string) {
 			response += indent + indent + "Errors (FATAL)" + eol
 			for k, _ := range stats[0].Errors {
 				response += indent + indent + indent + k + eol
-				response += indent + indent + indent
+				response += indent + indent + indent + indent
 				for _, stat := range stats {
 					response += fmt.Sprintf("%d\t", stat.Errors[k])
 				}
