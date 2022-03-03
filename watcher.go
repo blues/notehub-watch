@@ -233,21 +233,16 @@ func watcherGetHandlerStats(addr string) (response string, errstr string) {
 		uptimeMins := uptimeSecs / 60
 		uptimeSecs -= uptimeMins * 60
 		response += indent + "RIGHT NOW" + eol
-		response += indent + indent + "Uptime" + eol
-		response += indent + indent + indent
+		response += indent + indent + "Uptime "
 		response += fmt.Sprintf("%dd:%dh:%dm", uptimeDays, uptimeHours, uptimeMins)
 		response += eol
 
 		// Handlers
-		response += indent + indent + "Handlers" + eol
-		response += indent + indent + indent + fmt.Sprintf("   ephemeral: %d",
-			(*pb.Body.LBStatus)[0].EphemeralHandlers) + eol
-		response += indent + indent + indent + fmt.Sprintf("  continuous: %d",
-			(*pb.Body.LBStatus)[0].EphemeralHandlers) + eol
-		response += indent + indent + indent + fmt.Sprintf("notification: %d",
-			(*pb.Body.LBStatus)[0].NotificationHandlers) + eol
-		response += indent + indent + indent + fmt.Sprintf("   discovery: %d",
-			(*pb.Body.LBStatus)[0].DiscoveryHandlers) + eol
+		response += indent + indent + "Handlers "
+		response += fmt.Sprintf("continuous: %d", (*pb.Body.LBStatus)[0].EphemeralHandlers)
+		response += fmt.Sprintf("notification: %d", (*pb.Body.LBStatus)[0].NotificationHandlers)
+		response += fmt.Sprintf("ephemeral: %d", (*pb.Body.LBStatus)[0].EphemeralHandlers)
+		response += fmt.Sprintf("discovery: %d", (*pb.Body.LBStatus)[0].DiscoveryHandlers)
 
 	}
 
@@ -260,7 +255,8 @@ func watcherGetHandlerStats(addr string) (response string, errstr string) {
 
 		// Display the header
 		bucketMins := (*pb.Body.LBStatus)[0].BucketMins
-		response += indent + "PAST"
+		response += indent + "PAST" + eol
+		response += indent + indent + indent
 		for i := range stats {
 			response += fmt.Sprintf("%dm\t", (i+1)*bucketMins)
 		}
@@ -278,7 +274,6 @@ func watcherGetHandlerStats(addr string) (response string, errstr string) {
 		// Event stats
 		response += indent + indent + "Events" + eol
 		response += indent + indent + indent
-		response += indent
 		for _, stat := range stats {
 			response += fmt.Sprintf("%d\t", stat.EventsRouted)
 		}
