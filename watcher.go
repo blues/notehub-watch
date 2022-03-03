@@ -183,6 +183,19 @@ func watcherShowHandler(addr string, showWhat string) (response string, errstr s
 		response = pb.Body.HeapStatus
 		return
 
+	case "handlers":
+		if pb.Body.AppHandlers == nil {
+			response = "no handler information available"
+			return
+		}
+		rspJSON, err := json.MarshalIndent(*pb.Body.AppHandlers, "", "    ")
+		if err != nil {
+			errstr = err.Error()
+		} else {
+			response = string(rspJSON)
+		}
+		return
+
 	case "lb":
 		if pb.Body.LBStatus == nil {
 			response = "no load balancer information available"
@@ -199,7 +212,7 @@ func watcherShowHandler(addr string, showWhat string) (response string, errstr s
 	}
 
 	// Unknown object to show
-	errstr = "unknown type: " + showWhat
+	errstr = "unknown 'show' type: " + showWhat
 	return
 }
 
