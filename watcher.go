@@ -220,7 +220,6 @@ func watcherGetHandlerStats(addr string) (response string, errstr string) {
 	if errstr != "" {
 		return
 	}
-	fmt.Printf("%+v", (*pb.Body.LBStatus)[0]) // OZZIE
 
 	// Generate summary info
 	if pb.Body.LBStatus != nil && len(*pb.Body.LBStatus) >= 1 {
@@ -240,7 +239,7 @@ func watcherGetHandlerStats(addr string) (response string, errstr string) {
 
 		// Handlers
 		response += indent + indent + "Handlers "
-		response += fmt.Sprintf("continuous:%d ", (*pb.Body.LBStatus)[0].EphemeralHandlers)
+		response += fmt.Sprintf("continuous:%d ", (*pb.Body.LBStatus)[0].ContinuousHandlers)
 		response += fmt.Sprintf("notification:%d ", (*pb.Body.LBStatus)[0].NotificationHandlers)
 		response += fmt.Sprintf("ephemeral:%d ", (*pb.Body.LBStatus)[0].EphemeralHandlers)
 		response += fmt.Sprintf("discovery:%d ", (*pb.Body.LBStatus)[0].DiscoveryHandlers)
