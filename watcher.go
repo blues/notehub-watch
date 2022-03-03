@@ -138,6 +138,8 @@ func getHandlerInfo(addr string, showWhat string) (pb PingBody, errstr string) {
 		return
 	}
 
+	// OZZIE
+	fmt.Printf("%s\n", string(rspJSON))
 	// Unmarshal it
 	err = json.Unmarshal(rspJSON, &pb)
 	if err != nil {
