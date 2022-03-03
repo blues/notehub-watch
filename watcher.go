@@ -357,7 +357,7 @@ func absoluteToRelative(stats []AppLBStat) (out []AppLBStat) {
 		return stats
 	}
 
-	for i, _ := range stats {
+	for i := 0; i < len(stats)-1; i++ {
 
 		stats[i].DiscoveryHandlers -= stats[i+1].DiscoveryHandlers
 		stats[i].EphemeralHandlers -= stats[i+1].EphemeralHandlers

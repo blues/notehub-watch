@@ -52,8 +52,10 @@ func slackCommandWatcher(s slack.SlashCommand) (response string) {
 
 	// Register flags
 	f := flag.NewFlagSet("/notehub", flag.ContinueOnError)
-	var fInterface string
-	f.StringVar(&fInterface, "interface", "", "select 'serial' or 'i2c' interface for notecard")
+
+	// Add options here
+	//	var fTest string
+	//	f.StringVar(&fTest, "test", "", "testing 1-2-3")
 
 	// Pre-generate error output
 	errOutput := bytes.NewBufferString("")
@@ -65,8 +67,16 @@ func slackCommandWatcher(s slack.SlashCommand) (response string) {
 	// Parse flags
 	f.Parse(strings.Split(s.Text, " "))
 
+	// Server arg is required
+	if f.Arg(0) == "" {
+		return "/notehub <server> [<action> [<args>]]"
+	}
+
 	// Dispatch based on primary arg
 	switch f.Arg(1) {
+
+	case "":
+		return watcherShow(f.Arg(0), "")
 
 	case "show":
 		return watcherShow(f.Arg(0), f.Arg(2))
