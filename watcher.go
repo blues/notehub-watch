@@ -316,14 +316,14 @@ func watcherGetHandlerStats(addr string) (response string, errstr string) {
 			}
 		}
 
-		// Errors stats
-		if len(stats[0].Errors) > 0 {
-			response += indent + indent + "Errors (FATAL)" + eol
-			for k, _ := range stats[0].Errors {
+		// Fatals stats
+		if len(stats[0].Fatals) > 0 {
+			response += indent + indent + "Fatals (FATAL)" + eol
+			for k, _ := range stats[0].Fatals {
 				response += indent + indent + indent + k + eol
 				response += indent + indent + indent + indent
 				for _, stat := range stats {
-					response += fmt.Sprintf("%d\t", stat.Errors[k])
+					response += fmt.Sprintf("%d\t", stat.Fatals[k])
 				}
 				response += eol
 			}
@@ -352,8 +352,8 @@ func absoluteToRelative(stats []AppLBStat) (out []AppLBStat) {
 	if stats[0].Authorizations == nil {
 		stats[0].Authorizations = make(map[string]int)
 	}
-	if stats[0].Errors == nil {
-		stats[0].Errors = make(map[string]int)
+	if stats[0].Fatals == nil {
+		stats[0].Fatals = make(map[string]int)
 	}
 
 	if len(stats) == 1 {
@@ -404,14 +404,14 @@ func absoluteToRelative(stats []AppLBStat) (out []AppLBStat) {
 			}
 		}
 
-		if stats[i+1].Errors == nil {
-			stats[i+1].Errors = make(map[string]int)
+		if stats[i+1].Fatals == nil {
+			stats[i+1].Fatals = make(map[string]int)
 		}
-		for k, vcur := range stats[i].Errors {
-			vprev, present := stats[i+1].Errors[k]
+		for k, vcur := range stats[i].Fatals {
+			vprev, present := stats[i+1].Fatals[k]
 			if present {
 				vcur -= vprev
-				stats[i].Errors[k] = vcur
+				stats[i].Fatals[k] = vcur
 			}
 		}
 
