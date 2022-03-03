@@ -41,20 +41,13 @@ func watcherShowServer(server string, showWhat string) (response string) {
 	var handlerNodeIDs, handlerAddrs []string
 
 	if server == "api.local" {
+		server = "api.ray.blues.tools"
+	}
 
-		// Special case debugging for server "local" meaning Ray's localhost
-		// Local dev doesn't support http, and staging/production don't support https
-		handlerNodeIDs = []string{"Local Dev"}
-		handlerAddrs = []string{"https://api.ray.blues.tools"}
-
-	} else {
-
-		// Get the list of handlers on the server
-		handlerNodeIDs, handlerAddrs, errstr = watcherGetHandlers(server)
-		if errstr != "" {
-			return errstr
-		}
-
+	// Get the list of handlers on the server
+	handlerNodeIDs, handlerAddrs, errstr = watcherGetHandlers(server)
+	if errstr != "" {
+		return errstr
 	}
 
 	// Show the handlers
@@ -110,7 +103,7 @@ func watcherGetHandlers(server string) (handlerNodeIDs []string, handlerAddrs []
 	}
 	for _, h := range *pb.Body.AppHandlers {
 		handlerNodeIDs = append(handlerNodeIDs, h.NodeID)
-		addr := fmt.Sprintf("http://%s:%d", h.PublicIpv4, h.HTTPPort)
+		addr := fmt.Sprintf("http://%s%s", server, h.PublicPath)
 		handlerAddrs = append(handlerAddrs, addr)
 	}
 
