@@ -58,39 +58,43 @@ type AppLBHandler struct {
 	Discovery      bool   `json:"discovery,omitempty"`
 	Continuous     bool   `json:"continuous,omitempty"`
 	Notification   bool   `json:"notification,omitempty"`
-	EventsEnqueued int    `json:"events_enqueued,omitempty"`
-	EventsDequeued int    `json:"events_dequeued,omitempty"`
-	EventsRouted   int    `json:"events_routed,omitempty"`
+	EventsEnqueued int64  `json:"events_enqueued,omitempty"`
+	EventsDequeued int64  `json:"events_dequeued,omitempty"`
+	EventsRouted   int64  `json:"events_routed,omitempty"`
 }
 
 // A database statistic
 type AppLBDatabase struct {
-	Reads  int `json:"reads,omitempty"`
-	Writes int `json:"writes,omitempty"`
+	Reads      int64 `json:"reads,omitempty"`
+	ReadMs     int64 `json:"read_ms,omitempty"`
+	ReadMsMax  int64 `json:"read_ms_max,omitempty"`
+	Writes     int64 `json:"writes,omitempty"`
+	WriteMs    int64 `json:"write_ms,omitempty"`
+	WriteMsMax int64 `json:"write_ms_max,omitempty"`
 }
 
 // A cache statistic
 type AppLBCache struct {
-	Invalidations int `json:"invalidations,omitempty"`
-	Entries       int `json:"entries,omitempty"`
-	EntriesHWM    int `json:"hwm,omitempty"`
+	Invalidations int64 `json:"invalidations,omitempty"`
+	Entries       int64 `json:"entries,omitempty"`
+	EntriesHWM    int64 `json:"hwm,omitempty"`
 }
 
 // AppLBStat is the data structure of a single running statistics batch
 type AppLBStat struct {
 	Started              int64                    `json:"started,omitempty"`
-	BucketMins           int                      `json:"minutes,omitempty"`
+	BucketMins           int64                    `json:"minutes,omitempty"`
 	SnapshotTaken        int64                    `json:"when,omitempty"`
-	DiscoveryHandlers    int                      `json:"handlers_discovery,omitempty"`
-	EphemeralHandlers    int                      `json:"handlers_ephemeral,omitempty"`
-	ContinuousHandlers   int                      `json:"handlers_continuous,omitempty"`
-	NotificationHandlers int                      `json:"handlers_notification,omitempty"`
-	EventsEnqueued       int                      `json:"events_enqueued,omitempty"`
-	EventsDequeued       int                      `json:"events_dequeued,omitempty"`
-	EventsRouted         int                      `json:"events_routed,omitempty"`
+	DiscoveryHandlers    int64                    `json:"handlers_discovery,omitempty"`
+	EphemeralHandlers    int64                    `json:"handlers_ephemeral,omitempty"`
+	ContinuousHandlers   int64                    `json:"handlers_continuous,omitempty"`
+	NotificationHandlers int64                    `json:"handlers_notification,omitempty"`
+	EventsEnqueued       int64                    `json:"events_enqueued,omitempty"`
+	EventsDequeued       int64                    `json:"events_dequeued,omitempty"`
+	EventsRouted         int64                    `json:"events_routed,omitempty"`
 	Handlers             map[string]AppLBHandler  `json:"handlers,omitempty"`
 	Databases            map[string]AppLBDatabase `json:"databases,omitempty"`
 	Caches               map[string]AppLBCache    `json:"caches,omitempty"`
-	Authorizations       map[string]int           `json:"authorizations,omitempty"`
-	Fatals               map[string]int           `json:"fatals,omitempty"`
+	Authorizations       map[string]int64         `json:"authorizations,omitempty"`
+	Fatals               map[string]int64         `json:"fatals,omitempty"`
 }
