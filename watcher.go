@@ -322,6 +322,7 @@ func watcherGetHandlerStats(addr string) (response string, errstr string) {
 			response += eol
 			response += code
 		}
+		return
 
 		// Cache stats
 		response += italic + "Caches" + italic + eol
