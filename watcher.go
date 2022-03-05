@@ -289,6 +289,7 @@ func watcherGetHandlerStats(addr string) (response string, errstr string) {
 				stat.DiscoveryHandlers+stat.EphemeralHandlers+stat.ContinuousHandlers+stat.NotificationHandlers)
 		}
 		response += code
+		response += eol
 
 		// Event stats
 		response += italic + "Events" + italic + eol
@@ -301,7 +302,7 @@ func watcherGetHandlerStats(addr string) (response string, errstr string) {
 			}
 			response += fmt.Sprintf("%7d", stat.EventsRouted)
 		}
-		response += eol
+		response += code
 		return // OZZIE
 
 		// Database stats
