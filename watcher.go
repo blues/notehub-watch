@@ -244,12 +244,12 @@ func watcherGetHandlerStats(addr string) (response string, errstr string) {
 		uptimeSecs -= uptimeHours * (60 * 60)
 		uptimeMins := uptimeSecs / 60
 		uptimeSecs -= uptimeMins * 60
-		response += bold + "Uptime:" + bold + " "
+		response += bold + "        Uptime:" + bold + " "
 		response += fmt.Sprintf("%dd:%dh:%dm", uptimeDays, uptimeHours, uptimeMins)
 		response += eol
 
 		// Handlers
-		response += bold + "Handlers:" + bold + " "
+		response += bold + "        Handlers:" + bold + " "
 		response += fmt.Sprintf("%d", (*pb.Body.LBStatus)[0].ContinuousHandlers+
 			(*pb.Body.LBStatus)[0].NotificationHandlers+
 			(*pb.Body.LBStatus)[0].EphemeralHandlers+
@@ -303,7 +303,7 @@ func watcherGetHandlerStats(addr string) (response string, errstr string) {
 			response += fmt.Sprintf("%7d", stat.EventsRouted)
 		}
 		response += code
-		return // OZZIE
+		response += eol
 
 		// Database stats
 		response += italic + "Databases" + italic + eol
@@ -343,6 +343,8 @@ func watcherGetHandlerStats(addr string) (response string, errstr string) {
 				response += fmt.Sprintf("%7d", stat.Databases[k].WriteMs)
 			}
 			response += code
+			response += eol
+			return // OZZIE
 		}
 
 		// Cache stats
@@ -367,6 +369,7 @@ func watcherGetHandlerStats(addr string) (response string, errstr string) {
 				response += fmt.Sprintf("%7d", stat.Caches[k].Entries)
 			}
 			response += code
+			response += eol
 		}
 
 		// Auth/API stats
@@ -384,6 +387,7 @@ func watcherGetHandlerStats(addr string) (response string, errstr string) {
 					response += fmt.Sprintf("%7d", stat.Authorizations[k])
 				}
 				response += code
+				response += eol
 			}
 		}
 
@@ -402,6 +406,7 @@ func watcherGetHandlerStats(addr string) (response string, errstr string) {
 					response += fmt.Sprintf("%7d", stat.Fatals[k])
 				}
 				response += code
+				response += eol
 			}
 		}
 
