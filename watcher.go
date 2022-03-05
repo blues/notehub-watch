@@ -280,6 +280,7 @@ func watcherGetHandlerStats(addr string) (response string, errstr string) {
 		response += italic + "Handlers" + italic + eol
 		response += code
 		response += timeHeader(bucketMins, buckets)
+		response += fmt.Sprintf("%7s", "")
 		for i, stat := range stats {
 			if i >= buckets {
 				break
@@ -291,9 +292,10 @@ func watcherGetHandlerStats(addr string) (response string, errstr string) {
 		return // OZZIE
 
 		// Event stats
-		response += italic + "Events Routed" + italic + eol
+		response += italic + "Events" + italic + eol
 		response += code
 		response += timeHeader(bucketMins, buckets)
+		response += fmt.Sprintf("%7s", "routed")
 		for i, stat := range stats {
 			if i >= buckets {
 				break
