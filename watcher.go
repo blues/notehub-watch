@@ -280,7 +280,6 @@ func watcherGetHandlerStats(addr string) (response string, errstr string) {
 		response += italic + "Handlers" + italic + eol
 		response += code
 		response += timeHeader(bucketMins, buckets)
-		response += eol  // OZZIE
 		response += code // OZZIE
 		return           // OZZIE
 		for _, stat := range stats {
