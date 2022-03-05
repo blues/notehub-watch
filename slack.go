@@ -40,7 +40,7 @@ func inboundSlackRequestHandler(w http.ResponseWriter, r *http.Request) {
 	switch s.Command {
 	case "/notehub":
 		responseMarkdown := slackCommandWatcher(s)
-		if false {
+		if slackUsingBlocksForResponses() {
 			blocks := slack.Blocks{
 				BlockSet: []slack.Block{
 					slack.NewSectionBlock(
@@ -67,6 +67,11 @@ func inboundSlackRequestHandler(w http.ResponseWriter, r *http.Request) {
 
 	return
 
+}
+
+// True if we're using blocks, which have certain limitations
+func slackUsingBlocksForResponses() bool {
+	return false
 }
 
 // Slack /notehub request handler

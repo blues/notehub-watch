@@ -52,7 +52,7 @@ func watcherShowServer(server string, showWhat string) (response string) {
 
 	// Show the handlers
 	for i, addr := range handlerAddrs {
-		response += fmt.Sprintf("*_NODE %s_*\n", handlerNodeIDs[i])
+		response += fmt.Sprintf("*NODE %s*\n", handlerNodeIDs[i])
 		r, errstr := watcherShowHandler(addr, showWhat)
 		if errstr != "" {
 			response += "  " + errstr + "\n"
@@ -271,13 +271,13 @@ func watcherGetHandlerStats(addr string) (response string, errstr string) {
 
 		// Limit the number of buckets because of slack UI block width
 		buckets := len(stats)
-		if buckets > 10 {
+		if slackUsingBlocksForResponses() && buckets > 10 {
 			buckets = 10
 		}
 		bucketMins := int((*pb.Body.LBStatus)[0].BucketMins)
 
 		// Handler stats
-		response += italic + "Handlers" + italic + eol
+		response += bold + italic + "Handlers" + italic + bold + eol
 		response += code
 		response += timeHeader(bucketMins, buckets)
 		response += fmt.Sprintf("%7s", "")
@@ -292,7 +292,7 @@ func watcherGetHandlerStats(addr string) (response string, errstr string) {
 		response += eol
 
 		// Event stats
-		response += italic + "Events" + italic + eol
+		response += bold + italic + "Events" + italic + bold + eol
 		response += code
 		response += timeHeader(bucketMins, buckets)
 		response += fmt.Sprintf("%7s", "routed")
@@ -306,7 +306,7 @@ func watcherGetHandlerStats(addr string) (response string, errstr string) {
 		response += eol
 
 		// Database stats
-		response += italic + "Databases" + italic + eol
+		response += bold + italic + "Databases" + italic + bold + eol
 		for k, _ := range stats[0].Databases {
 			response += k + eol
 			response += code
@@ -347,12 +347,12 @@ func watcherGetHandlerStats(addr string) (response string, errstr string) {
 		}
 
 		// Cache stats
-		response += italic + "Caches" + italic + eol
+		response += bold + italic + "Caches" + italic + bold + eol
 		for k, _ := range stats[0].Caches {
-			response += k + eol
+			response += k + " cache " + eol
 			response += code
 			response += timeHeader(bucketMins, buckets)
-			response += fmt.Sprintf("%7s", "refreshes")
+			response += fmt.Sprintf("%7s", "refresh")
 			for i, stat := range stats {
 				if i >= buckets {
 					break
@@ -373,7 +373,7 @@ func watcherGetHandlerStats(addr string) (response string, errstr string) {
 
 		// Auth/API stats
 		if len(stats[0].Authorizations) > 0 {
-			response += italic + "API Authorizations" + italic + eol
+			response += bold + italic + "API Authorizations" + italic + bold + eol
 			for k, _ := range stats[0].Authorizations {
 				response += k + eol
 				response += code
@@ -392,7 +392,7 @@ func watcherGetHandlerStats(addr string) (response string, errstr string) {
 
 		// Fatals stats
 		if len(stats[0].Fatals) > 0 {
-			response += italic + "Fatals" + italic + eol
+			response += bold + italic + "Fatals" + italic + bold + eol
 			for k, _ := range stats[0].Fatals {
 				response += k + eol
 				response += code
