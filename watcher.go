@@ -298,13 +298,12 @@ func watcherGetHandlerStats(addr string) (response string, errstr string) {
 		}
 
 		// Cache stats
-		response += indent + indent + "Caches (invalidations/size/hwm)" + eol
+		response += indent + indent + "Caches (invalidations/size)" + eol
 		for k, _ := range stats[0].Caches {
 			response += indent + indent + indent + k + eol
 			response += indent + indent + indent + indent
 			for _, stat := range stats {
-				response += fmt.Sprintf("%d/%d/%d\t",
-					stat.Caches[k].Invalidations, stat.Caches[k].Entries, stat.Caches[k].EntriesHWM)
+				response += fmt.Sprintf("%d/%d\t", stat.Caches[k].Invalidations, stat.Caches[k].Entries)
 			}
 			response += eol
 		}
