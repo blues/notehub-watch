@@ -344,8 +344,8 @@ func watcherGetHandlerStats(addr string) (response string, errstr string) {
 			}
 			response += code
 			response += eol
-			return // OZZIE
 		}
+		return // OZZIE
 
 		// Cache stats
 		response += italic + "Caches" + italic + eol
