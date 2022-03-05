@@ -281,12 +281,14 @@ func watcherGetHandlerStats(addr string) (response string, errstr string) {
 		response += eol
 
 		// Database stats
-		response += indent + indent + "Databases (r/w)" + eol
+		response += indent + indent + "Databases (r/ms|w/ms)" + eol
 		for k, _ := range stats[0].Databases {
 			response += indent + indent + indent + k + eol
 			response += indent + indent + indent + indent
 			for _, stat := range stats {
-				response += fmt.Sprintf("%d/%d\t", stat.Databases[k].Reads, stat.Databases[k].Writes)
+				response += fmt.Sprintf("%d/%d|%d/%d\t",
+					stat.Databases[k].Reads, stat.Databases[k].ReadMs,
+					stat.Databases[k].Writes, stat.Databases[k].WriteMs)
 			}
 			response += eol
 		}
@@ -336,13 +338,14 @@ func watcherGetHandlerStats(addr string) (response string, errstr string) {
 }
 
 // Convert N absolute buckets to N-1 relative buckets by subtracting values
-// from the NEXT bucket for each bucket.
+// from the next bucket from the value in each bucket.
 func absoluteToRelative(stats []AppLBStat) (out []AppLBStat) {
 
+	// Do prep work to make the code below flow more naturally without
+	// getting access violations because of uninitialized maps
 	if len(stats) == 0 {
 		stats = append(stats, AppLBStat{})
 	}
-
 	if stats[0].Databases == nil {
 		stats[0].Databases = make(map[string]AppLBDatabase)
 	}
@@ -356,10 +359,22 @@ func absoluteToRelative(stats []AppLBStat) (out []AppLBStat) {
 		stats[0].Fatals = make(map[string]int64)
 	}
 
+	// Special-case returning a single stat just after server reboot
 	if len(stats) == 1 {
+		for k, vcur := range stats[0].Databases {
+			if vcur.Reads > 0 {
+				vcur.ReadMs = vcur.ReadMs / vcur.Reads
+			}
+			if vcur.Writes > 0 {
+				vcur.WriteMs = vcur.WriteMs / vcur.Writes
+			}
+			stats[0].Databases[k] = vcur
+		}
 		return stats
 	}
 
+	// Iterate over all stats, converting from boot-absolute numbers
+	// to numbers that are bucket-scoped relative to the prior bucket
 	for i := 0; i < len(stats)-1; i++ {
 
 		stats[i].DiscoveryHandlers -= stats[i+1].DiscoveryHandlers
@@ -377,7 +392,15 @@ func absoluteToRelative(stats []AppLBStat) (out []AppLBStat) {
 			vprev, present := stats[i+1].Databases[k]
 			if present {
 				vcur.Reads -= vprev.Reads
+				vcur.ReadMs -= vprev.ReadMs
+				if vcur.Reads > 0 {
+					vcur.ReadMs = vcur.ReadMs / vcur.Reads
+				}
 				vcur.Writes -= vprev.Writes
+				vcur.WriteMs -= vprev.WriteMs
+				if vcur.Writes > 0 {
+					vcur.WriteMs = vcur.WriteMs / vcur.Writes
+				}
 				stats[i].Databases[k] = vcur
 			}
 		}
