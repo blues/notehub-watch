@@ -289,8 +289,6 @@ func watcherGetHandlerStats(addr string) (response string, errstr string) {
 				response += fmt.Sprintf("%d+%d\t", stat.Databases[k].Reads, stat.Databases[k].Writes)
 			}
 			response += eol
-			response += indent + indent + indent + k + eol
-			response += indent + indent + indent + indent
 			for _, stat := range stats {
 				response += fmt.Sprintf("%d/%d\t", stat.Databases[k].ReadMs, stat.Databases[k].WriteMs)
 			}
