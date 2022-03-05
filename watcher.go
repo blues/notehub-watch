@@ -410,7 +410,7 @@ func watcherGetHandlerStats(addr string) (response string, errstr string) {
 		}
 
 		// Memory stats
-		response += bold + italic + "Memory (KiB)" + italic + bold + eol
+		response += bold + italic + "Memory (MiB)" + italic + bold + eol
 		response += code
 		response += timeHeader(bucketMins, buckets)
 		response += fmt.Sprintf("%7s", "free")
@@ -418,7 +418,7 @@ func watcherGetHandlerStats(addr string) (response string, errstr string) {
 			if i >= buckets {
 				break
 			}
-			response += fmt.Sprintf("%7d", stat.OSMemFree/1024)
+			response += fmt.Sprintf("%7d", stat.OSMemFree/(1024*1024))
 		}
 		response += eol
 		response += fmt.Sprintf("%7s", "total")
@@ -426,7 +426,7 @@ func watcherGetHandlerStats(addr string) (response string, errstr string) {
 			if i >= buckets {
 				break
 			}
-			response += fmt.Sprintf("%7d", stat.OSMemTotal/1024)
+			response += fmt.Sprintf("%7d", stat.OSMemTotal/(1024*1024))
 		}
 		response += code
 		response += eol
