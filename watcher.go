@@ -211,7 +211,7 @@ func watcherShowHandler(addr string, showWhat string) (response string, errstr s
 
 // Return a time header
 func timeHeader(bucketMins int, buckets int) (response string) {
-	response += fmt.Sprintf("%6s", "")
+	response += fmt.Sprintf("%7s", "")
 	for i := 0; i < buckets; i++ {
 		response += fmt.Sprintf("%6dm", (i+1)*bucketMins)
 	}
@@ -271,8 +271,8 @@ func watcherGetHandlerStats(addr string) (response string, errstr string) {
 
 		// Limit the number of buckets because of slack UI block width
 		buckets := len(stats)
-		if buckets > 9 {
-			buckets = 9
+		if buckets > 10 {
+			buckets = 10
 		}
 		bucketMins := int((*pb.Body.LBStatus)[0].BucketMins)
 
