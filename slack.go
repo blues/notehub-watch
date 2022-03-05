@@ -71,24 +71,24 @@ func inboundSlackRequestHandler(w http.ResponseWriter, r *http.Request) {
 		slackResponse.Blocks = &blocks
 		slackResponseJSON, _ := json.Marshal(slackResponse)
 		slackResponseJSON = []byte("" +
-			"{\n" +
-			"    \"blocks\": [\n" +
-			"		{\n" +
-			"			\"type\": \"section\",\n" +
-			"			\"text\": {\n" +
-			"				\"type\": \"mrkdwn\",\n" +
-			"				\"text\": \"*It's 80 degrees right now.*\"\n" +
-			"			}\n" +
-			"		},\n" +
-			"		{\n" +
-			"			\"type\": \"section\",\n" +
-			"			\"text\": {\n" +
-			"				\"type\": \"mrkdwn\",\n" +
-			"				\"text\": \"Partly cloudy today and tomorrow\"\n" +
-			"			}\n" +
-			"		}\n" +
-			"	]\n" +
-			"}\n" +
+			"{" +
+			"\"blocks\":[" +
+			"		{" +
+			"			\"type\":\"section\"," +
+			"			\"text\":{" +
+			"				\"type\":\"mrkdwn\"," +
+			"				\"text\":\"*It's 80 degrees right now.*\"" +
+			"			}" +
+			"		}," +
+			"		{" +
+			"			\"type\":\"section\"," +
+			"			\"text\":{" +
+			"				\"type\":\"mrkdwn\"," +
+			"				\"text\":\"## h2 Partly cloudy today and tomorrow\"" +
+			"			}" +
+			"		}" +
+			"	]" +
+			"}" +
 			"")
 		fmt.Printf("%s\n", string(slackResponseJSON))
 		w.Write(slackResponseJSON)
