@@ -85,6 +85,8 @@ type AppLBStat struct {
 	Started              int64                    `json:"started,omitempty"`
 	BucketMins           int64                    `json:"minutes,omitempty"`
 	SnapshotTaken        int64                    `json:"when,omitempty"`
+	OSMemTotal           int64                    `json:"mem_total,omitempty"`
+	OSMemFree            int64                    `json:"mem_free,omitempty"`
 	DiscoveryHandlers    int64                    `json:"handlers_discovery,omitempty"`
 	EphemeralHandlers    int64                    `json:"handlers_ephemeral,omitempty"`
 	ContinuousHandlers   int64                    `json:"handlers_continuous,omitempty"`
