@@ -280,14 +280,12 @@ func watcherGetHandlerStats(addr string) (response string, errstr string) {
 		response += italic + "Handlers" + italic + eol
 		response += code
 		response += timeHeader(bucketMins, buckets)
-		response += code // OZZIE
-		return           // OZZIE
 		for _, stat := range stats {
 			response += fmt.Sprintf("%7d",
 				stat.DiscoveryHandlers+stat.EphemeralHandlers+stat.ContinuousHandlers+stat.NotificationHandlers)
 		}
-		response += eol
 		response += code
+		return // OZZIE
 
 		// Event stats
 		response += italic + "Events Routed" + italic + eol
@@ -297,7 +295,6 @@ func watcherGetHandlerStats(addr string) (response string, errstr string) {
 			response += fmt.Sprintf("%7d", stat.EventsRouted)
 		}
 		response += eol
-		response += code
 
 		// Database stats
 		response += italic + "Databases" + italic + eol
@@ -324,7 +321,6 @@ func watcherGetHandlerStats(addr string) (response string, errstr string) {
 			for _, stat := range stats {
 				response += fmt.Sprintf("%7d", stat.Databases[k].WriteMs)
 			}
-			response += eol
 			response += code
 		}
 
@@ -343,7 +339,6 @@ func watcherGetHandlerStats(addr string) (response string, errstr string) {
 			for _, stat := range stats {
 				response += fmt.Sprintf("%7d", stat.Caches[k].Entries)
 			}
-			response += eol
 			response += code
 		}
 
@@ -358,7 +353,6 @@ func watcherGetHandlerStats(addr string) (response string, errstr string) {
 				for _, stat := range stats {
 					response += fmt.Sprintf("%7d", stat.Authorizations[k])
 				}
-				response += eol
 				response += code
 			}
 		}
@@ -374,7 +368,6 @@ func watcherGetHandlerStats(addr string) (response string, errstr string) {
 				for _, stat := range stats {
 					response += fmt.Sprintf("%7d", stat.Fatals[k])
 				}
-				response += eol
 				response += code
 			}
 		}
