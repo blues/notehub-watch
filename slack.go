@@ -6,6 +6,7 @@ package main
 
 import (
 	"bytes"
+	"encoding/json"
 	"flag"
 	"fmt"
 	"net/http"
@@ -38,7 +39,24 @@ func inboundSlackRequestHandler(w http.ResponseWriter, r *http.Request) {
 
 	switch s.Command {
 	case "/notehub":
-		w.Write([]byte(slackCommandWatcher(s)))
+		responseMarkdown := slackCommandWatcher(s)
+		blocks := slack.Blocks{
+			BlockSet: []slack.Block{
+				slack.NewSectionBlock(
+					&slack.TextBlockObject{
+						Type: slack.MarkdownType,
+						Text: responseMarkdown,
+					},
+					nil,
+					nil,
+				),
+			},
+		}
+		w.Header().Set("Content-Type", "application/json")
+		slackResponse := slack.WebhookMessage{}
+		slackResponse.Blocks = &blocks
+		slackResponseJSON, _ := json.Marshal(slackResponse)
+		w.Write(slackResponseJSON)
 	default:
 		w.Write([]byte("unknown command"))
 	}
