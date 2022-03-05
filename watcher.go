@@ -244,12 +244,12 @@ func watcherGetHandlerStats(addr string) (response string, errstr string) {
 		uptimeSecs -= uptimeHours * (60 * 60)
 		uptimeMins := uptimeSecs / 60
 		uptimeSecs -= uptimeMins * 60
-		response += bold + "Uptime: " + bold
+		response += bold + "Uptime:" + bold + " "
 		response += fmt.Sprintf("%dd:%dh:%dm", uptimeDays, uptimeHours, uptimeMins)
 		response += eol
 
 		// Handlers
-		response += bold + "Handlers: " + bold
+		response += bold + "Handlers:" + bold + " "
 		response += fmt.Sprintf("%d", (*pb.Body.LBStatus)[0].ContinuousHandlers+
 			(*pb.Body.LBStatus)[0].NotificationHandlers+
 			(*pb.Body.LBStatus)[0].EphemeralHandlers+
@@ -261,7 +261,6 @@ func watcherGetHandlerStats(addr string) (response string, errstr string) {
 		response += eol
 
 	}
-	return // OZZIE
 
 	// Generate aggregate info
 	if pb.Body.LBStatus != nil && len(*pb.Body.LBStatus) >= 2 {
@@ -278,6 +277,9 @@ func watcherGetHandlerStats(addr string) (response string, errstr string) {
 		response += italic + "Handlers" + italic + eol
 		response += code
 		response += timeHeader(bucketMins, buckets)
+		response += eol  // OZZIE
+		response += code // OZZIE
+		return           // OZZIE
 		for _, stat := range stats {
 			response += fmt.Sprintf("%8d",
 				stat.DiscoveryHandlers+stat.EphemeralHandlers+stat.ContinuousHandlers+stat.NotificationHandlers)
