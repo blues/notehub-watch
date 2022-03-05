@@ -211,9 +211,9 @@ func watcherShowHandler(addr string, showWhat string) (response string, errstr s
 
 // Return a time header
 func timeHeader(bucketMins int, buckets int) (response string) {
-	response += fmt.Sprintf("%7s", "")
+	response += fmt.Sprintf("%6s", "")
 	for i := 0; i < buckets; i++ {
-		response += fmt.Sprintf("%7dm", (i+1)*bucketMins)
+		response += fmt.Sprintf("%6dm", (i+1)*bucketMins)
 	}
 	response += "\n"
 	return
