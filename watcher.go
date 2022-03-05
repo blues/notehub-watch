@@ -40,10 +40,6 @@ func watcherShowServer(server string, showWhat string) (response string) {
 	var errstr string
 	var handlerNodeIDs, handlerAddrs []string
 
-	if server == "api.local" {
-		server = "api.ray.blues.tools"
-	}
-
 	// Get the list of handlers on the server
 	handlerNodeIDs, handlerAddrs, errstr = watcherGetHandlers(server)
 	if errstr != "" {
