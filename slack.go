@@ -65,11 +65,12 @@ func inboundSlackRequestHandler(w http.ResponseWriter, r *http.Request) {
 				),
 			},
 		}
-		//		w.WriteHeader(http.StatusOK)
 		w.Header().Set("Content-type", "application/json")
 		slackResponse := slack.WebhookMessage{}
 		slackResponse.Blocks = &blocks
 		slackResponseJSON, _ := json.Marshal(slackResponse)
+		sampleString := "{\"blocks\":[{\"type\":\"section\",\"text\":{\"type\":\"mrkdwn\",\"text\":\"It's 80 degrees right now.\"}},{\"type\":\"section\",\"text\":{\"type\":\"mrkdwn\",\"text\":\"# Partly cloudy today and tomorrow\"}}]}"
+		slackResponseJSON = []byte(sampleString)
 		fmt.Printf("%s\n", string(slackResponseJSON))
 		w.Write(slackResponseJSON)
 	default:
