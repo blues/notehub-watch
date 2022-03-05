@@ -211,7 +211,7 @@ func watcherShowHandler(addr string, showWhat string) (response string, errstr s
 
 // Return a time header
 func timeHeader(bucketMins int, buckets int) (response string) {
-	response += fmt.Sprintf("%8s", "")
+	response += fmt.Sprintf("%7s", "")
 	for i := 0; i < buckets; i++ {
 		response += fmt.Sprintf("%7dm", (i+1)*bucketMins)
 	}
@@ -281,7 +281,7 @@ func watcherGetHandlerStats(addr string) (response string, errstr string) {
 		response += code // OZZIE
 		return           // OZZIE
 		for _, stat := range stats {
-			response += fmt.Sprintf("%8d",
+			response += fmt.Sprintf("%7d",
 				stat.DiscoveryHandlers+stat.EphemeralHandlers+stat.ContinuousHandlers+stat.NotificationHandlers)
 		}
 		response += eol
@@ -292,7 +292,7 @@ func watcherGetHandlerStats(addr string) (response string, errstr string) {
 		response += code
 		response += timeHeader(bucketMins, buckets)
 		for _, stat := range stats {
-			response += fmt.Sprintf("%8d", stat.EventsRouted)
+			response += fmt.Sprintf("%7d", stat.EventsRouted)
 		}
 		response += eol
 		response += code
@@ -303,24 +303,24 @@ func watcherGetHandlerStats(addr string) (response string, errstr string) {
 			response += k + eol
 			response += code
 			response += timeHeader(bucketMins, buckets)
-			response += fmt.Sprintf("%8s", "reads")
+			response += fmt.Sprintf("%7s", "reads")
 			for _, stat := range stats {
-				response += fmt.Sprintf("%8d", stat.Databases[k].Reads)
+				response += fmt.Sprintf("%7d", stat.Databases[k].Reads)
 			}
 			response += eol
-			response += fmt.Sprintf("%8s", "writes")
+			response += fmt.Sprintf("%7s", "writes")
 			for _, stat := range stats {
-				response += fmt.Sprintf("%8d", stat.Databases[k].Writes)
+				response += fmt.Sprintf("%7d", stat.Databases[k].Writes)
 			}
 			response += eol
-			response += fmt.Sprintf("%8s", "readMs")
+			response += fmt.Sprintf("%7s", "readMs")
 			for _, stat := range stats {
-				response += fmt.Sprintf("%8d", stat.Databases[k].ReadMs)
+				response += fmt.Sprintf("%7d", stat.Databases[k].ReadMs)
 			}
 			response += eol
-			response += fmt.Sprintf("%8s", "writeMs")
+			response += fmt.Sprintf("%7s", "writeMs")
 			for _, stat := range stats {
-				response += fmt.Sprintf("%8d", stat.Databases[k].WriteMs)
+				response += fmt.Sprintf("%7d", stat.Databases[k].WriteMs)
 			}
 			response += eol
 			response += code
@@ -332,14 +332,14 @@ func watcherGetHandlerStats(addr string) (response string, errstr string) {
 			response += k + eol
 			response += code
 			response += timeHeader(bucketMins, buckets)
-			response += fmt.Sprintf("%8s", "refreshes")
+			response += fmt.Sprintf("%7s", "refreshes")
 			for _, stat := range stats {
-				response += fmt.Sprintf("%8d", stat.Caches[k].Invalidations)
+				response += fmt.Sprintf("%7d", stat.Caches[k].Invalidations)
 			}
 			response += eol
-			response += fmt.Sprintf("%8s", "entries")
+			response += fmt.Sprintf("%7s", "entries")
 			for _, stat := range stats {
-				response += fmt.Sprintf("%8d", stat.Caches[k].Entries)
+				response += fmt.Sprintf("%7d", stat.Caches[k].Entries)
 			}
 			response += eol
 			response += code
@@ -352,9 +352,9 @@ func watcherGetHandlerStats(addr string) (response string, errstr string) {
 				response += k + eol
 				response += code
 				response += timeHeader(bucketMins, buckets)
-				response += fmt.Sprintf("%8s", "")
+				response += fmt.Sprintf("%7s", "")
 				for _, stat := range stats {
-					response += fmt.Sprintf("%8d", stat.Authorizations[k])
+					response += fmt.Sprintf("%7d", stat.Authorizations[k])
 				}
 				response += eol
 				response += code
@@ -368,9 +368,9 @@ func watcherGetHandlerStats(addr string) (response string, errstr string) {
 				response += k + eol
 				response += code
 				response += timeHeader(bucketMins, buckets)
-				response += fmt.Sprintf("%8s", "")
+				response += fmt.Sprintf("%7s", "")
 				for _, stat := range stats {
-					response += fmt.Sprintf("%8d", stat.Fatals[k])
+					response += fmt.Sprintf("%7d", stat.Fatals[k])
 				}
 				response += eol
 				response += code
