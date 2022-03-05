@@ -261,6 +261,7 @@ func watcherGetHandlerStats(addr string) (response string, errstr string) {
 		response += eol
 
 	}
+	return // OZZIE
 
 	// Generate aggregate info
 	if pb.Body.LBStatus != nil && len(*pb.Body.LBStatus) >= 2 {
@@ -322,7 +323,6 @@ func watcherGetHandlerStats(addr string) (response string, errstr string) {
 			response += eol
 			response += code
 		}
-		return
 
 		// Cache stats
 		response += italic + "Caches" + italic + eol
