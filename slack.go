@@ -40,23 +40,27 @@ func inboundSlackRequestHandler(w http.ResponseWriter, r *http.Request) {
 	switch s.Command {
 	case "/notehub":
 		responseMarkdown := slackCommandWatcher(s)
-		blocks := slack.Blocks{
-			BlockSet: []slack.Block{
-				slack.NewSectionBlock(
-					&slack.TextBlockObject{
-						Type: slack.MarkdownType,
-						Text: responseMarkdown,
-					},
-					nil,
-					nil,
-				),
-			},
+		if false {
+			blocks := slack.Blocks{
+				BlockSet: []slack.Block{
+					slack.NewSectionBlock(
+						&slack.TextBlockObject{
+							Type: slack.MarkdownType,
+							Text: responseMarkdown,
+						},
+						nil,
+						nil,
+					),
+				},
+			}
+			w.Header().Set("Content-type", "application/json")
+			slackResponse := slack.WebhookMessage{}
+			slackResponse.Blocks = &blocks
+			slackResponseJSON, _ := json.Marshal(slackResponse)
+			w.Write(slackResponseJSON)
+		} else {
+			w.Write([]byte(responseMarkdown))
 		}
-		w.Header().Set("Content-type", "application/json")
-		slackResponse := slack.WebhookMessage{}
-		slackResponse.Blocks = &blocks
-		slackResponseJSON, _ := json.Marshal(slackResponse)
-		w.Write(slackResponseJSON)
 	default:
 		w.Write([]byte("unknown command"))
 	}
