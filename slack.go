@@ -44,7 +44,7 @@ func inboundSlackRequestHandler(w http.ResponseWriter, r *http.Request) {
 			BlockSet: []slack.Block{
 				slack.NewSectionBlock(
 					&slack.TextBlockObject{
-						Type: slack.PlainTextType,
+						Type: slack.MarkdownType,
 						Text: responseMarkdown,
 					},
 					nil,
