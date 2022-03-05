@@ -52,7 +52,7 @@ func watcherShowServer(server string, showWhat string) (response string) {
 
 	// Show the handlers
 	for i, addr := range handlerAddrs {
-		response += fmt.Sprintf("*NODE %s*\n", handlerNodeIDs[i])
+		response += fmt.Sprintf("*_NODE %s_*\n", handlerNodeIDs[i])
 		r, errstr := watcherShowHandler(addr, showWhat)
 		if errstr != "" {
 			response += "  " + errstr + "\n"
@@ -209,10 +209,22 @@ func watcherShowHandler(addr string, showWhat string) (response string, errstr s
 	return
 }
 
+// Return a time header
+func timeHeader(bucketMins int, buckets int) (response string) {
+	response += fmt.Sprintf("%8s", "")
+	for i := 0; i < buckets; i++ {
+		response += fmt.Sprintf("%7dm", (i+1)*bucketMins)
+	}
+	response += "\n"
+	return
+}
+
 // Get general load stats for a handler
 func watcherGetHandlerStats(addr string) (response string, errstr string) {
-	indent := "  "
 	eol := "\n"
+	code := "```"
+	bold := "*"
+	italic := "_"
 
 	// Get the info from the handler
 	var pb PingBody
@@ -232,17 +244,20 @@ func watcherGetHandlerStats(addr string) (response string, errstr string) {
 		uptimeSecs -= uptimeHours * (60 * 60)
 		uptimeMins := uptimeSecs / 60
 		uptimeSecs -= uptimeMins * 60
-		response += indent + "RIGHT NOW" + eol
-		response += indent + indent + "Uptime "
+		response += bold + "Uptime: " + bold
 		response += fmt.Sprintf("%dd:%dh:%dm", uptimeDays, uptimeHours, uptimeMins)
 		response += eol
 
 		// Handlers
-		response += indent + indent + "Handlers "
-		response += fmt.Sprintf("continuous:%d ", (*pb.Body.LBStatus)[0].ContinuousHandlers)
-		response += fmt.Sprintf("notification:%d ", (*pb.Body.LBStatus)[0].NotificationHandlers)
-		response += fmt.Sprintf("ephemeral:%d ", (*pb.Body.LBStatus)[0].EphemeralHandlers)
-		response += fmt.Sprintf("discovery:%d ", (*pb.Body.LBStatus)[0].DiscoveryHandlers)
+		response += bold + "Handlers: " + bold
+		response += fmt.Sprintf("%d", (*pb.Body.LBStatus)[0].ContinuousHandlers+
+			(*pb.Body.LBStatus)[0].NotificationHandlers+
+			(*pb.Body.LBStatus)[0].EphemeralHandlers+
+			(*pb.Body.LBStatus)[0].DiscoveryHandlers)
+		response += fmt.Sprintf(" (%d continuous", (*pb.Body.LBStatus)[0].ContinuousHandlers)
+		response += fmt.Sprintf(", %d notification", (*pb.Body.LBStatus)[0].NotificationHandlers)
+		response += fmt.Sprintf(", %d ephemeral", (*pb.Body.LBStatus)[0].EphemeralHandlers)
+		response += fmt.Sprintf(", %d discovery)", (*pb.Body.LBStatus)[0].DiscoveryHandlers)
 		response += eol
 
 	}
@@ -255,85 +270,107 @@ func watcherGetHandlerStats(addr string) (response string, errstr string) {
 		stats := absoluteToRelative((*pb.Body.LBStatus)[1:])
 
 		// Display the header
-		bucketMins := (*pb.Body.LBStatus)[0].BucketMins
-		response += indent + "PAST" + eol
-		response += indent + indent + indent
-		for i := range stats {
-			response += fmt.Sprintf("%dm\t", int64(i+1)*bucketMins)
-		}
-		response += eol
+		buckets := len(stats)
+		bucketMins := int((*pb.Body.LBStatus)[0].BucketMins)
 
 		// Handler stats
-		response += indent + indent + "Handlers" + eol
-		response += indent + indent + indent
+		response += italic + "Handlers" + italic + eol
+		response += code
+		response += timeHeader(bucketMins, buckets)
 		for _, stat := range stats {
-			response += fmt.Sprintf("%d\t",
+			response += fmt.Sprintf("%8d",
 				stat.DiscoveryHandlers+stat.EphemeralHandlers+stat.ContinuousHandlers+stat.NotificationHandlers)
 		}
 		response += eol
+		response += code
 
 		// Event stats
-		response += indent + indent + "Events Routed" + eol
-		response += indent + indent + indent
+		response += italic + "Events Routed" + italic + eol
+		response += code
+		response += timeHeader(bucketMins, buckets)
 		for _, stat := range stats {
-			response += fmt.Sprintf("%d\t", stat.EventsRouted)
+			response += fmt.Sprintf("%8d", stat.EventsRouted)
 		}
 		response += eol
+		response += code
 
 		// Database stats
-		response += indent + indent + "Databases (r+w rMs/wMs)" + eol
+		response += italic + "Databases" + italic + eol
 		for k, _ := range stats[0].Databases {
-			response += indent + indent + indent + k + eol
-			response += "```"
-			response += indent + indent + indent + indent
+			response += k + eol
+			response += code
+			response += timeHeader(bucketMins, buckets)
+			response += fmt.Sprintf("%8s", "reads")
 			for _, stat := range stats {
-				response += fmt.Sprintf("%d+%d\t", stat.Databases[k].Reads, stat.Databases[k].Writes)
+				response += fmt.Sprintf("%8d", stat.Databases[k].Reads)
 			}
-			response += "```"
 			response += eol
-			response += "```"
-			response += indent + indent + indent + indent
+			response += fmt.Sprintf("%8s", "writes")
 			for _, stat := range stats {
-				response += fmt.Sprintf("%d/%d\t", stat.Databases[k].ReadMs, stat.Databases[k].WriteMs)
+				response += fmt.Sprintf("%8d", stat.Databases[k].Writes)
 			}
-			response += "```"
 			response += eol
+			response += fmt.Sprintf("%8s", "readMs")
+			for _, stat := range stats {
+				response += fmt.Sprintf("%8d", stat.Databases[k].ReadMs)
+			}
+			response += eol
+			response += fmt.Sprintf("%8s", "writeMs")
+			for _, stat := range stats {
+				response += fmt.Sprintf("%8d", stat.Databases[k].WriteMs)
+			}
+			response += eol
+			response += code
 		}
 
 		// Cache stats
-		response += indent + indent + "Caches (invalidations/size)" + eol
+		response += italic + "Caches" + italic + eol
 		for k, _ := range stats[0].Caches {
-			response += indent + indent + indent + k + eol
-			response += indent + indent + indent + indent
+			response += k + eol
+			response += code
+			response += timeHeader(bucketMins, buckets)
+			response += fmt.Sprintf("%8s", "refreshes")
 			for _, stat := range stats {
-				response += fmt.Sprintf("%d/%d\t", stat.Caches[k].Invalidations, stat.Caches[k].Entries)
+				response += fmt.Sprintf("%8d", stat.Caches[k].Invalidations)
 			}
 			response += eol
+			response += fmt.Sprintf("%8s", "entries")
+			for _, stat := range stats {
+				response += fmt.Sprintf("%8d", stat.Caches[k].Entries)
+			}
+			response += eol
+			response += code
 		}
 
 		// Auth/API stats
 		if len(stats[0].Authorizations) > 0 {
-			response += indent + indent + "Authorizations (API)" + eol
+			response += italic + "API Authorizations" + italic + eol
 			for k, _ := range stats[0].Authorizations {
-				response += indent + indent + indent + k + eol
-				response += indent + indent + indent + indent
+				response += k + eol
+				response += code
+				response += timeHeader(bucketMins, buckets)
+				response += fmt.Sprintf("%8s", "")
 				for _, stat := range stats {
-					response += fmt.Sprintf("%d\t", stat.Authorizations[k])
+					response += fmt.Sprintf("%8d", stat.Authorizations[k])
 				}
 				response += eol
+				response += code
 			}
 		}
 
 		// Fatals stats
 		if len(stats[0].Fatals) > 0 {
-			response += indent + indent + "Fatals (FATAL)" + eol
+			response += italic + "Fatals" + italic + eol
 			for k, _ := range stats[0].Fatals {
-				response += indent + indent + indent + k + eol
-				response += indent + indent + indent + indent
+				response += k + eol
+				response += code
+				response += timeHeader(bucketMins, buckets)
+				response += fmt.Sprintf("%8s", "")
 				for _, stat := range stats {
-					response += fmt.Sprintf("%d\t", stat.Fatals[k])
+					response += fmt.Sprintf("%8d", stat.Fatals[k])
 				}
 				response += eol
+				response += code
 			}
 		}
 
