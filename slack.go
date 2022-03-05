@@ -69,6 +69,7 @@ func inboundSlackRequestHandler(w http.ResponseWriter, r *http.Request) {
 		slackResponse := slack.WebhookMessage{}
 		slackResponse.Blocks = &blocks
 		slackResponseJSON, _ := json.Marshal(slackResponse)
+		fmt.Printf("%s\n", string(slackResponseJSON))
 		w.Write(slackResponseJSON)
 	default:
 		w.Write([]byte("unknown command"))
