@@ -269,8 +269,11 @@ func watcherGetHandlerStats(addr string) (response string, errstr string) {
 		// per-bucket relative
 		stats := absoluteToRelative((*pb.Body.LBStatus)[1:])
 
-		// Display the header
+		// Limit the number of buckets because of slack UI block width
 		buckets := len(stats)
+		if buckets > 9 {
+			buckets = 9
+		}
 		bucketMins := int((*pb.Body.LBStatus)[0].BucketMins)
 
 		// Handler stats
