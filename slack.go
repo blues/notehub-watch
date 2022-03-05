@@ -65,7 +65,7 @@ func inboundSlackRequestHandler(w http.ResponseWriter, r *http.Request) {
 				),
 			},
 		}
-		w.WriteHeader(http.StatusOK)
+		//		w.WriteHeader(http.StatusOK)
 		w.Header().Set("Content-type", "application/json")
 		slackResponse := slack.WebhookMessage{}
 		slackResponse.Blocks = &blocks
