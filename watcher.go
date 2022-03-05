@@ -289,7 +289,6 @@ func watcherGetHandlerStats(addr string) (response string, errstr string) {
 				stat.DiscoveryHandlers+stat.EphemeralHandlers+stat.ContinuousHandlers+stat.NotificationHandlers)
 		}
 		response += code
-		return // OZZIE
 
 		// Event stats
 		response += italic + "Events" + italic + eol
@@ -303,6 +302,7 @@ func watcherGetHandlerStats(addr string) (response string, errstr string) {
 			response += fmt.Sprintf("%7d", stat.EventsRouted)
 		}
 		response += eol
+		return // OZZIE
 
 		// Database stats
 		response += italic + "Databases" + italic + eol
@@ -450,10 +450,6 @@ func absoluteToRelative(stats []AppLBStat) (out []AppLBStat) {
 	// to numbers that are bucket-scoped relative to the prior bucket
 	for i := 0; i < len(stats)-1; i++ {
 
-		stats[i].DiscoveryHandlers -= stats[i+1].DiscoveryHandlers
-		stats[i].EphemeralHandlers -= stats[i+1].EphemeralHandlers
-		stats[i].ContinuousHandlers -= stats[i+1].ContinuousHandlers
-		stats[i].NotificationHandlers -= stats[i+1].NotificationHandlers
 		stats[i].EventsEnqueued -= stats[i+1].EventsEnqueued
 		stats[i].EventsDequeued -= stats[i+1].EventsDequeued
 		stats[i].EventsRouted -= stats[i+1].EventsRouted
