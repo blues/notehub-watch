@@ -40,24 +40,11 @@ func inboundSlackRequestHandler(w http.ResponseWriter, r *http.Request) {
 	switch s.Command {
 	case "/notehub":
 		responseMarkdown := slackCommandWatcher(s)
-		responseMarkdown = "# h1 Heading 8-)\n" +
-			"## h2 Heading\n" +
-			"### h3 Heading\n" +
-			"#### h4 Heading\n" +
-			"##### h5 Heading\n" +
-			"##### h6 Heading\n" +
-			"\n" +
-			"#### My Table\n" +
-			"\n" +
-			"|5m|10m|15m|20m|25m|30m|35m|40m|45m|50m|55m|60m|\n" +
-			"|-|-|-|-|-|-|-|-|-|-|-|-|\n" +
-			"|1|2|0|0|0|0|0|0|0|0|0|0\n" +
-			""
 		blocks := slack.Blocks{
 			BlockSet: []slack.Block{
 				slack.NewSectionBlock(
 					&slack.TextBlockObject{
-						Type: slack.MarkdownType,
+						Type: slack.PlainTextType,
 						Text: responseMarkdown,
 					},
 					nil,
