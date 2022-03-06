@@ -30,6 +30,5 @@ func inboundWebRootHandler(httpRsp http.ResponseWriter, httpReq *http.Request) {
 
 	// Done
 	httpRsp.Write([]byte("I'm watching you."))
-	return
 
 }

@@ -22,6 +22,7 @@ func main() {
 
 	// Compute folder location
 	configDataDirectory = os.Getenv("HOME") + configDataDirectoryBase
+	_ = configDataDirectory
 
 	// Spawn the console input handler
 	go inputHandler()

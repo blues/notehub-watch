@@ -70,11 +70,11 @@ func inputHandler() {
 
 		case "":
 
-		default:
-			fmt.Printf("Unrecognized: '%s'\n", message)
-
 		case "q":
 			os.Exit(0)
+
+		default:
+			fmt.Printf("Unrecognized: '%s'\n", message)
 
 		}
 
@@ -97,7 +97,7 @@ func signalHandler() {
 			fmt.Printf("*** Exiting because of SIGNAL \n")
 			os.Exit(0)
 		case syscall.SIGTERM:
-			break
+			return
 		}
 	}
 }

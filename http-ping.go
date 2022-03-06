@@ -25,6 +25,4 @@ func inboundWebPingHandler(httpRsp http.ResponseWriter, httpReq *http.Request) {
 	rspJSON := []byte(time.Now().UTC().Format("2006-01-02T15:04:05Z"))
 	httpRsp.Write(rspJSON)
 
-	return
-
 }

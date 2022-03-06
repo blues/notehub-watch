@@ -65,8 +65,6 @@ func inboundSlackRequestHandler(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("unknown command"))
 	}
 
-	return
-
 }
 
 // True if we're using blocks, which have certain limitations

@@ -246,14 +246,20 @@ func watcherGetHandlerStats(addr string) (response string, errstr string) {
 
 		// Handlers
 		response += bold + "        Handlers:" + bold + " "
-		response += fmt.Sprintf("%d", (*pb.Body.LBStatus)[0].ContinuousHandlers+
-			(*pb.Body.LBStatus)[0].NotificationHandlers+
-			(*pb.Body.LBStatus)[0].EphemeralHandlers+
-			(*pb.Body.LBStatus)[0].DiscoveryHandlers)
-		response += fmt.Sprintf(" (%d continuous", (*pb.Body.LBStatus)[0].ContinuousHandlers)
-		response += fmt.Sprintf(", %d notification", (*pb.Body.LBStatus)[0].NotificationHandlers)
-		response += fmt.Sprintf(", %d ephemeral", (*pb.Body.LBStatus)[0].EphemeralHandlers)
-		response += fmt.Sprintf(", %d discovery)", (*pb.Body.LBStatus)[0].DiscoveryHandlers)
+		continuousActive := (*pb.Body.LBStatus)[0].ContinuousHandlersActivated -
+			(*pb.Body.LBStatus)[0].ContinuousHandlersDeactivated
+		notificationActive := (*pb.Body.LBStatus)[0].NotificationHandlersActivated -
+			(*pb.Body.LBStatus)[0].NotificationHandlersDeactivated
+		ephemeralActive := (*pb.Body.LBStatus)[0].EphemeralHandlersActivated -
+			(*pb.Body.LBStatus)[0].EphemeralHandlersDeactivated
+		discoveryActive := (*pb.Body.LBStatus)[0].DiscoveryHandlersActivated -
+			(*pb.Body.LBStatus)[0].DiscoveryHandlersDeactivated
+		totalActive := continuousActive + notificationActive + ephemeralActive + discoveryActive
+		response += fmt.Sprintf("%d", totalActive)
+		response += fmt.Sprintf(" (%d continuous", continuousActive)
+		response += fmt.Sprintf(", %d notification", notificationActive)
+		response += fmt.Sprintf(", %d ephemeral", ephemeralActive)
+		response += fmt.Sprintf(", %d discovery)", discoveryActive)
 		response += eol
 
 	}
@@ -281,8 +287,10 @@ func watcherGetHandlerStats(addr string) (response string, errstr string) {
 			if i >= buckets {
 				break
 			}
-			response += fmt.Sprintf("%7d",
-				stat.DiscoveryHandlers+stat.EphemeralHandlers+stat.ContinuousHandlers+stat.NotificationHandlers)
+			response += fmt.Sprintf("%7d", stat.DiscoveryHandlersActivated+
+				stat.EphemeralHandlersActivated+
+				stat.ContinuousHandlersActivated+
+				stat.NotificationHandlersActivated)
 		}
 		response += code
 		response += eol
@@ -303,7 +311,7 @@ func watcherGetHandlerStats(addr string) (response string, errstr string) {
 
 		// Database stats
 		response += bold + italic + "Databases" + italic + bold + eol
-		for k, _ := range stats[0].Databases {
+		for k := range stats[0].Databases {
 			response += k + eol
 			response += code
 			response += timeHeader(bucketMins, buckets)
@@ -344,7 +352,7 @@ func watcherGetHandlerStats(addr string) (response string, errstr string) {
 
 		// Cache stats
 		response += bold + italic + "Caches" + italic + bold + eol
-		for k, _ := range stats[0].Caches {
+		for k := range stats[0].Caches {
 			response += k + " cache " + eol
 			response += code
 			response += timeHeader(bucketMins, buckets)
@@ -370,7 +378,7 @@ func watcherGetHandlerStats(addr string) (response string, errstr string) {
 		// Auth/API stats
 		if len(stats[0].Authorizations) > 0 {
 			response += bold + italic + "API Authorizations" + italic + bold + eol
-			for k, _ := range stats[0].Authorizations {
+			for k := range stats[0].Authorizations {
 				response += k + eol
 				response += code
 				response += timeHeader(bucketMins, buckets)
@@ -389,7 +397,7 @@ func watcherGetHandlerStats(addr string) (response string, errstr string) {
 		// Fatals stats
 		if len(stats[0].Fatals) > 0 {
 			response += bold + italic + "Fatals" + italic + bold + eol
-			for k, _ := range stats[0].Fatals {
+			for k := range stats[0].Fatals {
 				response += k + eol
 				response += code
 				response += timeHeader(bucketMins, buckets)
@@ -473,8 +481,31 @@ func absoluteToRelative(stats []AppLBStat) (out []AppLBStat) {
 	// to numbers that are bucket-scoped relative to the prior bucket
 	for i := 0; i < len(stats)-1; i++ {
 
+		stats[i].DiscoveryHandlersActivated -= stats[i+1].DiscoveryHandlersActivated
+		stats[i].DiscoveryHandlersDeactivated -= stats[i+1].DiscoveryHandlersDeactivated
+		stats[i].DiscoveryHandlersActivated -= stats[i].DiscoveryHandlersDeactivated
+		stats[i].DiscoveryHandlersDeactivated = 0
+
+		stats[i].ContinuousHandlersActivated -= stats[i+1].ContinuousHandlersActivated
+		stats[i].ContinuousHandlersDeactivated -= stats[i+1].ContinuousHandlersDeactivated
+		stats[i].ContinuousHandlersActivated -= stats[i].ContinuousHandlersDeactivated
+		stats[i].ContinuousHandlersDeactivated = 0
+
+		stats[i].NotificationHandlersActivated -= stats[i+1].NotificationHandlersActivated
+		stats[i].NotificationHandlersDeactivated -= stats[i+1].NotificationHandlersDeactivated
+		stats[i].NotificationHandlersActivated -= stats[i].NotificationHandlersDeactivated
+		stats[i].NotificationHandlersDeactivated = 0
+
+		stats[i].EphemeralHandlersActivated -= stats[i+1].EphemeralHandlersActivated
+		stats[i].EphemeralHandlersDeactivated -= stats[i+1].EphemeralHandlersDeactivated
+		stats[i].EphemeralHandlersActivated -= stats[i].EphemeralHandlersDeactivated
+		stats[i].EphemeralHandlersDeactivated = 0
+
 		stats[i].EventsEnqueued -= stats[i+1].EventsEnqueued
 		stats[i].EventsDequeued -= stats[i+1].EventsDequeued
+		stats[i].EventsEnqueued -= stats[i].EventsDequeued
+		stats[i].EventsDequeued = 0
+
 		stats[i].EventsRouted -= stats[i+1].EventsRouted
 
 		if stats[i+1].Databases == nil {

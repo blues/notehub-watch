@@ -45,6 +45,7 @@ type AppHandler struct {
 	PublicIpv4 string `json:"public_ipv4"`
 	PublicPath string `json:"public_path"`
 	LoadLevel  int    `json:"load_level"`
+	Service    string `json:"service_name"`
 }
 
 //
@@ -82,21 +83,25 @@ type AppLBCache struct {
 
 // AppLBStat is the data structure of a single running statistics batch
 type AppLBStat struct {
-	Started              int64                    `json:"started,omitempty"`
-	BucketMins           int64                    `json:"minutes,omitempty"`
-	SnapshotTaken        int64                    `json:"when,omitempty"`
-	OSMemTotal           int64                    `json:"mem_total,omitempty"`
-	OSMemFree            int64                    `json:"mem_free,omitempty"`
-	DiscoveryHandlers    int64                    `json:"handlers_discovery,omitempty"`
-	EphemeralHandlers    int64                    `json:"handlers_ephemeral,omitempty"`
-	ContinuousHandlers   int64                    `json:"handlers_continuous,omitempty"`
-	NotificationHandlers int64                    `json:"handlers_notification,omitempty"`
-	EventsEnqueued       int64                    `json:"events_enqueued,omitempty"`
-	EventsDequeued       int64                    `json:"events_dequeued,omitempty"`
-	EventsRouted         int64                    `json:"events_routed,omitempty"`
-	Handlers             map[string]AppLBHandler  `json:"handlers,omitempty"`
-	Databases            map[string]AppLBDatabase `json:"databases,omitempty"`
-	Caches               map[string]AppLBCache    `json:"caches,omitempty"`
-	Authorizations       map[string]int64         `json:"authorizations,omitempty"`
-	Fatals               map[string]int64         `json:"fatals,omitempty"`
+	Started                         int64                    `json:"started,omitempty"`
+	BucketMins                      int64                    `json:"minutes,omitempty"`
+	SnapshotTaken                   int64                    `json:"when,omitempty"`
+	OSMemTotal                      int64                    `json:"mem_total,omitempty"`
+	OSMemFree                       int64                    `json:"mem_free,omitempty"`
+	DiscoveryHandlersActivated      int64                    `json:"handlers_discovery_activated,omitempty"`
+	EphemeralHandlersActivated      int64                    `json:"handlers_ephemeral_activated,omitempty"`
+	ContinuousHandlersActivated     int64                    `json:"handlers_continuous_activated,omitempty"`
+	NotificationHandlersActivated   int64                    `json:"handlers_notification_activated,omitempty"`
+	DiscoveryHandlersDeactivated    int64                    `json:"handlers_discovery_deactivated,omitempty"`
+	EphemeralHandlersDeactivated    int64                    `json:"handlers_ephemeral_deactivated,omitempty"`
+	ContinuousHandlersDeactivated   int64                    `json:"handlers_continuous_deactivated,omitempty"`
+	NotificationHandlersDeactivated int64                    `json:"handlers_notification_deactivated,omitempty"`
+	EventsEnqueued                  int64                    `json:"events_enqueued,omitempty"`
+	EventsDequeued                  int64                    `json:"events_dequeued,omitempty"`
+	EventsRouted                    int64                    `json:"events_routed,omitempty"`
+	Handlers                        map[string]AppLBHandler  `json:"handlers,omitempty"`
+	Databases                       map[string]AppLBDatabase `json:"databases,omitempty"`
+	Caches                          map[string]AppLBCache    `json:"caches,omitempty"`
+	Authorizations                  map[string]int64         `json:"authorizations,omitempty"`
+	Fatals                          map[string]int64         `json:"fatals,omitempty"`
 }
