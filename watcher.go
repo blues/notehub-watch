@@ -63,6 +63,7 @@ func watcherShowServer(server string, showWhat string) (response string) {
 
 	// Show the handlers
 	for i, addr := range handlerAddrs {
+		response += "\n"
 		response += fmt.Sprintf("*NODE %s*\n", handlerNodeIDs[i])
 		r, errstr := watcherShowHandler(addr, handlerNodeIDs[i], showWhat)
 		if errstr != "" {
@@ -129,7 +130,6 @@ func getHandlerInfo(addr string, nodeID string, showWhat string) (pb PingBody, e
 	if nodeID != "" {
 		url = fmt.Sprintf("%s/ping?node=\"%s\"&show=\"%s\"", addr, nodeID, showWhat)
 	}
-	fmt.Printf("OZZIE: url: %s\n", url)
 
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
