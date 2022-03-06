@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strings"
 	"time"
 )
 
@@ -23,15 +24,29 @@ func watcherShow(server string, showWhat string) (result string) {
 			""
 	}
 
+	targetServer := server
+
+	// Production
 	if server == "p" || server == "prod" || server == "production" {
-		return watcherShowServer("api.notefile.net", showWhat)
+		targetServer = "notefile.net"
 	}
 
+	// Staging
 	if server == "s" || server == "staging" {
-		return watcherShowServer("api.staging.blues.tools", showWhat)
+		targetServer = "staging.blues.tools"
 	}
 
-	return watcherShowServer("api."+server, showWhat)
+	// Localdev
+	if !strings.Contains(server, ".") {
+		targetServer = server + ".blues.tools"
+	}
+
+	// We must target the API service for this server
+	if !strings.HasPrefix(targetServer, "api.") {
+		targetServer = "api." + targetServer
+	}
+
+	return watcherShowServer(targetServer, showWhat)
 
 }
 
