@@ -454,7 +454,7 @@ func watcherGetHandlerStats(addr string, nodeID string) (response string, errstr
 		}
 
 		// Memory stats
-		response += bold + italic + "Memory (MiB)" + italic + bold + eol
+		response += bold + italic + "OS (MiB)" + italic + bold + eol
 		response += code
 		response += timeHeader(bucketMins, buckets)
 		response += fmt.Sprintf("%7s", "free")
@@ -471,6 +471,37 @@ func watcherGetHandlerStats(addr string, nodeID string) (response string, errstr
 				break
 			}
 			response += fmt.Sprintf("%7d", stat.OSMemTotal/(1024*1024))
+		}
+		response += fmt.Sprintf("%7s", "diskrd")
+		for i, stat := range stats {
+			if i >= buckets {
+				break
+			}
+			response += fmt.Sprintf("%7d", stat.OSDiskRead/(1024*1024))
+		}
+		response += eol
+		response += fmt.Sprintf("%7s", "diskwr")
+		for i, stat := range stats {
+			if i >= buckets {
+				break
+			}
+			response += fmt.Sprintf("%7d", stat.OSDiskWrite/(1024*1024))
+		}
+		response += eol
+		response += fmt.Sprintf("%7s", "netrcv")
+		for i, stat := range stats {
+			if i >= buckets {
+				break
+			}
+			response += fmt.Sprintf("%7d", stat.OSNetReceived/(1024*1024))
+		}
+		response += eol
+		response += fmt.Sprintf("%7s", "netsnd")
+		for i, stat := range stats {
+			if i >= buckets {
+				break
+			}
+			response += fmt.Sprintf("%7d", stat.OSNetSent/(1024*1024))
 		}
 		response += code
 		response += eol
@@ -520,6 +551,12 @@ func absoluteToRelative(stats []AppLBStat) (out []AppLBStat) {
 	// Iterate over all stats, converting from boot-absolute numbers
 	// to numbers that are bucket-scoped relative to the prior bucket
 	for i := 0; i < len(stats)-1; i++ {
+
+		stats[i].OSDiskRead -= stats[i+1].OSDiskRead
+		stats[i].OSDiskWrite -= stats[i+1].OSDiskWrite
+
+		stats[i].OSNetReceived -= stats[i+1].OSNetReceived
+		stats[i].OSNetSent -= stats[i+1].OSNetSent
 
 		stats[i].DiscoveryHandlersActivated -= stats[i+1].DiscoveryHandlersActivated
 		stats[i].DiscoveryHandlersDeactivated = 0

@@ -86,8 +86,12 @@ type AppLBStat struct {
 	Started                         int64                    `json:"started,omitempty"`
 	BucketMins                      int64                    `json:"minutes,omitempty"`
 	SnapshotTaken                   int64                    `json:"when,omitempty"`
-	OSMemTotal                      int64                    `json:"mem_total,omitempty"`
-	OSMemFree                       int64                    `json:"mem_free,omitempty"`
+	OSMemTotal                      uint64                   `json:"mem_total,omitempty"`
+	OSMemFree                       uint64                   `json:"mem_free,omitempty"`
+	OSDiskRead                      uint64                   `json:"disk_read,omitempty"`
+	OSDiskWrite                     uint64                   `json:"disk_write,omitempty"`
+	OSNetReceived                   uint64                   `json:"net_received,omitempty"`
+	OSNetSent                       uint64                   `json:"net_sent,omitempty"`
 	DiscoveryHandlersActivated      int64                    `json:"handlers_discovery_activated,omitempty"`
 	EphemeralHandlersActivated      int64                    `json:"handlers_ephemeral_activated,omitempty"`
 	ContinuousHandlersActivated     int64                    `json:"handlers_continuous_activated,omitempty"`
