@@ -412,9 +412,9 @@ func watcherGetHandlerStats(addr string) (response string, errstr string) {
 		}
 
 		// Auth/API stats
-		if len(stats[0].Authorizations) > 0 {
-			response += bold + italic + "API Authorizations" + italic + bold + eol
-			for k := range stats[0].Authorizations {
+		if len(stats[0].API) > 0 {
+			response += bold + italic + "API" + italic + bold + eol
+			for k := range stats[0].API {
 				response += k + eol
 				response += code
 				response += timeHeader(bucketMins, buckets)
@@ -423,7 +423,7 @@ func watcherGetHandlerStats(addr string) (response string, errstr string) {
 					if i >= buckets {
 						break
 					}
-					response += fmt.Sprintf("%7d", stat.Authorizations[k])
+					response += fmt.Sprintf("%7d", stat.API[k])
 				}
 				response += code
 				response += eol
@@ -492,8 +492,8 @@ func absoluteToRelative(stats []AppLBStat) (out []AppLBStat) {
 	if stats[0].Caches == nil {
 		stats[0].Caches = make(map[string]AppLBCache)
 	}
-	if stats[0].Authorizations == nil {
-		stats[0].Authorizations = make(map[string]int64)
+	if stats[0].API == nil {
+		stats[0].API = make(map[string]int64)
 	}
 	if stats[0].Fatals == nil {
 		stats[0].Fatals = make(map[string]int64)
@@ -565,14 +565,14 @@ func absoluteToRelative(stats []AppLBStat) (out []AppLBStat) {
 			}
 		}
 
-		if stats[i+1].Authorizations == nil {
-			stats[i+1].Authorizations = make(map[string]int64)
+		if stats[i+1].API == nil {
+			stats[i+1].API = make(map[string]int64)
 		}
-		for k, vcur := range stats[i].Authorizations {
-			vprev, present := stats[i+1].Authorizations[k]
+		for k, vcur := range stats[i].API {
+			vprev, present := stats[i+1].API[k]
 			if present {
 				vcur -= vprev
-				stats[i].Authorizations[k] = vcur
+				stats[i].API[k] = vcur
 			}
 		}
 

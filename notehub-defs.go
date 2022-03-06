@@ -102,6 +102,6 @@ type AppLBStat struct {
 	Handlers                        map[string]AppLBHandler  `json:"handlers,omitempty"`
 	Databases                       map[string]AppLBDatabase `json:"databases,omitempty"`
 	Caches                          map[string]AppLBCache    `json:"caches,omitempty"`
-	Authorizations                  map[string]int64         `json:"authorizations,omitempty"`
+	API                             map[string]int64         `json:"api,omitempty"`
 	Fatals                          map[string]int64         `json:"fatals,omitempty"`
 }
