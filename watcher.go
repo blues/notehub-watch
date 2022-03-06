@@ -472,6 +472,7 @@ func watcherGetHandlerStats(addr string, nodeID string) (response string, errstr
 			}
 			response += fmt.Sprintf("%7d", stat.OSMemTotal/(1024*1024))
 		}
+		response += eol
 		response += fmt.Sprintf("%7s", "diskrd")
 		for i, stat := range stats {
 			if i >= buckets {
