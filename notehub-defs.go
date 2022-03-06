@@ -35,17 +35,17 @@ type PingRequest struct {
 //
 
 type AppHandler struct {
-	NodeID     string `json:"node_id"`
-	DataCenter string `json:"datacenter"`
-	Ipv4       string `json:"ipv4"`
-	TCPPort    int    `json:"tcp_port"`
-	TCPSPort   int    `json:"tcps_port"`
-	HTTPPort   int    `json:"http_port"`
-	HTTPSPort  int    `json:"https_port"`
-	PublicIpv4 string `json:"public_ipv4"`
-	PublicPath string `json:"public_path"`
-	LoadLevel  int    `json:"load_level"`
-	Service    string `json:"service_name"`
+	NodeID         string `json:"node_id,omitempty"`
+	DataCenter     string `json:"datacenter,omitempty"`
+	Ipv4           string `json:"ipv4,omitempty"`
+	TCPPort        int    `json:"tcp_port,omitempty"`
+	TCPSPort       int    `json:"tcps_port,omitempty"`
+	HTTPPort       int    `json:"http_port,omitempty"`
+	HTTPSPort      int    `json:"https_port,omitempty"`
+	PublicIpv4     string `json:"public_ipv4,omitempty"`
+	PublicPath     string `json:"public_path,omitempty"`
+	LoadLevel      int    `json:"load_level,omitempty"`
+	PrimaryService string `json:"primary_service,omitempty"`
 }
 
 //

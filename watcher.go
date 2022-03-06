@@ -64,7 +64,7 @@ func watcherShowServer(server string, showWhat string) (response string) {
 	// Show the handlers
 	for i, addr := range handlerAddrs {
 		response += fmt.Sprintf("*NODE %s*\n", handlerNodeIDs[i])
-		r, errstr := watcherShowHandler(addr, showWhat)
+		r, errstr := watcherShowHandler(addr, handlerNodeIDs[i], showWhat)
 		if errstr != "" {
 			response += "  " + errstr + "\n"
 		} else {
@@ -114,7 +114,7 @@ func watcherGetHandlers(server string) (handlerNodeIDs []string, handlerAddrs []
 	}
 	for _, h := range *pb.Body.AppHandlers {
 		handlerNodeIDs = append(handlerNodeIDs, h.NodeID)
-		addr := fmt.Sprintf("http://%s%s", server, h.PublicPath)
+		addr := fmt.Sprintf("http://%s:%d", h.Ipv4, h.HTTPPort)
 		handlerAddrs = append(handlerAddrs, addr)
 	}
 
@@ -122,10 +122,13 @@ func watcherGetHandlers(server string) (handlerNodeIDs []string, handlerAddrs []
 
 }
 
-func getHandlerInfo(addr string, showWhat string) (pb PingBody, errstr string) {
+func getHandlerInfo(addr string, nodeID string, showWhat string) (pb PingBody, errstr string) {
 
 	// Get the data
 	url := fmt.Sprintf("%s/ping?show=\"%s\"", addr, showWhat)
+	if nodeID != "" {
+		url = fmt.Sprintf("%s/ping?node=\"%s\"&show=\"%s\"", addr, nodeID, showWhat)
+	}
 
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
@@ -162,16 +165,16 @@ func getHandlerInfo(addr string, showWhat string) (pb PingBody, errstr string) {
 }
 
 // Show something about a handler
-func watcherShowHandler(addr string, showWhat string) (response string, errstr string) {
+func watcherShowHandler(addr string, nodeID string, showWhat string) (response string, errstr string) {
 
 	// If showing nothing, done
 	if showWhat == "" {
-		return watcherGetHandlerStats(addr)
+		return watcherGetHandlerStats(addr, nodeID)
 	}
 
 	// Get the info from the handler
 	var pb PingBody
-	pb, errstr = getHandlerInfo(addr, showWhat)
+	pb, errstr = getHandlerInfo(addr, nodeID, showWhat)
 	if errstr != "" {
 		return
 	}
@@ -231,7 +234,7 @@ func timeHeader(bucketMins int, buckets int) (response string) {
 }
 
 // Get general load stats for a handler
-func watcherGetHandlerStats(addr string) (response string, errstr string) {
+func watcherGetHandlerStats(addr string, nodeID string) (response string, errstr string) {
 	eol := "\n"
 	code := "```"
 	bold := "*"
@@ -239,7 +242,7 @@ func watcherGetHandlerStats(addr string) (response string, errstr string) {
 
 	// Get the info from the handler
 	var pb PingBody
-	pb, errstr = getHandlerInfo(addr, "lb")
+	pb, errstr = getHandlerInfo(addr, nodeID, "lb")
 	if errstr != "" {
 		return
 	}
