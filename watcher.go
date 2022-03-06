@@ -304,6 +304,7 @@ func watcherGetHandlerStats(addr string) (response string, errstr string) {
 			}
 			response += fmt.Sprintf("%7d", stat.ContinuousHandlersActivated)
 		}
+		response += eol
 		response += fmt.Sprintf("%7s", "notif")
 		for i, stat := range stats {
 			if i >= buckets {
@@ -311,6 +312,7 @@ func watcherGetHandlerStats(addr string) (response string, errstr string) {
 			}
 			response += fmt.Sprintf("%7d", stat.NotificationHandlersActivated)
 		}
+		response += eol
 		response += fmt.Sprintf("%7s", "ephem")
 		for i, stat := range stats {
 			if i >= buckets {
@@ -318,6 +320,7 @@ func watcherGetHandlerStats(addr string) (response string, errstr string) {
 			}
 			response += fmt.Sprintf("%7d", stat.EphemeralHandlersActivated)
 		}
+		response += eol
 		response += fmt.Sprintf("%7s", "disco")
 		for i, stat := range stats {
 			if i >= buckets {
