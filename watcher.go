@@ -482,28 +482,18 @@ func absoluteToRelative(stats []AppLBStat) (out []AppLBStat) {
 	for i := 0; i < len(stats)-1; i++ {
 
 		stats[i].DiscoveryHandlersActivated -= stats[i+1].DiscoveryHandlersActivated
-		stats[i].DiscoveryHandlersDeactivated -= stats[i+1].DiscoveryHandlersDeactivated
-		stats[i].DiscoveryHandlersActivated -= stats[i].DiscoveryHandlersDeactivated
 		stats[i].DiscoveryHandlersDeactivated = 0
 
 		stats[i].ContinuousHandlersActivated -= stats[i+1].ContinuousHandlersActivated
-		stats[i].ContinuousHandlersDeactivated -= stats[i+1].ContinuousHandlersDeactivated
-		stats[i].ContinuousHandlersActivated -= stats[i].ContinuousHandlersDeactivated
 		stats[i].ContinuousHandlersDeactivated = 0
 
 		stats[i].NotificationHandlersActivated -= stats[i+1].NotificationHandlersActivated
-		stats[i].NotificationHandlersDeactivated -= stats[i+1].NotificationHandlersDeactivated
-		stats[i].NotificationHandlersActivated -= stats[i].NotificationHandlersDeactivated
 		stats[i].NotificationHandlersDeactivated = 0
 
 		stats[i].EphemeralHandlersActivated -= stats[i+1].EphemeralHandlersActivated
-		stats[i].EphemeralHandlersDeactivated -= stats[i+1].EphemeralHandlersDeactivated
-		stats[i].EphemeralHandlersActivated -= stats[i].EphemeralHandlersDeactivated
 		stats[i].EphemeralHandlersDeactivated = 0
 
 		stats[i].EventsEnqueued -= stats[i+1].EventsEnqueued
-		stats[i].EventsDequeued -= stats[i+1].EventsDequeued
-		stats[i].EventsEnqueued -= stats[i].EventsDequeued
 		stats[i].EventsDequeued = 0
 
 		stats[i].EventsRouted -= stats[i+1].EventsRouted
