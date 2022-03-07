@@ -457,7 +457,7 @@ func watcherGetHandlerStats(addr string, nodeID string) (response string, errstr
 		response += bold + italic + "OS (MiB)" + italic + bold + eol
 		response += code
 		response += timeHeader(bucketMins, buckets)
-		response += fmt.Sprintf("%7s", "free")
+		response += fmt.Sprintf("%7s", "mfree")
 		for i, stat := range stats {
 			if i >= buckets {
 				break
@@ -465,7 +465,7 @@ func watcherGetHandlerStats(addr string, nodeID string) (response string, errstr
 			response += fmt.Sprintf("%7d", stat.OSMemFree/(1024*1024))
 		}
 		response += eol
-		response += fmt.Sprintf("%7s", "total")
+		response += fmt.Sprintf("%7s", "mtotal")
 		for i, stat := range stats {
 			if i >= buckets {
 				break
