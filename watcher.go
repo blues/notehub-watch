@@ -118,7 +118,7 @@ func watcherGetHandlers(host string) (handlerNodeIDs []string, handlerAddrs []st
 		return
 	}
 	for _, h := range *pb.Body.AppHandlers {
-		handlerNodeIDs = append(handlerNodeIDs, h.NodeID)
+		handlerNodeIDs = append(handlerNodeIDs, h.NodeID+":"+h.PrimaryService)
 		handlerTypes = append(handlerTypes, h.PrimaryService)
 		addr := fmt.Sprintf("http://%s", host)
 		handlerAddrs = append(handlerAddrs, addr)
