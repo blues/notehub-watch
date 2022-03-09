@@ -101,7 +101,7 @@ func sheetGetHostStats(host string) (response string) {
 	}
 
 	// Done
-	response = fmt.Sprintf("[%s](%s%s%s)", filename, Config.HostURL, sheetRoute, filename)
+	response = fmt.Sprintf("<%s%s%s|%s>", Config.HostURL, sheetRoute, filename, filename)
 	return
 
 }
@@ -365,7 +365,7 @@ func sheetAddNode(f *excelize.File, sheetName string, addr string, nodeID string
 			timeHeader(f, sheetName, col+1, row, bucketMins, buckets)
 			row++
 
-			f.SetCellValue(sheetName, cell(col, row), "refresh")
+			f.SetCellValue(sheetName, cell(col, row), "refreshed")
 			for i, stat := range stats {
 				if i >= buckets {
 					break
