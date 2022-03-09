@@ -17,7 +17,7 @@ import (
 )
 
 // The route to our sheet handler
-const sheetRoute = "/sheet"
+const sheetRoute = "/sheet/"
 
 // Handler to retrieve a sheet
 func inboundWebSheetHandler(w http.ResponseWriter, r *http.Request) {
