@@ -83,6 +83,9 @@ func sheetGetHostStats(host string) (response string) {
 
 	}
 
+	// Delete the default sheet
+	f.DeleteSheet("Sheet1")
+
 	// Save the spreadsheet to a temp file
 	hostCleaned := strings.TrimSuffix(host, ".blues.tools")
 	hostCleaned = strings.TrimPrefix(hostCleaned, "api.")
