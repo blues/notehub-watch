@@ -101,7 +101,7 @@ func sheetGetHostStats(host string) (response string) {
 	}
 
 	// Done
-	response = fmt.Sprintf("[%s](%s%s/%s)", filename, Config.HostURL, sheetRoute, filename)
+	response = fmt.Sprintf("[%s](%s%s%s)", filename, Config.HostURL, sheetRoute, filename)
 	return
 
 }
