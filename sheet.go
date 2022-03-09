@@ -126,10 +126,15 @@ func sheetAddNode(f *excelize.File, sheetName string, addr string, nodeID string
 	styleBold, _ := f.NewStyle(`{"font":{"bold":true,"italic":false}}`)
 	styleBoldItalic, _ := f.NewStyle(`{"font":{"bold":true,"italic":true}}`)
 
+	// Base for dynamic info
+	col := 2
+	row := 2
+
 	// Node ID
-	f.SetCellValue(sheetName, "B2", "Node")
-	f.SetCellStyle(sheetName, "B2", "B2", styleBoldItalic)
-	f.SetCellValue(sheetName, "C2", nodeID)
+	f.SetCellValue(sheetName, cell(col, row), "Node")
+	f.SetCellStyle(sheetName, cell(col, row), cell(col, row), styleBoldItalic)
+	f.SetCellValue(sheetName, cell(col+1, row), nodeID)
+	row++
 
 	// Uptime
 	uptimeSecs := time.Now().Unix() - (*pb.Body.LBStatus)[0].Started
@@ -140,9 +145,10 @@ func sheetAddNode(f *excelize.File, sheetName string, addr string, nodeID string
 	uptimeMins := uptimeSecs / 60
 	uptimeSecs -= uptimeMins * 60
 	uptimeStr := fmt.Sprintf("%dd:%dh:%dm", uptimeDays, uptimeHours, uptimeMins)
-	f.SetCellValue(sheetName, "B3", "Uptime")
-	f.SetCellStyle(sheetName, "B3", "B3", styleBoldItalic)
-	f.SetCellValue(sheetName, "C3", uptimeStr)
+	f.SetCellValue(sheetName, cell(col, row), "Uptime")
+	f.SetCellStyle(sheetName, cell(col, row), cell(col, row), styleBoldItalic)
+	f.SetCellValue(sheetName, cell(col+1, row), uptimeStr)
+	row++
 
 	// Handlers
 	continuousActive := (*pb.Body.LBStatus)[0].ContinuousHandlersActivated -
@@ -154,21 +160,24 @@ func sheetAddNode(f *excelize.File, sheetName string, addr string, nodeID string
 	discoveryActive := (*pb.Body.LBStatus)[0].DiscoveryHandlersActivated -
 		(*pb.Body.LBStatus)[0].DiscoveryHandlersDeactivated
 	totalActive := continuousActive + notificationActive + ephemeralActive + discoveryActive
-	f.SetCellValue(sheetName, "B5", "Handlers")
-	f.SetCellStyle(sheetName, "B5", "B5", styleBoldItalic)
-	f.SetCellValue(sheetName, "C5", totalActive)
-	f.SetCellValue(sheetName, "D6", "continuous")
-	f.SetCellValue(sheetName, "C6", continuousActive)
-	f.SetCellValue(sheetName, "D7", "notification")
-	f.SetCellValue(sheetName, "C7", notificationActive)
-	f.SetCellValue(sheetName, "D8", "ephemeral")
-	f.SetCellValue(sheetName, "C8", ephemeralActive)
-	f.SetCellValue(sheetName, "D9", "discovery")
-	f.SetCellValue(sheetName, "C9", discoveryActive)
+	f.SetCellValue(sheetName, cell(col, row), "Handlers")
+	f.SetCellStyle(sheetName, cell(col, row), cell(col, row), styleBoldItalic)
+	f.SetCellValue(sheetName, cell(col+1, row), totalActive)
 
-	// Base for dynamic info
-	col := 2
-	row := 11
+	f.SetCellValue(sheetName, cell(col+3, row), "continuous")
+	f.SetCellValue(sheetName, cell(col+4, row), continuousActive)
+	row++
+	f.SetCellValue(sheetName, cell(col+3, row), "notification")
+	f.SetCellValue(sheetName, cell(col+4, row), notificationActive)
+	row++
+	f.SetCellValue(sheetName, cell(col+3, row), "ephemeral")
+	f.SetCellValue(sheetName, cell(col+4, row), ephemeralActive)
+	row++
+	f.SetCellValue(sheetName, cell(col+3, row), "discovery")
+	f.SetCellValue(sheetName, cell(col+4, row), discoveryActive)
+	row++
+
+	row++
 
 	// Generate aggregate info if available
 	if len(*pb.Body.LBStatus) >= 2 {
