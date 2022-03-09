@@ -29,7 +29,7 @@ func slackSendMessage(message string) (err error) {
 }
 
 // Slack inbound 'slash command' request handler
-func inboundSlackRequestHandler(w http.ResponseWriter, r *http.Request) {
+func inboundWebSlackRequestHandler(w http.ResponseWriter, r *http.Request) {
 
 	s, err := slack.SlashCommandParse(r)
 	if err != nil {

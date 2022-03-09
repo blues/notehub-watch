@@ -12,6 +12,7 @@ import (
 // Directory that will be used for data
 const configDataDirectoryBase = "/data/"
 
+// Fully-resolved data directory
 var configDataDirectory = ""
 
 // Main service entry point

@@ -14,6 +14,9 @@ import (
 // ServiceConfig is the service configuration file format
 type ServiceConfig struct {
 
+	// Host URL
+	HostURL string `json:"host_url,omitempty"`
+
 	// Twilio "from" phone number & email (addr & name)
 	TwilioSMS   string `json:"twilio_sms,omitempty"`
 	TwilioEmail string `json:"twilio_email,omitempty"`

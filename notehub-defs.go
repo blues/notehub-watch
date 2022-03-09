@@ -5,6 +5,19 @@
 package main
 
 //
+// hublib/dc.go
+//
+
+// DcServiceNameNoteDiscovery is the name of the service registered with consul for notehub discovery
+const DcServiceNameNoteDiscovery = "notediscovery"
+
+// DcServiceNameNoteboard is the name of the service registered with consul for the noteboard HTTP task
+const DcServiceNameNoteboard = "noteboard-http"
+
+// DcServiceNameNotehandlerTCP is the name of the service registered with consul for notehub handler on the tcp port
+const DcServiceNameNotehandlerTCP = "notehandler-tcp"
+
+//
 // notehub/http-ping.go
 //
 

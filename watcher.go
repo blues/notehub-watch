@@ -14,49 +14,53 @@ import (
 )
 
 // Watcher show command
-func watcherShow(server string, showWhat string) (result string) {
+func watcherShow(host string, showWhat string) (result string) {
 
-	if server == "" {
+	if host == "" {
 		return "" +
-			"/notehub prod show <what>\n" +
-			"/notehub staging show <what>\n" +
-			"/notehub <yourserver> show <what>\n" +
+			"/notehub <host>\n" +
+			"/notehub <host> show <what>\n" +
+			"<host> is prod, staging, or your local hostname\n" +
+			"<what> is goroutines, heap, handlers\n" +
 			""
 	}
 
-	targetServer := server
+	targetHost := host
 
 	// Production
-	if server == "p" || server == "prod" || server == "production" {
-		targetServer = "notefile.net"
+	if host == "p" || host == "prod" || host == "production" {
+		targetHost = "notefile.net"
 	}
 
 	// Staging
-	if server == "s" || server == "staging" {
-		targetServer = "staging.blues.tools"
+	if host == "s" || host == "staging" {
+		targetHost = "staging.blues.tools"
 	}
 
 	// Localdev
-	if !strings.Contains(server, ".") {
-		targetServer = server + ".blues.tools"
+	if !strings.Contains(host, ".") {
+		targetHost = host + ".blues.tools"
 	}
 
-	// We must target the API service for this server
-	if !strings.HasPrefix(targetServer, "api.") {
-		targetServer = "api." + targetServer
+	// We must target the API service for this host
+	if !strings.HasPrefix(targetHost, "api.") {
+		targetHost = "api." + targetHost
 	}
 
-	return watcherShowServer(targetServer, showWhat)
+	return watcherShowHost(targetHost, showWhat)
 
 }
 
-// Show something about the server
-func watcherShowServer(server string, showWhat string) (response string) {
-	var errstr string
-	var handlerNodeIDs, handlerAddrs []string
+// Show something about the host
+func watcherShowHost(host string, showWhat string) (response string) {
 
-	// Get the list of handlers on the server
-	handlerNodeIDs, handlerAddrs, errstr = watcherGetHandlers(server)
+	// If showing nothing, done
+	if showWhat == "" {
+		return sheetGetHostStats(host)
+	}
+
+	// Get the list of handlers on the host
+	handlerNodeIDs, handlerAddrs, handlerTypes, errstr := watcherGetHandlers(host)
 	if errstr != "" {
 		return errstr
 	}
@@ -64,7 +68,7 @@ func watcherShowServer(server string, showWhat string) (response string) {
 	// Show the handlers
 	for i, addr := range handlerAddrs {
 		response += "\n"
-		response += fmt.Sprintf("*NODE %s*\n", handlerNodeIDs[i])
+		response += fmt.Sprintf("*NODE %s (%s)*\n", handlerNodeIDs[i], handlerTypes[i])
 		r, errstr := watcherShowHandler(addr, handlerNodeIDs[i], showWhat)
 		if errstr != "" {
 			response += "  " + errstr + "\n"
@@ -78,9 +82,9 @@ func watcherShowServer(server string, showWhat string) (response string) {
 }
 
 // Get the list of handlers
-func watcherGetHandlers(server string) (handlerNodeIDs []string, handlerAddrs []string, errstr string) {
+func watcherGetHandlers(host string) (handlerNodeIDs []string, handlerAddrs []string, handlerTypes []string, errstr string) {
 
-	url := "https://" + server + "/ping?show=\"handlers\""
+	url := "https://" + host + "/ping?show=\"handlers\""
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		errstr = err.Error()
@@ -114,8 +118,9 @@ func watcherGetHandlers(server string) (handlerNodeIDs []string, handlerAddrs []
 		return
 	}
 	for _, h := range *pb.Body.AppHandlers {
-		handlerNodeIDs = append(handlerNodeIDs, h.NodeID+":"+h.PrimaryService)
-		addr := fmt.Sprintf("http://%s", server)
+		handlerNodeIDs = append(handlerNodeIDs, h.NodeID)
+		handlerTypes = append(handlerTypes, h.PrimaryService)
+		addr := fmt.Sprintf("http://%s", host)
 		handlerAddrs = append(handlerAddrs, addr)
 	}
 
@@ -168,11 +173,6 @@ func getHandlerInfo(addr string, nodeID string, showWhat string) (pb PingBody, e
 // Show something about a handler
 func watcherShowHandler(addr string, nodeID string, showWhat string) (response string, errstr string) {
 
-	// If showing nothing, done
-	if showWhat == "" {
-		return watcherGetHandlerStats(addr, nodeID)
-	}
-
 	// Get the info from the handler
 	var pb PingBody
 	pb, errstr = getHandlerInfo(addr, nodeID, showWhat)
@@ -222,415 +222,4 @@ func watcherShowHandler(addr string, nodeID string, showWhat string) (response s
 	// Unknown object to show
 	errstr = "unknown 'show' type: " + showWhat
 	return
-}
-
-// Return a time header
-func timeHeader(bucketMins int, buckets int) (response string) {
-	response += fmt.Sprintf("%7s", "")
-	for i := 0; i < buckets; i++ {
-		response += fmt.Sprintf("%6dm", (i+1)*bucketMins)
-	}
-	response += "\n"
-	return
-}
-
-// Get general load stats for a handler
-func watcherGetHandlerStats(addr string, nodeID string) (response string, errstr string) {
-	eol := "\n"
-	code := "```"
-	bold := "*"
-	italic := "_"
-
-	// Get the info from the handler
-	var pb PingBody
-	pb, errstr = getHandlerInfo(addr, nodeID, "lb")
-	if errstr != "" {
-		return
-	}
-
-	// Generate summary info
-	if pb.Body.LBStatus != nil && len(*pb.Body.LBStatus) >= 1 {
-
-		// Uptime
-		uptimeSecs := time.Now().Unix() - (*pb.Body.LBStatus)[0].Started
-		uptimeDays := uptimeSecs / (24 * 60 * 60)
-		uptimeSecs -= uptimeDays * (24 * 60 * 60)
-		uptimeHours := uptimeSecs / (60 * 60)
-		uptimeSecs -= uptimeHours * (60 * 60)
-		uptimeMins := uptimeSecs / 60
-		uptimeSecs -= uptimeMins * 60
-		response += bold + "        Uptime:" + bold + " "
-		response += fmt.Sprintf("%dd:%dh:%dm", uptimeDays, uptimeHours, uptimeMins)
-		response += eol
-
-		// Handlers
-		response += bold + "        Handlers:" + bold + " "
-		continuousActive := (*pb.Body.LBStatus)[0].ContinuousHandlersActivated -
-			(*pb.Body.LBStatus)[0].ContinuousHandlersDeactivated
-		notificationActive := (*pb.Body.LBStatus)[0].NotificationHandlersActivated -
-			(*pb.Body.LBStatus)[0].NotificationHandlersDeactivated
-		ephemeralActive := (*pb.Body.LBStatus)[0].EphemeralHandlersActivated -
-			(*pb.Body.LBStatus)[0].EphemeralHandlersDeactivated
-		discoveryActive := (*pb.Body.LBStatus)[0].DiscoveryHandlersActivated -
-			(*pb.Body.LBStatus)[0].DiscoveryHandlersDeactivated
-		totalActive := continuousActive + notificationActive + ephemeralActive + discoveryActive
-		response += fmt.Sprintf("%d", totalActive)
-		response += fmt.Sprintf(" (%d continuous", continuousActive)
-		response += fmt.Sprintf(", %d notification", notificationActive)
-		response += fmt.Sprintf(", %d ephemeral", ephemeralActive)
-		response += fmt.Sprintf(", %d discovery)", discoveryActive)
-		response += eol
-
-	}
-
-	// Generate aggregate info
-	if pb.Body.LBStatus != nil && len(*pb.Body.LBStatus) >= 2 {
-
-		// Extract all available stats, and convert them from absolute to
-		// per-bucket relative
-		stats := absoluteToRelative((*pb.Body.LBStatus)[1:])
-
-		// Limit the number of buckets because of slack UI block width
-		buckets := len(stats)
-		if slackUsingBlocksForResponses() && buckets > 10 {
-			buckets = 10
-		}
-		bucketMins := int((*pb.Body.LBStatus)[0].BucketMins)
-
-		// Handler stats
-		response += bold + italic + "Handlers" + italic + bold + eol
-		response += code
-		response += timeHeader(bucketMins, buckets)
-		response += fmt.Sprintf("%7s", "contin")
-		for i, stat := range stats {
-			if i >= buckets {
-				break
-			}
-			response += fmt.Sprintf("%7d", stat.ContinuousHandlersActivated)
-		}
-		response += eol
-		response += fmt.Sprintf("%7s", "notif")
-		for i, stat := range stats {
-			if i >= buckets {
-				break
-			}
-			response += fmt.Sprintf("%7d", stat.NotificationHandlersActivated)
-		}
-		response += eol
-		response += fmt.Sprintf("%7s", "ephem")
-		for i, stat := range stats {
-			if i >= buckets {
-				break
-			}
-			response += fmt.Sprintf("%7d", stat.EphemeralHandlersActivated)
-		}
-		response += eol
-		response += fmt.Sprintf("%7s", "disco")
-		for i, stat := range stats {
-			if i >= buckets {
-				break
-			}
-			response += fmt.Sprintf("%7d", stat.DiscoveryHandlersActivated)
-		}
-		response += code
-		response += eol
-
-		// Event stats
-		response += bold + italic + "Events" + italic + bold + eol
-		response += code
-		response += timeHeader(bucketMins, buckets)
-		response += fmt.Sprintf("%7s", "routed")
-		for i, stat := range stats {
-			if i >= buckets {
-				break
-			}
-			response += fmt.Sprintf("%7d", stat.EventsRouted)
-		}
-		response += code
-		response += eol
-
-		// Database stats
-		response += bold + italic + "Databases" + italic + bold + eol
-		for k := range stats[0].Databases {
-			response += k + eol
-			response += code
-			response += timeHeader(bucketMins, buckets)
-			response += fmt.Sprintf("%7s", "reads")
-			for i, stat := range stats {
-				if i >= buckets {
-					break
-				}
-				response += fmt.Sprintf("%7d", stat.Databases[k].Reads)
-			}
-			response += eol
-			response += fmt.Sprintf("%7s", "writes")
-			for i, stat := range stats {
-				if i >= buckets {
-					break
-				}
-				response += fmt.Sprintf("%7d", stat.Databases[k].Writes)
-			}
-			response += eol
-			response += fmt.Sprintf("%7s", "readMs")
-			for i, stat := range stats {
-				if i >= buckets {
-					break
-				}
-				response += fmt.Sprintf("%7d", stat.Databases[k].ReadMs)
-			}
-			response += eol
-			response += fmt.Sprintf("%7s", "writeMs")
-			for i, stat := range stats {
-				if i >= buckets {
-					break
-				}
-				response += fmt.Sprintf("%7d", stat.Databases[k].WriteMs)
-			}
-			response += code
-			response += eol
-		}
-
-		// Cache stats
-		response += bold + italic + "Caches" + italic + bold + eol
-		for k := range stats[0].Caches {
-			response += k + " cache " + eol
-			response += code
-			response += timeHeader(bucketMins, buckets)
-			response += fmt.Sprintf("%7s", "refresh")
-			for i, stat := range stats {
-				if i >= buckets {
-					break
-				}
-				response += fmt.Sprintf("%7d", stat.Caches[k].Invalidations)
-			}
-			response += eol
-			response += fmt.Sprintf("%7s", "entries")
-			for i, stat := range stats {
-				if i >= buckets {
-					break
-				}
-				response += fmt.Sprintf("%7d", stat.Caches[k].Entries)
-			}
-			response += code
-			response += eol
-		}
-
-		// Auth/API stats
-		if len(stats[0].API) > 0 {
-			response += bold + italic + "API" + italic + bold + eol
-			for k := range stats[0].API {
-				response += k + eol
-				response += code
-				response += timeHeader(bucketMins, buckets)
-				response += fmt.Sprintf("%7s", "")
-				for i, stat := range stats {
-					if i >= buckets {
-						break
-					}
-					response += fmt.Sprintf("%7d", stat.API[k])
-				}
-				response += code
-				response += eol
-			}
-		}
-
-		// Fatals stats
-		if len(stats[0].Fatals) > 0 {
-			response += bold + italic + "Fatals" + italic + bold + eol
-			for k := range stats[0].Fatals {
-				response += k + eol
-				response += code
-				response += timeHeader(bucketMins, buckets)
-				response += fmt.Sprintf("%7s", "")
-				for i, stat := range stats {
-					if i >= buckets {
-						break
-					}
-					response += fmt.Sprintf("%7d", stat.Fatals[k])
-				}
-				response += code
-				response += eol
-			}
-		}
-
-		// Memory stats
-		response += bold + italic + "OS (MiB)" + italic + bold + eol
-		response += code
-		response += timeHeader(bucketMins, buckets)
-		response += fmt.Sprintf("%7s", "mfree")
-		for i, stat := range stats {
-			if i >= buckets {
-				break
-			}
-			response += fmt.Sprintf("%7d", stat.OSMemFree/(1024*1024))
-		}
-		response += eol
-		response += fmt.Sprintf("%7s", "mtotal")
-		for i, stat := range stats {
-			if i >= buckets {
-				break
-			}
-			response += fmt.Sprintf("%7d", stat.OSMemTotal/(1024*1024))
-		}
-		response += eol
-		response += fmt.Sprintf("%7s", "diskrd")
-		for i, stat := range stats {
-			if i >= buckets {
-				break
-			}
-			response += fmt.Sprintf("%7d", stat.OSDiskRead/(1024*1024))
-		}
-		response += eol
-		response += fmt.Sprintf("%7s", "diskwr")
-		for i, stat := range stats {
-			if i >= buckets {
-				break
-			}
-			response += fmt.Sprintf("%7d", stat.OSDiskWrite/(1024*1024))
-		}
-		response += eol
-		response += fmt.Sprintf("%7s", "netrcv")
-		for i, stat := range stats {
-			if i >= buckets {
-				break
-			}
-			response += fmt.Sprintf("%7d", stat.OSNetReceived/(1024*1024))
-		}
-		response += eol
-		response += fmt.Sprintf("%7s", "netsnd")
-		for i, stat := range stats {
-			if i >= buckets {
-				break
-			}
-			response += fmt.Sprintf("%7d", stat.OSNetSent/(1024*1024))
-		}
-		response += code
-		response += eol
-
-	}
-
-	// Done
-	return
-}
-
-// Convert N absolute buckets to N-1 relative buckets by subtracting values
-// from the next bucket from the value in each bucket.
-func absoluteToRelative(stats []AppLBStat) (out []AppLBStat) {
-
-	// Do prep work to make the code below flow more naturally without
-	// getting access violations because of uninitialized maps
-	if len(stats) == 0 {
-		stats = append(stats, AppLBStat{})
-	}
-	if stats[0].Databases == nil {
-		stats[0].Databases = make(map[string]AppLBDatabase)
-	}
-	if stats[0].Caches == nil {
-		stats[0].Caches = make(map[string]AppLBCache)
-	}
-	if stats[0].API == nil {
-		stats[0].API = make(map[string]int64)
-	}
-	if stats[0].Fatals == nil {
-		stats[0].Fatals = make(map[string]int64)
-	}
-
-	// Special-case returning a single stat just after server reboot
-	if len(stats) == 1 {
-		for k, vcur := range stats[0].Databases {
-			if vcur.Reads > 0 {
-				vcur.ReadMs = vcur.ReadMs / vcur.Reads
-			}
-			if vcur.Writes > 0 {
-				vcur.WriteMs = vcur.WriteMs / vcur.Writes
-			}
-			stats[0].Databases[k] = vcur
-		}
-		return stats
-	}
-
-	// Iterate over all stats, converting from boot-absolute numbers
-	// to numbers that are bucket-scoped relative to the prior bucket
-	for i := 0; i < len(stats)-1; i++ {
-
-		stats[i].OSDiskRead -= stats[i+1].OSDiskRead
-		stats[i].OSDiskWrite -= stats[i+1].OSDiskWrite
-
-		stats[i].OSNetReceived -= stats[i+1].OSNetReceived
-		stats[i].OSNetSent -= stats[i+1].OSNetSent
-
-		stats[i].DiscoveryHandlersActivated -= stats[i+1].DiscoveryHandlersActivated
-		stats[i].DiscoveryHandlersDeactivated = 0
-
-		stats[i].ContinuousHandlersActivated -= stats[i+1].ContinuousHandlersActivated
-		stats[i].ContinuousHandlersDeactivated = 0
-
-		stats[i].NotificationHandlersActivated -= stats[i+1].NotificationHandlersActivated
-		stats[i].NotificationHandlersDeactivated = 0
-
-		stats[i].EphemeralHandlersActivated -= stats[i+1].EphemeralHandlersActivated
-		stats[i].EphemeralHandlersDeactivated = 0
-
-		stats[i].EventsEnqueued -= stats[i+1].EventsEnqueued
-		stats[i].EventsDequeued = 0
-
-		stats[i].EventsRouted -= stats[i+1].EventsRouted
-
-		if stats[i+1].Databases == nil {
-			stats[i+1].Databases = make(map[string]AppLBDatabase)
-		}
-		for k, vcur := range stats[i].Databases {
-			vprev, present := stats[i+1].Databases[k]
-			if present {
-				vcur.Reads -= vprev.Reads
-				vcur.ReadMs -= vprev.ReadMs
-				if vcur.Reads > 0 {
-					vcur.ReadMs = vcur.ReadMs / vcur.Reads
-				}
-				vcur.Writes -= vprev.Writes
-				vcur.WriteMs -= vprev.WriteMs
-				if vcur.Writes > 0 {
-					vcur.WriteMs = vcur.WriteMs / vcur.Writes
-				}
-				stats[i].Databases[k] = vcur
-			}
-		}
-
-		if stats[i+1].Caches == nil {
-			stats[i+1].Caches = make(map[string]AppLBCache)
-		}
-		for k, vcur := range stats[i].Caches {
-			vprev, present := stats[i+1].Caches[k]
-			if present {
-				vcur.Invalidations -= vprev.Invalidations
-				stats[i].Caches[k] = vcur
-			}
-		}
-
-		if stats[i+1].API == nil {
-			stats[i+1].API = make(map[string]int64)
-		}
-		for k, vcur := range stats[i].API {
-			vprev, present := stats[i+1].API[k]
-			if present {
-				vcur -= vprev
-				stats[i].API[k] = vcur
-			}
-		}
-
-		if stats[i+1].Fatals == nil {
-			stats[i+1].Fatals = make(map[string]int64)
-		}
-		for k, vcur := range stats[i].Fatals {
-			vprev, present := stats[i+1].Fatals[k]
-			if present {
-				vcur -= vprev
-				stats[i].Fatals[k] = vcur
-			}
-		}
-
-	}
-
-	return stats[0 : len(stats)-1]
-
 }
