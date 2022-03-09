@@ -122,8 +122,13 @@ func sheetAddNode(f *excelize.File, sheetName string, addr string, nodeID string
 	// Generate the sheet
 	f.NewSheet(sheetName)
 
+	// Generate styles
+	styleBold, _ := f.NewStyle(`{"font":{"bold":true,"italic":false}}`)
+	styleBoldItalic, _ := f.NewStyle(`{"font":{"bold":true,"italic":true}}`)
+
 	// Node ID
 	f.SetCellValue(sheetName, "B2", "Node")
+	f.SetCellStyle(sheetName, "B2", "B2", styleBoldItalic)
 	f.SetCellValue(sheetName, "C2", nodeID)
 
 	// Uptime
@@ -136,6 +141,7 @@ func sheetAddNode(f *excelize.File, sheetName string, addr string, nodeID string
 	uptimeSecs -= uptimeMins * 60
 	uptimeStr := fmt.Sprintf("%dd:%dh:%dm", uptimeDays, uptimeHours, uptimeMins)
 	f.SetCellValue(sheetName, "B3", "Uptime")
+	f.SetCellStyle(sheetName, "B3", "B3", styleBoldItalic)
 	f.SetCellValue(sheetName, "C3", uptimeStr)
 
 	// Handlers
@@ -149,6 +155,7 @@ func sheetAddNode(f *excelize.File, sheetName string, addr string, nodeID string
 		(*pb.Body.LBStatus)[0].DiscoveryHandlersDeactivated
 	totalActive := continuousActive + notificationActive + ephemeralActive + discoveryActive
 	f.SetCellValue(sheetName, "B5", "Handlers")
+	f.SetCellStyle(sheetName, "B5", "B5", styleBoldItalic)
 	f.SetCellValue(sheetName, "C5", totalActive)
 	f.SetCellValue(sheetName, "D6", "continuous")
 	f.SetCellValue(sheetName, "C6", continuousActive)
@@ -160,7 +167,7 @@ func sheetAddNode(f *excelize.File, sheetName string, addr string, nodeID string
 	f.SetCellValue(sheetName, "C9", discoveryActive)
 
 	// Base for dynamic info
-	col := 1
+	col := 2
 	row := 11
 
 	// Generate aggregate info if available
@@ -179,6 +186,7 @@ func sheetAddNode(f *excelize.File, sheetName string, addr string, nodeID string
 
 		// OS stats
 		f.SetCellValue(sheetName, cell(col, row), "OS (MiB)")
+		f.SetCellStyle(sheetName, cell(col, row), cell(col, row), styleBoldItalic)
 		timeHeader(f, sheetName, col+1, row, bucketMins, buckets)
 		row++
 
@@ -238,65 +246,9 @@ func sheetAddNode(f *excelize.File, sheetName string, addr string, nodeID string
 
 		row++
 
-		// Fatals stats
-		if len(stats[0].Fatals) > 0 {
-
-			f.SetCellValue(sheetName, cell(col, row), "Fatals")
-			timeHeader(f, sheetName, col+1, row, bucketMins, buckets)
-			row++
-
-			for k := range stats[0].Fatals {
-
-				f.SetCellValue(sheetName, cell(col, row), k)
-				for i, stat := range stats {
-					if i >= buckets {
-						break
-					}
-					f.SetCellValue(sheetName, cell(col+1+i, row), stat.Fatals[k])
-				}
-				row++
-
-			}
-
-			row++
-
-		}
-
-		// Cache stats
-		f.SetCellValue(sheetName, cell(col, row), "Caches")
-		row++
-
-		for k := range stats[0].Caches {
-
-			f.SetCellValue(sheetName, cell(col, row), k+" cache")
-			row++
-			timeHeader(f, sheetName, col+1, row, bucketMins, buckets)
-			row++
-
-			f.SetCellValue(sheetName, cell(col, row), "refresh")
-			for i, stat := range stats {
-				if i >= buckets {
-					break
-				}
-				f.SetCellValue(sheetName, cell(col+1+i, row), stat.Caches[k].Invalidations)
-			}
-			row++
-
-			f.SetCellValue(sheetName, cell(col, row), "entries")
-			for i, stat := range stats {
-				if i >= buckets {
-					break
-				}
-				f.SetCellValue(sheetName, cell(col+1+i, row), stat.Caches[k].Entries)
-			}
-			row++
-
-		}
-
-		row++
-
 		// Handler stats
 		f.SetCellValue(sheetName, cell(col, row), "Handlers")
+		f.SetCellStyle(sheetName, cell(col, row), cell(col, row), styleBoldItalic)
 		timeHeader(f, sheetName, col+1, row, bucketMins, buckets)
 		row++
 
@@ -340,6 +292,7 @@ func sheetAddNode(f *excelize.File, sheetName string, addr string, nodeID string
 
 		// Event stats
 		f.SetCellValue(sheetName, cell(col, row), "Events")
+		f.SetCellStyle(sheetName, cell(col, row), cell(col, row), styleBoldItalic)
 		timeHeader(f, sheetName, col+1, row, bucketMins, buckets)
 		row++
 
@@ -363,13 +316,78 @@ func sheetAddNode(f *excelize.File, sheetName string, addr string, nodeID string
 
 		row++
 
+		// Fatals stats
+		if len(stats[0].Fatals) > 0 {
+
+			f.SetCellValue(sheetName, cell(col, row), "Fatals")
+			f.SetCellStyle(sheetName, cell(col, row), cell(col, row), styleBoldItalic)
+			timeHeader(f, sheetName, col+1, row, bucketMins, buckets)
+			row++
+
+			for k := range stats[0].Fatals {
+
+				f.SetCellValue(sheetName, cell(col, row), k)
+				f.SetCellStyle(sheetName, cell(col, row), cell(col, row), styleBold)
+				for i, stat := range stats {
+					if i >= buckets {
+						break
+					}
+					f.SetCellValue(sheetName, cell(col+1+i, row), stat.Fatals[k])
+				}
+				row++
+
+			}
+
+			row++
+
+		}
+
+		// Cache stats
+		f.SetCellValue(sheetName, cell(col, row), "Caches")
+		f.SetCellStyle(sheetName, cell(col, row), cell(col, row), styleBoldItalic)
+		row++
+
+		for k := range stats[0].Caches {
+			row++
+
+			f.SetCellValue(sheetName, cell(col, row), k+" cache")
+			f.SetCellStyle(sheetName, cell(col, row), cell(col, row), styleBold)
+			row++
+			timeHeader(f, sheetName, col+1, row, bucketMins, buckets)
+			row++
+
+			f.SetCellValue(sheetName, cell(col, row), "refresh")
+			for i, stat := range stats {
+				if i >= buckets {
+					break
+				}
+				f.SetCellValue(sheetName, cell(col+1+i, row), stat.Caches[k].Invalidations)
+			}
+			row++
+
+			f.SetCellValue(sheetName, cell(col, row), "entries")
+			for i, stat := range stats {
+				if i >= buckets {
+					break
+				}
+				f.SetCellValue(sheetName, cell(col+1+i, row), stat.Caches[k].Entries)
+			}
+			row++
+
+		}
+
+		row++
+
 		// Database stats
 		f.SetCellValue(sheetName, cell(col, row), "Databases")
+		f.SetCellStyle(sheetName, cell(col, row), cell(col, row), styleBoldItalic)
 		row++
 
 		for k := range stats[0].Databases {
+			row++
 
 			f.SetCellValue(sheetName, cell(col, row), k)
+			f.SetCellStyle(sheetName, cell(col, row), cell(col, row), styleBold)
 			row++
 			timeHeader(f, sheetName, col+1, row, bucketMins, buckets)
 			row++
@@ -418,11 +436,14 @@ func sheetAddNode(f *excelize.File, sheetName string, addr string, nodeID string
 		if len(stats[0].API) > 0 {
 
 			f.SetCellValue(sheetName, cell(col, row), "API")
+			f.SetCellStyle(sheetName, cell(col, row), cell(col, row), styleBoldItalic)
 			row++
 
 			for k := range stats[0].API {
+				row++
 
 				f.SetCellValue(sheetName, cell(col, row), k)
+				f.SetCellStyle(sheetName, cell(col, row), cell(col, row), styleBold)
 				row++
 				timeHeader(f, sheetName, col+1, row, bucketMins, buckets)
 				row++
