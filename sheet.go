@@ -112,7 +112,7 @@ func sheetAddNode(f *excelize.File, sheetName string, addr string, nodeID string
 	if errstr != "" {
 		return
 	}
-	if pb.Body.LBStatus != nil || len(*pb.Body.LBStatus) == 0 {
+	if pb.Body.LBStatus == nil || len(*pb.Body.LBStatus) == 0 {
 		return "no data available from handler"
 	}
 
