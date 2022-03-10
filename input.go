@@ -69,7 +69,9 @@ func inputHandler() {
 			slackSendMessage(messageAfterFirstWord)
 
 		case "stats":
+			fmt.Printf("OZZIE: sig before: %v\n", statsMaintainNow.Signal())
 			statsMaintainNow.Signal()
+			fmt.Printf("OZZIE: sig after: %v\n", statsMaintainNow.Signal())
 
 		case "":
 
