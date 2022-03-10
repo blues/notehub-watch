@@ -17,14 +17,14 @@ import (
 )
 
 // The route to our sheet handler
-const sheetRoute = "/sheet/"
+const sheetRoute = "/file/"
 
 // Handler to retrieve a sheet
 func inboundWebSheetHandler(w http.ResponseWriter, r *http.Request) {
 
 	// Open the file
 	filename := r.RequestURI[len(sheetRoute):]
-	file := configDataDirectory + "/" + filename
+	file := configDataDirectory + filename
 	contents, err := ioutil.ReadFile(file)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusNotFound)
@@ -95,7 +95,7 @@ func sheetGetHostStats(hostaddr string) (response string) {
 		hostCleaned = "prod"
 	}
 	filename := fmt.Sprintf("%s-%s.xlsx", hostCleaned, time.Now().UTC().Format("20060102-150405"))
-	err = f.SaveAs(configDataDirectory + "/" + filename)
+	err = f.SaveAs(configDataDirectory + filename)
 	if err != nil {
 		return err.Error()
 	}
