@@ -60,16 +60,16 @@ func watcherShowHost(host string, showWhat string) (response string) {
 	}
 
 	// Get the list of handlers on the host
-	handlerNodeIDs, handlerAddrs, handlerTypes, errstr := watcherGetHandlers(host)
-	if errstr != "" {
-		return errstr
+	serviceInstanceIDs, serviceInstanceAddrs, serviceNames, err := watcherGetServiceInstances(host)
+	if err != nil {
+		return err.Error()
 	}
 
 	// Show the handlers
-	for i, addr := range handlerAddrs {
+	for i, addr := range serviceInstanceAddrs {
 		response += "\n"
-		response += fmt.Sprintf("*NODE %s (%s)*\n", handlerNodeIDs[i], handlerTypes[i])
-		r, errstr := watcherShowHandler(addr, handlerNodeIDs[i], showWhat)
+		response += fmt.Sprintf("*NODE %s (%s)*\n", serviceInstanceIDs[i], serviceNames[i])
+		r, errstr := watcherShowServiceInstance(addr, serviceInstanceIDs[i], showWhat)
 		if errstr != "" {
 			response += "  " + errstr + "\n"
 		} else {
@@ -82,86 +82,89 @@ func watcherShowHost(host string, showWhat string) (response string) {
 }
 
 // Get the list of handlers
-func watcherGetHandlers(host string) (handlerNodeIDs []string, handlerAddrs []string, handlerTypes []string, errstr string) {
+func watcherGetServiceInstances(host string) (serviceInstanceIDs []string, serviceInstanceAddrs []string, serviceNames []string, err error) {
 
 	url := "https://" + host + "/ping?show=\"handlers\""
-	req, err := http.NewRequest("GET", url, nil)
-	if err != nil {
-		errstr = err.Error()
+	req, err2 := http.NewRequest("GET", url, nil)
+	if err2 != nil {
+		err = err2
 		return
 	}
 	httpclient := &http.Client{
 		Timeout: time.Second * time.Duration(30),
 	}
-	rsp, err := httpclient.Do(req)
-	if err != nil {
-		errstr = err.Error()
+	rsp, err2 := httpclient.Do(req)
+	if err2 != nil {
+		err = err2
 		return
 	}
 	defer rsp.Body.Close()
 
-	rspJSON, err := io.ReadAll(rsp.Body)
+	var rspJSON []byte
+	rspJSON, err = io.ReadAll(rsp.Body)
 	if err != nil {
-		errstr = err.Error()
 		return
 	}
 
 	var pb PingBody
 	err = json.Unmarshal(rspJSON, &pb)
 	if err != nil {
-		errstr = string(rspJSON)
 		return
 	}
 
 	if pb.Body.AppHandlers == nil {
-		errstr = "no handlers in " + string(rspJSON)
+		err = fmt.Errorf("no handlers in " + string(rspJSON))
 		return
 	}
 	for _, h := range *pb.Body.AppHandlers {
-		handlerNodeIDs = append(handlerNodeIDs, h.NodeID+":"+h.PrimaryService)
-		handlerTypes = append(handlerTypes, h.PrimaryService)
+		// Create the SIID out of the NodeID combined with the primary service.  This technique is mimicked
+		// within the actual http-ping.go handling in notehub, and is required for unique addressing of
+		// a service instance simply because on Local Dev we have a single NodeID that hosts all of the
+		// different services that collect stats within their own process address spaces.
+		serviceInstanceIDs = append(serviceInstanceIDs, h.NodeID+":"+h.PrimaryService)
+		serviceNames = append(serviceNames, h.PrimaryService)
 		addr := fmt.Sprintf("http://%s", host)
-		handlerAddrs = append(handlerAddrs, addr)
+		serviceInstanceAddrs = append(serviceInstanceAddrs, addr)
 	}
 
 	return
 
 }
 
-func getHandlerInfo(addr string, nodeID string, showWhat string) (pb PingBody, errstr string) {
+// Retrieve the ping info from a handler
+func getServiceInstanceInfo(addr string, siid string, showWhat string) (pb PingBody, err error) {
 
 	// Get the data
 	url := fmt.Sprintf("%s/ping?show=\"%s\"", addr, showWhat)
-	if nodeID != "" {
-		url = fmt.Sprintf("%s/ping?node=\"%s\"&show=\"%s\"", addr, nodeID, showWhat)
+	if siid != "" {
+		url = fmt.Sprintf("%s/ping?node=\"%s\"&show=\"%s\"", addr, siid, showWhat)
 	}
 
-	req, err := http.NewRequest("GET", url, nil)
-	if err != nil {
-		errstr = err.Error()
+	req, err2 := http.NewRequest("GET", url, nil)
+	if err2 != nil {
+		err = err2
 		return
 	}
 	httpclient := &http.Client{
 		Timeout: time.Second * time.Duration(30),
 	}
-	rsp, err := httpclient.Do(req)
-	if err != nil {
-		errstr = err.Error()
+	rsp, err2 := httpclient.Do(req)
+	if err2 != nil {
+		err = err2
 		return
 	}
 	defer rsp.Body.Close()
 
 	// Read the body
-	rspJSON, err := io.ReadAll(rsp.Body)
-	if err != nil {
-		errstr = err.Error()
+	rspJSON, err2 := io.ReadAll(rsp.Body)
+	if err2 != nil {
+		err = err2
 		return
 	}
 
 	// Unmarshal it
 	err = json.Unmarshal(rspJSON, &pb)
 	if err != nil {
-		errstr = string(rspJSON)
 		return
 	}
 
@@ -170,13 +173,13 @@ func getHandlerInfo(addr string, nodeID string, showWhat string) (pb PingBody, e
 
 }
 
-// Show something about a handler
-func watcherShowHandler(addr string, nodeID string, showWhat string) (response string, errstr string) {
+// Show something about a service instance
+func watcherShowServiceInstance(addr string, siid string, showWhat string) (response string, errstr string) {
 
-	// Get the info from the handler
-	var pb PingBody
-	pb, errstr = getHandlerInfo(addr, nodeID, showWhat)
-	if errstr != "" {
+	// Get the info from the service instance
+	pb, err := getServiceInstanceInfo(addr, siid, showWhat)
+	if err != nil {
+		errstr = err.Error()
 		return
 	}
 
@@ -222,4 +225,166 @@ func watcherShowHandler(addr string, nodeID string, showWhat string) (response s
 	// Unknown object to show
 	errstr = "unknown 'show' type: " + showWhat
 	return
+}
+
+// Convert N absolute buckets to N-1 relative buckets by subtracting values
+// from the next bucket from the value in each bucket.
+func ConvertStatsFromAbsoluteToRelative(stats []AppLBStat) (out []AppLBStat) {
+
+	// Do prep work to make the code below flow more naturally without
+	// getting access violations because of uninitialized maps
+	if len(stats) == 0 {
+		stats = append(stats, AppLBStat{})
+	}
+	if stats[0].Databases == nil {
+		stats[0].Databases = make(map[string]AppLBDatabase)
+	}
+	if stats[0].Caches == nil {
+		stats[0].Caches = make(map[string]AppLBCache)
+	}
+	if stats[0].API == nil {
+		stats[0].API = make(map[string]int64)
+	}
+	if stats[0].Fatals == nil {
+		stats[0].Fatals = make(map[string]int64)
+	}
+
+	// Special-case returning a single stat just after server reboot
+	if len(stats) == 1 {
+		for k, vcur := range stats[0].Databases {
+			if vcur.Reads > 0 {
+				vcur.ReadMs = vcur.ReadMs / vcur.Reads
+			}
+			if vcur.Writes > 0 {
+				vcur.WriteMs = vcur.WriteMs / vcur.Writes
+			}
+			stats[0].Databases[k] = vcur
+		}
+		return stats
+	}
+
+	// Iterate over all stats, converting from boot-absolute numbers
+	// to numbers that are bucket-scoped relative to the prior bucket
+	for i := 0; i < len(stats)-1; i++ {
+
+		stats[i].OSDiskRead -= stats[i+1].OSDiskRead
+		stats[i].OSDiskWrite -= stats[i+1].OSDiskWrite
+
+		stats[i].OSNetReceived -= stats[i+1].OSNetReceived
+		stats[i].OSNetSent -= stats[i+1].OSNetSent
+
+		stats[i].DiscoveryHandlersActivated -= stats[i+1].DiscoveryHandlersActivated
+		stats[i].DiscoveryHandlersDeactivated = 0
+
+		stats[i].ContinuousHandlersActivated -= stats[i+1].ContinuousHandlersActivated
+		stats[i].ContinuousHandlersDeactivated = 0
+
+		stats[i].NotificationHandlersActivated -= stats[i+1].NotificationHandlersActivated
+		stats[i].NotificationHandlersDeactivated = 0
+
+		stats[i].EphemeralHandlersActivated -= stats[i+1].EphemeralHandlersActivated
+		stats[i].EphemeralHandlersDeactivated = 0
+
+		stats[i].EventsEnqueued -= stats[i+1].EventsEnqueued
+		stats[i].EventsDequeued = 0
+
+		stats[i].EventsRouted -= stats[i+1].EventsRouted
+
+		if stats[i+1].Databases == nil {
+			stats[i+1].Databases = make(map[string]AppLBDatabase)
+		}
+		for k, vcur := range stats[i].Databases {
+			vprev, present := stats[i+1].Databases[k]
+			if present {
+				vcur.Reads -= vprev.Reads
+				vcur.ReadMs -= vprev.ReadMs
+				if vcur.Reads > 0 {
+					vcur.ReadMs = vcur.ReadMs / vcur.Reads
+				}
+				vcur.Writes -= vprev.Writes
+				vcur.WriteMs -= vprev.WriteMs
+				if vcur.Writes > 0 {
+					vcur.WriteMs = vcur.WriteMs / vcur.Writes
+				}
+				stats[i].Databases[k] = vcur
+			}
+		}
+
+		if stats[i+1].Caches == nil {
+			stats[i+1].Caches = make(map[string]AppLBCache)
+		}
+		for k, vcur := range stats[i].Caches {
+			vprev, present := stats[i+1].Caches[k]
+			if present {
+				vcur.Invalidations -= vprev.Invalidations
+				stats[i].Caches[k] = vcur
+			}
+		}
+
+		if stats[i+1].API == nil {
+			stats[i+1].API = make(map[string]int64)
+		}
+		for k, vcur := range stats[i].API {
+			vprev, present := stats[i+1].API[k]
+			if present {
+				vcur -= vprev
+				stats[i].API[k] = vcur
+			}
+		}
+
+		if stats[i+1].Fatals == nil {
+			stats[i+1].Fatals = make(map[string]int64)
+		}
+		for k, vcur := range stats[i].Fatals {
+			vprev, present := stats[i+1].Fatals[k]
+			if present {
+				vcur -= vprev
+				stats[i].Fatals[k] = vcur
+			}
+		}
+
+	}
+
+	return stats[0 : len(stats)-1]
+
+}
+
+// Retrieve a sample of data from the specified host, returning a vector of available stats indexed by SIID
+func watcherGetStats(host string) (stats map[string][]AppLBStat, err error) {
+
+	// Instantiate the stats map
+	stats = map[string][]AppLBStat{}
+
+	// Get the list of service instances on the host
+	serviceInstanceIDs, serviceInstanceAddrs, _, err2 := watcherGetServiceInstances(host)
+	if err2 != nil {
+		err = err2
+		return
+	}
+
+	// Iterate over each service instance, gathering its stats
+	for i, siid := range serviceInstanceIDs {
+
+		// Get the info
+		var pb PingBody
+		pb, err = getServiceInstanceInfo(serviceInstanceAddrs[i], siid, "lb")
+		if err != nil {
+			return
+		}
+
+		// If the server hasn't been up long enough to have stats.  Note that [0] is the
+		// current stats, and we need at least two more to compute relative stats.
+		if len(*pb.Body.LBStatus) < 3 {
+			err = fmt.Errorf("server hasn't been up long enough to have valid stats")
+			return
+		}
+
+		// Extract all available stats, and convert them from absolute to per-bucket relative.
+		stats[siid] = ConvertStatsFromAbsoluteToRelative((*pb.Body.LBStatus)[1:])
+
+	}
+
+	// Done
+	return
+
 }

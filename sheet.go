@@ -27,7 +27,7 @@ func inboundWebSheetHandler(w http.ResponseWriter, r *http.Request) {
 	file := configDataDirectory + "/" + filename
 	contents, err := ioutil.ReadFile(file)
 	if err != nil {
-		http.Error(w, fmt.Sprintf("%s", err), http.StatusNotFound)
+		http.Error(w, err.Error(), http.StatusNotFound)
 		return
 	}
 
@@ -44,21 +44,21 @@ func inboundWebSheetHandler(w http.ResponseWriter, r *http.Request) {
 // Generate a sheet for this host
 func sheetGetHostStats(host string) (response string) {
 
-	// Get the list of handlers on the host
-	handlerNodeIDs, handlerAddrs, handlerTypes, errstr := watcherGetHandlers(host)
-	if errstr != "" {
-		return errstr
+	// Get the list of service instances on the host
+	serviceInstanceIDs, serviceInstanceAddrs, serviceNames, err := watcherGetServiceInstances(host)
+	if err != nil {
+		return err.Error()
 	}
 
 	// Create a new spreadsheet
 	f := excelize.NewFile()
 
-	// Generate a page within the sheet for each handler node
+	// Generate a page within the sheet for each service instance
 	sheetNums := map[string]int{}
-	for i := range handlerAddrs {
+	for i := range serviceInstanceAddrs {
 
 		// Generate the sheet name
-		ht := handlerTypes[i]
+		ht := serviceNames[i]
 		sn := sheetNums[ht]
 		sn++
 		sheetNums[ht] = sn
@@ -74,8 +74,8 @@ func sheetGetHostStats(host string) (response string) {
 			sheetName = fmt.Sprintf("%s #%d", ht, sn)
 		}
 
-		// Generate the sheet for this handler
-		errstr = sheetAddNode(f, sheetName, handlerAddrs[i], handlerNodeIDs[i])
+		// Generate the sheet for this service instance
+		errstr := sheetAddTab(f, sheetName, serviceInstanceAddrs[i], serviceInstanceIDs[i])
 		if errstr != "" {
 			response = errstr
 			return
@@ -95,9 +95,9 @@ func sheetGetHostStats(host string) (response string) {
 		hostCleaned = "prod"
 	}
 	filename := fmt.Sprintf("%s-%s.xlsx", hostCleaned, time.Now().UTC().Format("20060102-150405"))
-	err := f.SaveAs(configDataDirectory + "/" + filename)
+	err = f.SaveAs(configDataDirectory + "/" + filename)
 	if err != nil {
-		return fmt.Sprintf("%s", err)
+		return err.Error()
 	}
 
 	// Done
@@ -106,13 +106,14 @@ func sheetGetHostStats(host string) (response string) {
 
 }
 
-// Add the stats for a node as a sheet within the spreadsheet file
-func sheetAddNode(f *excelize.File, sheetName string, addr string, nodeID string) (errstr string) {
+// Add the stats for a service instance as a tabbed sheet within the xlsx
+func sheetAddTab(f *excelize.File, sheetName string, addr string, siid string) (errstr string) {
 
 	// Get the info from the handler
 	var pb PingBody
-	pb, errstr = getHandlerInfo(addr, nodeID, "lb")
-	if errstr != "" {
+	pb, err := getServiceInstanceInfo(addr, siid, "lb")
+	if err != nil {
+		errstr = err.Error()
 		return
 	}
 	if pb.Body.LBStatus == nil || len(*pb.Body.LBStatus) == 0 {
@@ -130,10 +131,10 @@ func sheetAddNode(f *excelize.File, sheetName string, addr string, nodeID string
 	col := 2
 	row := 2
 
-	// Node ID
-	f.SetCellValue(sheetName, cell(col, row), "Node")
+	// Service Instances
+	f.SetCellValue(sheetName, cell(col, row), "Node SIID")
 	f.SetCellStyle(sheetName, cell(col, row), cell(col, row), styleBoldItalic)
-	f.SetCellValue(sheetName, cell(col+1, row), nodeID)
+	f.SetCellValue(sheetName, cell(col+1, row), siid)
 	row++
 
 	// Uptime
@@ -179,12 +180,13 @@ func sheetAddNode(f *excelize.File, sheetName string, addr string, nodeID string
 
 	row++
 
-	// Generate aggregate info if available
-	if len(*pb.Body.LBStatus) >= 2 {
+	// Generate aggregate info if enough are available to convert absolute to relative - that is,
+	// [0] is the 'current stats', and all the rest are absolute.  In order to produce 1 bucket
+	// of good 'relative' data, we need to subtract it from the one beyond it.
+	if len(*pb.Body.LBStatus) > 2 {
 
-		// Extract all available stats, and convert them from absolute to
-		// per-bucket relative
-		stats := absoluteToRelative((*pb.Body.LBStatus)[1:])
+		// Extract all available stats, and convert them from absolute to per-bucket relative.
+		stats := ConvertStatsFromAbsoluteToRelative((*pb.Body.LBStatus)[1:])
 
 		// Basic bucket stats
 		buckets := len(stats)
@@ -335,6 +337,12 @@ func sheetAddNode(f *excelize.File, sheetName string, addr string, nodeID string
 			}
 			row++
 
+			f.SetCellValue(sheetName, cell(col, row), "entriesHWM")
+			for i, stat := range stats {
+				f.SetCellValue(sheetName, cell(col+1+i, row), stat.Caches[k].EntriesHWM)
+			}
+			row++
+
 		}
 
 		row++
@@ -411,128 +419,6 @@ func sheetAddNode(f *excelize.File, sheetName string, addr string, nodeID string
 
 	// Done
 	return
-}
-
-// Convert N absolute buckets to N-1 relative buckets by subtracting values
-// from the next bucket from the value in each bucket.
-func absoluteToRelative(stats []AppLBStat) (out []AppLBStat) {
-
-	// Do prep work to make the code below flow more naturally without
-	// getting access violations because of uninitialized maps
-	if len(stats) == 0 {
-		stats = append(stats, AppLBStat{})
-	}
-	if stats[0].Databases == nil {
-		stats[0].Databases = make(map[string]AppLBDatabase)
-	}
-	if stats[0].Caches == nil {
-		stats[0].Caches = make(map[string]AppLBCache)
-	}
-	if stats[0].API == nil {
-		stats[0].API = make(map[string]int64)
-	}
-	if stats[0].Fatals == nil {
-		stats[0].Fatals = make(map[string]int64)
-	}
-
-	// Special-case returning a single stat just after server reboot
-	if len(stats) == 1 {
-		for k, vcur := range stats[0].Databases {
-			if vcur.Reads > 0 {
-				vcur.ReadMs = vcur.ReadMs / vcur.Reads
-			}
-			if vcur.Writes > 0 {
-				vcur.WriteMs = vcur.WriteMs / vcur.Writes
-			}
-			stats[0].Databases[k] = vcur
-		}
-		return stats
-	}
-
-	// Iterate over all stats, converting from boot-absolute numbers
-	// to numbers that are bucket-scoped relative to the prior bucket
-	for i := 0; i < len(stats)-1; i++ {
-
-		stats[i].OSDiskRead -= stats[i+1].OSDiskRead
-		stats[i].OSDiskWrite -= stats[i+1].OSDiskWrite
-
-		stats[i].OSNetReceived -= stats[i+1].OSNetReceived
-		stats[i].OSNetSent -= stats[i+1].OSNetSent
-
-		stats[i].DiscoveryHandlersActivated -= stats[i+1].DiscoveryHandlersActivated
-		stats[i].DiscoveryHandlersDeactivated = 0
-
-		stats[i].ContinuousHandlersActivated -= stats[i+1].ContinuousHandlersActivated
-		stats[i].ContinuousHandlersDeactivated = 0
-
-		stats[i].NotificationHandlersActivated -= stats[i+1].NotificationHandlersActivated
-		stats[i].NotificationHandlersDeactivated = 0
-
-		stats[i].EphemeralHandlersActivated -= stats[i+1].EphemeralHandlersActivated
-		stats[i].EphemeralHandlersDeactivated = 0
-
-		stats[i].EventsEnqueued -= stats[i+1].EventsEnqueued
-		stats[i].EventsDequeued = 0
-
-		stats[i].EventsRouted -= stats[i+1].EventsRouted
-
-		if stats[i+1].Databases == nil {
-			stats[i+1].Databases = make(map[string]AppLBDatabase)
-		}
-		for k, vcur := range stats[i].Databases {
-			vprev, present := stats[i+1].Databases[k]
-			if present {
-				vcur.Reads -= vprev.Reads
-				vcur.ReadMs -= vprev.ReadMs
-				if vcur.Reads > 0 {
-					vcur.ReadMs = vcur.ReadMs / vcur.Reads
-				}
-				vcur.Writes -= vprev.Writes
-				vcur.WriteMs -= vprev.WriteMs
-				if vcur.Writes > 0 {
-					vcur.WriteMs = vcur.WriteMs / vcur.Writes
-				}
-				stats[i].Databases[k] = vcur
-			}
-		}
-
-		if stats[i+1].Caches == nil {
-			stats[i+1].Caches = make(map[string]AppLBCache)
-		}
-		for k, vcur := range stats[i].Caches {
-			vprev, present := stats[i+1].Caches[k]
-			if present {
-				vcur.Invalidations -= vprev.Invalidations
-				stats[i].Caches[k] = vcur
-			}
-		}
-
-		if stats[i+1].API == nil {
-			stats[i+1].API = make(map[string]int64)
-		}
-		for k, vcur := range stats[i].API {
-			vprev, present := stats[i+1].API[k]
-			if present {
-				vcur -= vprev
-				stats[i].API[k] = vcur
-			}
-		}
-
-		if stats[i+1].Fatals == nil {
-			stats[i+1].Fatals = make(map[string]int64)
-		}
-		for k, vcur := range stats[i].Fatals {
-			vprev, present := stats[i+1].Fatals[k]
-			if present {
-				vcur -= vprev
-				stats[i].Fatals[k] = vcur
-			}
-		}
-
-	}
-
-	return stats[0 : len(stats)-1]
-
 }
 
 // Get the cell address for a given 1-based coordinate
