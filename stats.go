@@ -197,13 +197,14 @@ func uAddStats(hostname string, hostaddr string, s map[string][]AppLBStat) {
 
 	// If the time is less recent than the one found, extend all arrays at the end
 	for siid, sis := range hs.Stats {
-		lowestTime := mostRecentTime - (int64(len(sis)) * bucketMins * 60)
-		if lowestTime < leastRecentTime {
-			arrayEntries := (leastRecentTime - lowestTime) / 60 / hs.BucketMins
+		hsLeastRecentTime := mostRecentTime - (int64(len(sis)) * bucketMins * 60)
+		fmt.Printf("OZZIE leastRecent Time in HS = %d\n", hsLeastRecentTime)
+		if hsLeastRecentTime > leastRecentTime {
+			arrayEntries := (hsLeastRecentTime - leastRecentTime) / 60 / hs.BucketMins
 			fmt.Printf("OZZIE for %s adding %d entries at end\n", siid, arrayEntries)
 			z := make([]AppLBStat, arrayEntries)
 			for i := int64(0); i < arrayEntries; i++ {
-				z[i].SnapshotTaken = lowestTime - (bucketMins * 60 * i)
+				z[i].SnapshotTaken = hsLeastRecentTime - (bucketMins * 60 * i)
 				z[i].BucketMins = bucketMins
 			}
 			hs.Stats[siid] = append(hs.Stats[siid], z...)
