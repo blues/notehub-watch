@@ -51,6 +51,7 @@ func statsMaintainer() {
 		// Proceed if signalled, else do this several times per hour
 		// because stats are only maintained by services for an hour.
 		statsMaintainNow.Wait(time.Duration(time.Minute * 15))
+		fmt.Printf("OZZIE *** got signal ***\n")
 
 		// Maintain for every enabled host
 		for _, host := range Config.MonitoredHosts {
@@ -231,6 +232,7 @@ func uAddStats(hostname string, hostaddr string, s map[string][]AppLBStat) {
 
 // Maintain a single host
 func statsMaintainHost(hostname string, hostaddr string) (err error) {
+	fmt.Printf("OZZIE updating host\n")
 
 	// Get the stats
 	var stats map[string][]AppLBStat
@@ -241,6 +243,7 @@ func statsMaintainHost(hostname string, hostaddr string) (err error) {
 
 	// Update the stats
 	statsLock.Lock()
+	fmt.Printf("OZZIE updating stats for %s\n", hostname)
 	uAddStats(hostname, hostaddr, stats)
 	statsLock.Lock()
 
