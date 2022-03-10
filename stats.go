@@ -228,7 +228,7 @@ func statsMaintainHost(hostname string, hostaddr string) (err error) {
 
 	// Get the stats
 	var stats map[string][]AppLBStat
-	stats, err = watcherGetStats(hostname)
+	stats, err = watcherGetStats(hostaddr)
 	if err != nil {
 		return
 	}

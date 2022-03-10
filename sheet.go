@@ -42,10 +42,10 @@ func inboundWebSheetHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 // Generate a sheet for this host
-func sheetGetHostStats(host string) (response string) {
+func sheetGetHostStats(hostaddr string) (response string) {
 
 	// Get the list of service instances on the host
-	serviceInstanceIDs, serviceInstanceAddrs, serviceNames, err := watcherGetServiceInstances(host)
+	serviceInstanceIDs, serviceInstanceAddrs, serviceNames, err := watcherGetServiceInstances(hostaddr)
 	if err != nil {
 		return err.Error()
 	}
@@ -87,7 +87,7 @@ func sheetGetHostStats(host string) (response string) {
 	f.DeleteSheet("Sheet1")
 
 	// Save the spreadsheet to a temp file
-	hostCleaned := strings.TrimSuffix(host, ".blues.tools")
+	hostCleaned := strings.TrimSuffix(hostaddr, ".blues.tools")
 	hostCleaned = strings.TrimPrefix(hostCleaned, "api.")
 	hostCleaned = strings.TrimPrefix(hostCleaned, "a.")
 	hostCleaned = strings.TrimPrefix(hostCleaned, "i.")

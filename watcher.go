@@ -14,9 +14,9 @@ import (
 )
 
 // Watcher show command
-func watcherShow(host string, showWhat string) (result string) {
+func watcherShow(hostaddr string, showWhat string) (result string) {
 
-	if host == "" {
+	if hostaddr == "" {
 		return "" +
 			"/notehub <host>\n" +
 			"/notehub <host> show <what>\n" +
@@ -25,21 +25,21 @@ func watcherShow(host string, showWhat string) (result string) {
 			""
 	}
 
-	targetHost := host
+	targetHost := hostaddr
 
 	// Production
-	if host == "p" || host == "prod" || host == "production" {
+	if hostaddr == "p" || hostaddr == "prod" || hostaddr == "production" {
 		targetHost = "notefile.net"
 	}
 
 	// Staging
-	if host == "s" || host == "staging" {
+	if hostaddr == "s" || hostaddr == "staging" {
 		targetHost = "staging.blues.tools"
 	}
 
 	// Localdev
-	if !strings.Contains(host, ".") {
-		targetHost = host + ".blues.tools"
+	if !strings.Contains(hostaddr, ".") {
+		targetHost = hostaddr + ".blues.tools"
 	}
 
 	// We must target the API service for this host
@@ -52,15 +52,15 @@ func watcherShow(host string, showWhat string) (result string) {
 }
 
 // Show something about the host
-func watcherShowHost(host string, showWhat string) (response string) {
+func watcherShowHost(hostaddr string, showWhat string) (response string) {
 
 	// If showing nothing, done
 	if showWhat == "" {
-		return sheetGetHostStats(host)
+		return sheetGetHostStats(hostaddr)
 	}
 
 	// Get the list of handlers on the host
-	serviceInstanceIDs, serviceInstanceAddrs, serviceNames, err := watcherGetServiceInstances(host)
+	serviceInstanceIDs, serviceInstanceAddrs, serviceNames, err := watcherGetServiceInstances(hostaddr)
 	if err != nil {
 		return err.Error()
 	}
@@ -82,9 +82,9 @@ func watcherShowHost(host string, showWhat string) (response string) {
 }
 
 // Get the list of handlers
-func watcherGetServiceInstances(host string) (serviceInstanceIDs []string, serviceInstanceAddrs []string, serviceNames []string, err error) {
+func watcherGetServiceInstances(hostaddr string) (serviceInstanceIDs []string, serviceInstanceAddrs []string, serviceNames []string, err error) {
 
-	url := "https://" + host + "/ping?show=\"handlers\""
+	url := "https://" + hostaddr + "/ping?show=\"handlers\""
 	req, err2 := http.NewRequest("GET", url, nil)
 	if err2 != nil {
 		err = err2
@@ -123,7 +123,7 @@ func watcherGetServiceInstances(host string) (serviceInstanceIDs []string, servi
 		// different services that collect stats within their own process address spaces.
 		serviceInstanceIDs = append(serviceInstanceIDs, h.NodeID+":"+h.PrimaryService)
 		serviceNames = append(serviceNames, h.PrimaryService)
-		addr := fmt.Sprintf("http://%s", host)
+		addr := fmt.Sprintf("http://%s", hostaddr)
 		serviceInstanceAddrs = append(serviceInstanceAddrs, addr)
 	}
 
@@ -353,13 +353,13 @@ func ConvertStatsFromAbsoluteToRelative(startTime int64, bucketMins int64, stats
 }
 
 // Retrieve a sample of data from the specified host, returning a vector of available stats indexed by SIID
-func watcherGetStats(host string) (stats map[string][]AppLBStat, err error) {
+func watcherGetStats(hostaddr string) (stats map[string][]AppLBStat, err error) {
 
 	// Instantiate the stats map
 	stats = map[string][]AppLBStat{}
 
 	// Get the list of service instances on the host
-	serviceInstanceIDs, serviceInstanceAddrs, _, err2 := watcherGetServiceInstances(host)
+	serviceInstanceIDs, serviceInstanceAddrs, _, err2 := watcherGetServiceInstances(hostaddr)
 	if err2 != nil {
 		err = err2
 		return
