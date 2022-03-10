@@ -229,7 +229,7 @@ func watcherShowServiceInstance(addr string, siid string, showWhat string) (resp
 
 // Convert N absolute buckets to N-1 relative buckets by subtracting values
 // from the next bucket from the value in each bucket.
-func ConvertStatsFromAbsoluteToRelative(stats []AppLBStat) (out []AppLBStat) {
+func ConvertStatsFromAbsoluteToRelative(startTime int64, stats []AppLBStat) (out []AppLBStat) {
 
 	// Do prep work to make the code below flow more naturally without
 	// getting access violations because of uninitialized maps
@@ -266,6 +266,8 @@ func ConvertStatsFromAbsoluteToRelative(stats []AppLBStat) (out []AppLBStat) {
 	// Iterate over all stats, converting from boot-absolute numbers
 	// to numbers that are bucket-scoped relative to the prior bucket
 	for i := 0; i < len(stats)-1; i++ {
+
+		stats[i].Started = startTime
 
 		stats[i].OSDiskRead -= stats[i+1].OSDiskRead
 		stats[i].OSDiskWrite -= stats[i+1].OSDiskWrite
@@ -380,7 +382,7 @@ func watcherGetStats(host string) (stats map[string][]AppLBStat, err error) {
 		}
 
 		// Extract all available stats, and convert them from absolute to per-bucket relative.
-		stats[siid] = ConvertStatsFromAbsoluteToRelative((*pb.Body.LBStatus)[1:])
+		stats[siid] = ConvertStatsFromAbsoluteToRelative((*pb.Body.LBStatus)[0].Started, (*pb.Body.LBStatus)[1:])
 
 	}
 

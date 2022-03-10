@@ -186,7 +186,7 @@ func sheetAddTab(f *excelize.File, sheetName string, addr string, siid string) (
 	if len(*pb.Body.LBStatus) > 2 {
 
 		// Extract all available stats, and convert them from absolute to per-bucket relative.
-		stats := ConvertStatsFromAbsoluteToRelative((*pb.Body.LBStatus)[1:])
+		stats := ConvertStatsFromAbsoluteToRelative((*pb.Body.LBStatus)[0].Started, (*pb.Body.LBStatus)[1:])
 
 		// Basic bucket stats
 		buckets := len(stats)
