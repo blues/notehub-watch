@@ -186,11 +186,8 @@ func sheetAddNode(f *excelize.File, sheetName string, addr string, nodeID string
 		// per-bucket relative
 		stats := absoluteToRelative((*pb.Body.LBStatus)[1:])
 
-		// Limit the number of buckets because of slack UI block width
+		// Basic bucket stats
 		buckets := len(stats)
-		if slackUsingBlocksForResponses() && buckets > 10 {
-			buckets = 10
-		}
 		bucketMins := int((*pb.Body.LBStatus)[0].BucketMins)
 
 		// OS stats
@@ -201,54 +198,36 @@ func sheetAddNode(f *excelize.File, sheetName string, addr string, nodeID string
 
 		f.SetCellValue(sheetName, cell(col, row), "mfree")
 		for i, stat := range stats {
-			if i >= buckets {
-				break
-			}
 			f.SetCellValue(sheetName, cell(col+1+i, row), stat.OSMemFree/(1024*1024))
 		}
 		row++
 
 		f.SetCellValue(sheetName, cell(col, row), "mtotal")
 		for i, stat := range stats {
-			if i >= buckets {
-				break
-			}
 			f.SetCellValue(sheetName, cell(col+1+i, row), stat.OSMemTotal/(1024*1024))
 		}
 		row++
 
 		f.SetCellValue(sheetName, cell(col, row), "diskrd")
 		for i, stat := range stats {
-			if i >= buckets {
-				break
-			}
 			f.SetCellValue(sheetName, cell(col+1+i, row), stat.OSDiskRead/(1024*1024))
 		}
 		row++
 
 		f.SetCellValue(sheetName, cell(col, row), "diskwr")
 		for i, stat := range stats {
-			if i >= buckets {
-				break
-			}
 			f.SetCellValue(sheetName, cell(col+1+i, row), stat.OSDiskWrite/(1024*1024))
 		}
 		row++
 
 		f.SetCellValue(sheetName, cell(col, row), "netrcv")
 		for i, stat := range stats {
-			if i >= buckets {
-				break
-			}
 			f.SetCellValue(sheetName, cell(col+1+i, row), stat.OSNetReceived/(1024*1024))
 		}
 		row++
 
 		f.SetCellValue(sheetName, cell(col, row), "netsnd")
 		for i, stat := range stats {
-			if i >= buckets {
-				break
-			}
 			f.SetCellValue(sheetName, cell(col+1+i, row), stat.OSNetSent/(1024*1024))
 		}
 		row++
@@ -263,36 +242,24 @@ func sheetAddNode(f *excelize.File, sheetName string, addr string, nodeID string
 
 		f.SetCellValue(sheetName, cell(col, row), "contin")
 		for i, stat := range stats {
-			if i >= buckets {
-				break
-			}
 			f.SetCellValue(sheetName, cell(col+1+i, row), stat.ContinuousHandlersActivated)
 		}
 		row++
 
 		f.SetCellValue(sheetName, cell(col, row), "notif")
 		for i, stat := range stats {
-			if i >= buckets {
-				break
-			}
 			f.SetCellValue(sheetName, cell(col+1+i, row), stat.NotificationHandlersActivated)
 		}
 		row++
 
 		f.SetCellValue(sheetName, cell(col, row), "ephem")
 		for i, stat := range stats {
-			if i >= buckets {
-				break
-			}
 			f.SetCellValue(sheetName, cell(col+1+i, row), stat.EphemeralHandlersActivated)
 		}
 		row++
 
 		f.SetCellValue(sheetName, cell(col, row), "disco")
 		for i, stat := range stats {
-			if i >= buckets {
-				break
-			}
 			f.SetCellValue(sheetName, cell(col+1+i, row), stat.DiscoveryHandlersActivated)
 		}
 		row++
@@ -307,18 +274,12 @@ func sheetAddNode(f *excelize.File, sheetName string, addr string, nodeID string
 
 		f.SetCellValue(sheetName, cell(col, row), "queued")
 		for i, stat := range stats {
-			if i >= buckets {
-				break
-			}
 			f.SetCellValue(sheetName, cell(col+1+i, row), stat.EventsEnqueued)
 		}
 		row++
 
 		f.SetCellValue(sheetName, cell(col, row), "routed")
 		for i, stat := range stats {
-			if i >= buckets {
-				break
-			}
 			f.SetCellValue(sheetName, cell(col+1+i, row), stat.EventsRouted)
 		}
 		row++
@@ -338,9 +299,6 @@ func sheetAddNode(f *excelize.File, sheetName string, addr string, nodeID string
 				f.SetCellValue(sheetName, cell(col, row), k)
 				f.SetCellStyle(sheetName, cell(col, row), cell(col, row), styleBold)
 				for i, stat := range stats {
-					if i >= buckets {
-						break
-					}
 					f.SetCellValue(sheetName, cell(col+1+i, row), stat.Fatals[k])
 				}
 				row++
@@ -367,18 +325,12 @@ func sheetAddNode(f *excelize.File, sheetName string, addr string, nodeID string
 
 			f.SetCellValue(sheetName, cell(col, row), "refreshed")
 			for i, stat := range stats {
-				if i >= buckets {
-					break
-				}
 				f.SetCellValue(sheetName, cell(col+1+i, row), stat.Caches[k].Invalidations)
 			}
 			row++
 
 			f.SetCellValue(sheetName, cell(col, row), "entries")
 			for i, stat := range stats {
-				if i >= buckets {
-					break
-				}
 				f.SetCellValue(sheetName, cell(col+1+i, row), stat.Caches[k].Entries)
 			}
 			row++
@@ -403,36 +355,24 @@ func sheetAddNode(f *excelize.File, sheetName string, addr string, nodeID string
 
 			f.SetCellValue(sheetName, cell(col, row), "reads")
 			for i, stat := range stats {
-				if i >= buckets {
-					break
-				}
 				f.SetCellValue(sheetName, cell(col+1+i, row), stat.Databases[k].Reads)
 			}
 			row++
 
 			f.SetCellValue(sheetName, cell(col, row), "writes")
 			for i, stat := range stats {
-				if i >= buckets {
-					break
-				}
 				f.SetCellValue(sheetName, cell(col+1+i, row), stat.Databases[k].Writes)
 			}
 			row++
 
 			f.SetCellValue(sheetName, cell(col, row), "readMs")
 			for i, stat := range stats {
-				if i >= buckets {
-					break
-				}
 				f.SetCellValue(sheetName, cell(col+1+i, row), stat.Databases[k].ReadMs)
 			}
 			row++
 
 			f.SetCellValue(sheetName, cell(col, row), "writeMs")
 			for i, stat := range stats {
-				if i >= buckets {
-					break
-				}
 				f.SetCellValue(sheetName, cell(col+1+i, row), stat.Databases[k].WriteMs)
 			}
 			row++
@@ -458,9 +398,6 @@ func sheetAddNode(f *excelize.File, sheetName string, addr string, nodeID string
 				row++
 
 				for i, stat := range stats {
-					if i >= buckets {
-						break
-					}
 					f.SetCellValue(sheetName, cell(col+1+i, row), stat.API[k])
 				}
 
