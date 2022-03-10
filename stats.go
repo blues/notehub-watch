@@ -288,6 +288,7 @@ func uExtractStats(hostname string, beginTime int64, endTime int64) (hsret HostS
 	hsret.Name = hs.Name
 	hsret.Addr = hs.Addr
 	hsret.BucketMins = hs.BucketMins
+	hsret.Stats = map[string][]AppLBStat{}
 
 	// Loop, appending and filtering
 	for siid, sis := range hs.Stats {
