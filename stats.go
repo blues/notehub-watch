@@ -157,7 +157,7 @@ func uAddStats(hostname string, hostaddr string, s map[string][]AppLBStat) {
 			}
 			buckets := int64(len(serviceInstance))
 			bucketSecs := (serviceInstance[0].BucketMins * 60)
-			ht := serviceInstance[0].SnapshotTaken + (buckets * bucketSecs)
+			ht := serviceInstance[0].SnapshotTaken - (buckets * bucketSecs)
 			if !leastRecentTimeSet || ht < leastRecentTime {
 				leastRecentTimeSet = true
 				leastRecentTime = ht
@@ -168,7 +168,7 @@ func uAddStats(hostname string, hostaddr string, s map[string][]AppLBStat) {
 	if mostRecentTime == 0 || leastRecentTime == 0 {
 		return
 	}
-	fmt.Printf("OZZIE host:%s lowest:%d highest:%d mins:%d\n", hostname, mostRecentTime, leastRecentTime, bucketMins)
+	fmt.Printf("OZZIE host:%s most recent:%d least recent:%d mins:%d\n", hostname, mostRecentTime, leastRecentTime, bucketMins)
 
 	// If the base time isn't yet set in our host stats, set it
 	if hs.Time == 0 {
