@@ -6,7 +6,6 @@ package main
 
 import (
 	"bufio"
-	"encoding/json"
 	"fmt"
 	"os"
 	"os/signal"
@@ -70,13 +69,7 @@ func inputHandler() {
 			slackSendMessage(messageAfterFirstWord)
 
 		case "stats":
-			stats, err := watcherGetStats(args[1])
-			if err != nil {
-				fmt.Printf("%s\n", err.Error())
-			} else {
-				statsJSON, _ := json.MarshalIndent(stats, "", "    ")
-				fmt.Printf("%s\n", statsJSON)
-			}
+			statsMaintainNow.Signal()
 
 		case "":
 
