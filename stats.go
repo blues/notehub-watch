@@ -123,6 +123,9 @@ func uAddStats(hostname string, hostaddr string, s map[string][]AppLBStat) {
 
 	// Get the host's stats record
 	hs := stats[hostname]
+	if hs.Stats == nil {
+		hs.Stats = map[string][]AppLBStat{}
+	}
 
 	// Make sure there are map entries for all the service instances we're adding, and
 	// that we can always feel safe in referencing the [0] entry of a stats array
