@@ -214,8 +214,9 @@ func uAddStats(hostname string, hostaddr string, s map[string][]AppLBStat) {
 
 	// For each new stat coming in, set the array contents
 	for siid, sis := range s {
-		for _, snew := range sis {
+		for si, snew := range sis {
 			i := (snew.SnapshotTaken - lowestTime) / 60 / bucketMins
+			fmt.Printf("OZZIE %d ((%d - %d) / 60 / %d) == %d\n", si, snew.SnapshotTaken, lowestTime, i)
 			fmt.Printf("OZZIE about to overwrite %s entry %d\n", siid, i)
 			fmt.Printf("OZZIE overwriting:\n      %+v\n with %+v\n", hs.Stats[siid][i], snew)
 			hs.Stats[siid][i] = snew
