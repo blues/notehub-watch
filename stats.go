@@ -246,7 +246,7 @@ func statsMaintainHost(hostname string, hostaddr string) (err error) {
 	statsLock.Lock()
 	fmt.Printf("OZZIE updating stats for %s\n", hostname)
 	uAddStats(hostname, hostaddr, stats)
-	statsLock.Lock()
+	statsLock.Unlock()
 
 	// Done
 	return
