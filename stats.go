@@ -34,6 +34,8 @@ type HostStats struct {
 }
 
 // Globals
+const secs1Day = (60 * 60 * 24)
+
 var statsMaintainNow *Event
 var statsLock sync.Mutex
 var stats map[string]HostStats
@@ -50,9 +52,7 @@ func statsMaintainer() {
 
 		// Proceed if signalled, else do this several times per hour
 		// because stats are only maintained by services for an hour.
-		fmt.Printf("OZZIE: wait before: %v\n", statsMaintainNow.IsSignalled())
 		statsMaintainNow.Wait(time.Duration(time.Minute * 15))
-		fmt.Printf("OZZIE: wait after: %v\n", statsMaintainNow.IsSignalled())
 
 		// Maintain for every enabled host
 		for _, host := range Config.MonitoredHosts {
@@ -89,24 +89,22 @@ func statsInit() {
 
 	for _, host := range Config.MonitoredHosts {
 		if !host.Disabled {
-			fnToday := statsFilename(host.Name, time.Now().UTC().Unix())
-			contents, err := ioutil.ReadFile(fnToday)
+			contents, err := ioutil.ReadFile(statsFilename(host.Name, todayTime()))
 			if err == nil {
 				var hs HostStats
 				err = json.Unmarshal(contents, &hs)
 				if err == nil {
 					uAddStats(host.Name, host.Addr, hs.Stats)
-					fmt.Printf("%d stats loaded from today\n", len(hs.Stats))
+					fmt.Printf("%s: %d stats loaded from today\n", host.Name, len(hs.Stats))
 				}
 			}
-			fnYesterday := statsFilename(host.Name, time.Now().UTC().Unix()-(60*60*24))
-			contents, err = ioutil.ReadFile(fnYesterday)
+			contents, err = ioutil.ReadFile(statsFilename(host.Name, yesterdayTime()))
 			if err == nil {
 				var hs HostStats
 				err = json.Unmarshal(contents, &hs)
 				if err == nil {
 					uAddStats(host.Name, host.Addr, hs.Stats)
-					fmt.Printf("%d stats loaded from yesterday\n", len(hs.Stats))
+					fmt.Printf("%s: %d stats loaded from yesterday\n", host.Name, len(hs.Stats))
 				}
 			}
 		}
@@ -235,9 +233,18 @@ func uAddStats(hostname string, hostaddr string, s map[string][]AppLBStat) {
 
 }
 
+// Get the UTC for today's midnight
+func todayTime() int64 {
+	return (time.Now().UTC().Unix() / secs1Day) * secs1Day
+}
+
+// Get the UTC for today's midnight
+func yesterdayTime() int64 {
+	return todayTime() - secs1Day
+}
+
 // Maintain a single host
 func statsMaintainHost(hostname string, hostaddr string) (err error) {
-	fmt.Printf("OZZIE updating host\n")
 
 	// Get the stats
 	var stats map[string][]AppLBStat
@@ -246,11 +253,67 @@ func statsMaintainHost(hostname string, hostaddr string) (err error) {
 		return
 	}
 
-	// Update the stats
+	// Update the stats in-memory
 	statsLock.Lock()
-	fmt.Printf("OZZIE updating stats for %s\n", hostname)
 	uAddStats(hostname, hostaddr, stats)
 	statsLock.Unlock()
+
+	// Extract today's and yesterday's stats
+	statsLock.Lock()
+	hsToday := uExtractStats(hostname, todayTime(), secs1Day)
+	hsYesterday := uExtractStats(hostname, yesterdayTime(), secs1Day)
+	statsLock.Unlock()
+
+	// Update the stats for yesterday and today into the file system
+	sJSON, err := json.Marshal(hsToday)
+	if err == nil {
+		ioutil.WriteFile(statsFilename(hostname, todayTime()), sJSON, 0644)
+	}
+	sJSON, err = json.Marshal(hsYesterday)
+	if err == nil {
+		ioutil.WriteFile(statsFilename(hostname, yesterdayTime()), sJSON, 0644)
+	}
+
+	// Done
+	return
+
+}
+
+// Extract stats for the given host for a time range
+func uExtractStats(hostname string, beginTime int64, endTime int64) (hsret HostStats) {
+
+	// Initialize host stats
+	hs := stats[hostname]
+	hsret = HostStats{}
+	hsret.Name = hs.Name
+	hsret.Addr = hs.Addr
+	hsret.BucketMins = hs.BucketMins
+
+	// Loop, appending and filtering
+	for siid, sis := range hs.Stats {
+		if len(sis) == 0 {
+			continue
+		}
+
+		// Initialize a new return array
+		sisret := []AppLBStat{}
+
+		// Iterate over the stats, filtering
+		for _, s := range sis {
+			if s.SnapshotTaken >= beginTime {
+				sisret = append(sisret, s)
+			} else if s.SnapshotTaken < endTime {
+				break
+			}
+		}
+
+		// Store the stats for this instance
+		if len(sisret) != 0 {
+			hsret.Time = sis[0].SnapshotTaken
+			hsret.Stats[siid] = sisret
+		}
+
+	}
 
 	// Done
 	return
