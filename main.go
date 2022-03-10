@@ -25,6 +25,9 @@ func main() {
 	configDataDirectory = os.Getenv("HOME") + configDataDirectoryBase
 	_ = configDataDirectory
 
+	// Spawn the stats maintenance task
+	go statsMaintainer()
+
 	// Spawn the console input handler
 	go inputHandler()
 

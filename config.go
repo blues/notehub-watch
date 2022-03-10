@@ -11,11 +11,21 @@ import (
 	"os"
 )
 
+// A monitored host and all data needed for it
+type MonitoredHost struct {
+	Disabled bool   `json:"disabled,omitempty"`
+	Name     string `json:"name,omitempty"`
+	Addr     string `json:"address,omitempty"`
+}
+
 // ServiceConfig is the service configuration file format
 type ServiceConfig struct {
 
 	// Host URL
 	HostURL string `json:"host_url,omitempty"`
+
+	// Monitored hosts
+	MonitoredHosts []MonitoredHost `json:"monitor,omitempty"`
 
 	// Twilio "from" phone number & email (addr & name)
 	TwilioSMS   string `json:"twilio_sms,omitempty"`

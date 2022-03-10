@@ -103,6 +103,10 @@ func slackCommandWatcher(s slack.SlashCommand) (response string) {
 	case "":
 		return watcherShow(f.Arg(0), "")
 
+	case "stats":
+		statsMaintainNow.Signal()
+		return "stats maintenance update requested"
+
 	case "show":
 		return watcherShow(f.Arg(0), f.Arg(2))
 
