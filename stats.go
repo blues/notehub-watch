@@ -145,78 +145,78 @@ func uAddStats(hostname string, hostaddr string, s map[string][]AppLBStat) {
 	}
 
 	// Find the lowest and highest base times within any of the new stats to be added
-	var lowestTimeSet, highestTimeSet bool
-	var lowestTime, highestTime int64
+	var mostRecentTimeSet, leastRecentTimeSet bool
+	var mostRecentTime, leastRecentTime int64
 	var bucketMins int64
 	for _, serviceInstance := range s {
 		if len(serviceInstance) > 0 {
-			if !lowestTimeSet || serviceInstance[0].SnapshotTaken < lowestTime {
-				lowestTimeSet = true
-				lowestTime = serviceInstance[0].SnapshotTaken
+			if !mostRecentTimeSet || serviceInstance[0].SnapshotTaken > mostRecentTime {
+				mostRecentTimeSet = true
+				mostRecentTime = serviceInstance[0].SnapshotTaken
 				bucketMins = serviceInstance[0].BucketMins
 			}
 			buckets := int64(len(serviceInstance))
 			bucketSecs := (serviceInstance[0].BucketMins * 60)
 			ht := serviceInstance[0].SnapshotTaken + (buckets * bucketSecs)
-			if !highestTimeSet || ht > highestTime {
-				highestTimeSet = true
-				highestTime = ht
+			if !leastRecentTimeSet || ht < leastRecentTime {
+				leastRecentTimeSet = true
+				leastRecentTime = ht
 			}
 
 		}
 	}
-	if lowestTime == 0 || highestTime == 0 {
+	if mostRecentTime == 0 || leastRecentTime == 0 {
 		return
 	}
-	fmt.Printf("OZZIE host:%s lowest:%d highest:%d mins:%d\n", hostname, lowestTime, highestTime, bucketMins)
+	fmt.Printf("OZZIE host:%s lowest:%d highest:%d mins:%d\n", hostname, mostRecentTime, leastRecentTime, bucketMins)
 
 	// If the base time isn't yet set in our host stats, set it
 	if hs.Time == 0 {
-		hs.Time = lowestTime
+		hs.Time = mostRecentTime
 		hs.BucketMins = bucketMins
 		hs.Name = hostname
 		hs.Addr = hostaddr
 		fmt.Printf("OZZIE initialized hs: %+v\n", hs)
 	}
 
-	// If the time is lower than the existing base time, extend all arrays at the front
-	if lowestTime < hs.Time {
-		arrayEntries := (hs.Time - lowestTime) / 60 / hs.BucketMins
-		fmt.Printf("OZZIE adding %d entries below\n", arrayEntries)
+	// If the time is more recent than the existing base time, extend all arrays at the front
+	if mostRecentTime > hs.Time {
+		arrayEntries := (mostRecentTime - hs.Time) / 60 / hs.BucketMins
+		fmt.Printf("OZZIE adding %d entries at front (more recent)\n", arrayEntries)
 		z := make([]AppLBStat, arrayEntries)
 		for i := int64(0); i < arrayEntries; i++ {
-			z[i].SnapshotTaken = lowestTime + (bucketMins * 60 * i)
+			z[i].SnapshotTaken = mostRecentTime - (bucketMins * 60 * i)
 			z[i].BucketMins = bucketMins
 		}
 		for siid := range hs.Stats {
 			hs.Stats[siid] = append(z, hs.Stats[siid]...)
 			fmt.Printf("OZZIE %s now %d entries\n", siid, len(hs.Stats[siid]))
 		}
-		hs.Time = lowestTime
+		hs.Time = mostRecentTime
 	}
 
-	// If the time is higher than the high time, extend all arrays at the end
+	// If the time is less recent than the one found, extend all arrays at the end
 	for siid, sis := range hs.Stats {
-		highTime := lowestTime + (int64(len(sis)) * bucketMins * 60)
-		if highestTime > highTime {
-			arrayEntries := (highestTime - highTime) / 60 / hs.BucketMins
+		lowestTime := mostRecentTime - (int64(len(sis)) * bucketMins * 60)
+		if lowestTime < leastRecentTime {
+			arrayEntries := (leastRecentTime - lowestTime) / 60 / hs.BucketMins
 			fmt.Printf("OZZIE for %s adding %d entries at end\n", siid, arrayEntries)
 			z := make([]AppLBStat, arrayEntries)
 			for i := int64(0); i < arrayEntries; i++ {
-				z[i].SnapshotTaken = highTime + (bucketMins * 60 * i)
+				z[i].SnapshotTaken = lowestTime - (bucketMins * 60 * i)
 				z[i].BucketMins = bucketMins
 			}
 			hs.Stats[siid] = append(hs.Stats[siid], z...)
 			fmt.Printf("OZZIE %s now %d entries\n", siid, len(hs.Stats[siid]))
 		}
-		hs.Time = lowestTime
+		hs.Time = mostRecentTime
 	}
 
 	// For each new stat coming in, set the array contents
 	for siid, sis := range s {
 		for si, snew := range sis {
-			i := (snew.SnapshotTaken - lowestTime) / 60 / bucketMins
-			fmt.Printf("OZZIE %d ((%d - %d) / 60 / %d) == %d\n", si, snew.SnapshotTaken, lowestTime, i)
+			i := (snew.SnapshotTaken - mostRecentTime) / 60 / bucketMins
+			fmt.Printf("OZZIE %d ((%d - %d) / 60 / %d) == %d\n", si, snew.SnapshotTaken, mostRecentTime, bucketMins, i)
 			fmt.Printf("OZZIE about to overwrite %s entry %d\n", siid, i)
 			fmt.Printf("OZZIE overwriting:\n      %+v\n with %+v\n", hs.Stats[siid][i], snew)
 			hs.Stats[siid][i] = snew
