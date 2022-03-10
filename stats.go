@@ -190,7 +190,7 @@ func uAddStats(hostname string, hostaddr string, s map[string][]AppLBStat) {
 		}
 		for siid := range hs.Stats {
 			hs.Stats[siid] = append(z, hs.Stats[siid]...)
-			fmt.Printf("OZZIE %s now %d entries\n", siid, len(hs.Stats))
+			fmt.Printf("OZZIE %s now %d entries\n", siid, len(hs.Stats[siid]))
 		}
 		hs.Time = lowestTime
 	}
@@ -207,17 +207,18 @@ func uAddStats(hostname string, hostaddr string, s map[string][]AppLBStat) {
 				z[i].BucketMins = bucketMins
 			}
 			hs.Stats[siid] = append(hs.Stats[siid], z...)
-			fmt.Printf("OZZIE %s now %d entries\n", siid, len(hs.Stats))
+			fmt.Printf("OZZIE %s now %d entries\n", siid, len(hs.Stats[siid]))
 		}
 		hs.Time = lowestTime
 	}
 
 	// For each new stat coming in, set the array contents
-	for ssid, sis := range s {
+	for siid, sis := range s {
 		for _, snew := range sis {
 			i := (snew.SnapshotTaken - lowestTime) / 60 / bucketMins
-			fmt.Printf("OZZIE overwriting:\n      %+v\n with %+v\n", hs.Stats[ssid][i], snew)
-			hs.Stats[ssid][i] = snew
+			fmt.Printf("OZZIE about to overwrite %s entry %d\n", siid, i)
+			fmt.Printf("OZZIE overwriting:\n      %+v\n with %+v\n", hs.Stats[siid][i], snew)
+			hs.Stats[siid][i] = snew
 		}
 	}
 
