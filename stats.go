@@ -50,8 +50,9 @@ func statsMaintainer() {
 
 		// Proceed if signalled, else do this several times per hour
 		// because stats are only maintained by services for an hour.
+		fmt.Printf("OZZIE: wait before: %v\n", statsMaintainNow.IsSignalled())
 		statsMaintainNow.Wait(time.Duration(time.Minute * 15))
-		fmt.Printf("OZZIE *** got signal ***\n")
+		fmt.Printf("OZZIE: wait after: %v\n", statsMaintainNow.IsSignalled())
 
 		// Maintain for every enabled host
 		for _, host := range Config.MonitoredHosts {
