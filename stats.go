@@ -70,7 +70,7 @@ func statsMaintainer() {
 
 // Get the stats filename for a given UTC date
 func statsFilename(host string, filetime int64) (filename string) {
-	timestr := time.Unix(filetime, 0).Format("20060102-150405")
+	timestr := time.Unix(filetime, 0).Format("20060102")
 	filename = configDataDirectory + "/" + host + "-" + timestr + ".json"
 	return
 
