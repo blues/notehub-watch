@@ -280,7 +280,7 @@ func statsMaintainHost(hostname string, hostaddr string) (err error) {
 }
 
 // Extract stats for the given host for a time range
-func uExtractStats(hostname string, beginTime int64, endTime int64) (hsret HostStats) {
+func uExtractStats(hostname string, beginTime int64, duration int64) (hsret HostStats) {
 
 	// Initialize host stats
 	hs := stats[hostname]
@@ -299,18 +299,22 @@ func uExtractStats(hostname string, beginTime int64, endTime int64) (hsret HostS
 		// Initialize a new return array
 		sisret := []AppLBStat{}
 
-		// Iterate over the stats, filtering
+		// Iterate over the stats, filtering.  We use the knowledge that the statss
+		// are ordered most-recent to least-recent in how we stop the scan.
 		for _, s := range sis {
-			if s.SnapshotTaken >= beginTime {
-				sisret = append(sisret, s)
-			} else if s.SnapshotTaken < endTime {
+			if s.SnapshotTaken < beginTime {
 				break
+			}
+			if s.SnapshotTaken < (beginTime + duration) {
+				sisret = append(sisret, s)
+				if s.SnapshotTaken > hsret.Time {
+					hsret.Time = s.SnapshotTaken
+				}
 			}
 		}
 
 		// Store the stats for this instance
 		if len(sisret) != 0 {
-			hsret.Time = sis[0].SnapshotTaken
 			hsret.Stats[siid] = sisret
 		}
 
