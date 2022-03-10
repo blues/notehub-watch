@@ -40,6 +40,9 @@ var statsMaintainNow *Event
 var statsLock sync.Mutex
 var stats map[string]HostStats
 
+// Trace
+const addStatsTrace = false
+
 // Stats maintenance task
 func statsMaintainer() {
 	var err error
@@ -168,7 +171,9 @@ func uAddStats(hostname string, hostaddr string, s map[string][]AppLBStat) {
 	if mostRecentTime == 0 || leastRecentTime == 0 {
 		return
 	}
-	fmt.Printf("OZZIE host:%s most recent:%d least recent:%d mins:%d\n", hostname, mostRecentTime, leastRecentTime, bucketMins)
+	if addStatsTrace {
+		fmt.Printf("host:%s recent:%d least:%d\n", hostname, mostRecentTime, leastRecentTime)
+	}
 
 	// If the base time isn't yet set in our host stats, set it
 	if hs.Time == 0 {
@@ -176,13 +181,14 @@ func uAddStats(hostname string, hostaddr string, s map[string][]AppLBStat) {
 		hs.BucketMins = bucketMins
 		hs.Name = hostname
 		hs.Addr = hostaddr
-		fmt.Printf("OZZIE initialized hs: %+v\n", hs)
 	}
 
 	// If the time is more recent than the existing base time, extend all arrays at the front
 	if mostRecentTime > hs.Time {
 		arrayEntries := (mostRecentTime - hs.Time) / 60 / hs.BucketMins
-		fmt.Printf("OZZIE adding %d entries at front (more recent)\n", arrayEntries)
+		if addStatsTrace {
+			fmt.Printf("adding %d entries at front (more recent)\n", arrayEntries)
+		}
 		z := make([]AppLBStat, arrayEntries)
 		for i := int64(0); i < arrayEntries; i++ {
 			z[i].SnapshotTaken = mostRecentTime - (bucketMins * 60 * i)
@@ -190,7 +196,9 @@ func uAddStats(hostname string, hostaddr string, s map[string][]AppLBStat) {
 		}
 		for siid := range hs.Stats {
 			hs.Stats[siid] = append(z, hs.Stats[siid]...)
-			fmt.Printf("OZZIE %s now %d entries\n", siid, len(hs.Stats[siid]))
+			if addStatsTrace {
+				fmt.Printf("%s now %d entries\n", siid, len(hs.Stats[siid]))
+			}
 		}
 		hs.Time = mostRecentTime
 	}
@@ -198,17 +206,23 @@ func uAddStats(hostname string, hostaddr string, s map[string][]AppLBStat) {
 	// If the time is less recent than the one found, extend all arrays at the end
 	for siid, sis := range hs.Stats {
 		hsLeastRecentTime := mostRecentTime - (int64(len(sis)) * bucketMins * 60)
-		fmt.Printf("OZZIE leastRecent Time in HS = %d\n", hsLeastRecentTime)
+		if addStatsTrace {
+			fmt.Printf("leastRecent Time in HS = %d\n", hsLeastRecentTime)
+		}
 		if hsLeastRecentTime > leastRecentTime {
 			arrayEntries := (hsLeastRecentTime - leastRecentTime) / 60 / hs.BucketMins
-			fmt.Printf("OZZIE for %s adding %d entries at end\n", siid, arrayEntries)
+			if addStatsTrace {
+				fmt.Printf("for %s adding %d entries at end\n", siid, arrayEntries)
+			}
 			z := make([]AppLBStat, arrayEntries)
 			for i := int64(0); i < arrayEntries; i++ {
 				z[i].SnapshotTaken = hsLeastRecentTime - (bucketMins * 60 * i)
 				z[i].BucketMins = bucketMins
 			}
 			hs.Stats[siid] = append(hs.Stats[siid], z...)
-			fmt.Printf("OZZIE %s now %d entries\n", siid, len(hs.Stats[siid]))
+			if addStatsTrace {
+				fmt.Printf("%s now %d entries\n", siid, len(hs.Stats[siid]))
+			}
 		}
 		hs.Time = mostRecentTime
 	}
@@ -218,11 +232,13 @@ func uAddStats(hostname string, hostaddr string, s map[string][]AppLBStat) {
 		for _, snew := range sis {
 			i := (mostRecentTime - snew.SnapshotTaken) / 60 / bucketMins
 			if hs.Stats[siid][i].Started == snew.Started {
-				fmt.Printf("OZZIE skipping %s stat %d\n", siid, i)
+				if addStatsTrace {
+					fmt.Printf("skipping %s entry %d\n", siid, i)
+				}
 			} else {
-				fmt.Printf("OZZIE ((%d - %d) / 60 / %d) == %d\n", snew.SnapshotTaken, mostRecentTime, bucketMins, i)
-				fmt.Printf("OZZIE about to overwrite %s entry %d\n", siid, i)
-				fmt.Printf("OZZIE overwriting:\n      %+v\n with %+v\n", hs.Stats[siid][i], snew)
+				if addStatsTrace {
+					fmt.Printf("overwriting %s entry %d\n", siid, i)
+				}
 				hs.Stats[siid][i] = snew
 			}
 		}
