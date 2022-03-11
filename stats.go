@@ -348,7 +348,7 @@ func statsMaintainHost(hostname string, hostaddr string) (err error) {
 	added, addedStats := uAddStats(hostname, hostaddr, stats)
 	statsLock.Unlock()
 	if added > 0 {
-		fmt.Printf("stats: added %d stats for %s\n", added, hostname)
+		fmt.Printf("stats: added %d new stats for %s\n", added, hostname)
 	}
 
 	// Update the stats for yesterday and today into the file system

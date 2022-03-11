@@ -25,7 +25,7 @@ func datadogUploadStats(hostname string, addedStats map[string][]AppLBStat) (err
 	var series datadog.Series
 	seriesArray := []datadog.Series{}
 
-	series = datadog.Series{Metric: hostname + ".disk.reads", Type: datadog.PtrString("gauge")}
+	series = datadog.Series{Metric: "notehub." + hostname + ".disk.reads", Type: datadog.PtrString("gauge")}
 	for _, stat := range aggregatedStats {
 		point := []*float64{
 			datadog.PtrFloat64(float64(stat.Time)),
@@ -35,7 +35,7 @@ func datadogUploadStats(hostname string, addedStats map[string][]AppLBStat) (err
 	}
 	seriesArray = append(seriesArray, series)
 
-	series = datadog.Series{Metric: hostname + ".disk.writes", Type: datadog.PtrString("gauge")}
+	series = datadog.Series{Metric: "notehub." + hostname + ".disk.writes", Type: datadog.PtrString("gauge")}
 	for _, stat := range aggregatedStats {
 		point := []*float64{
 			datadog.PtrFloat64(float64(stat.Time)),
@@ -45,7 +45,7 @@ func datadogUploadStats(hostname string, addedStats map[string][]AppLBStat) (err
 	}
 	seriesArray = append(seriesArray, series)
 
-	series = datadog.Series{Metric: hostname + ".net.received", Type: datadog.PtrString("gauge")}
+	series = datadog.Series{Metric: "notehub." + hostname + ".net.received", Type: datadog.PtrString("gauge")}
 	for _, stat := range aggregatedStats {
 		point := []*float64{
 			datadog.PtrFloat64(float64(stat.Time)),
@@ -55,7 +55,7 @@ func datadogUploadStats(hostname string, addedStats map[string][]AppLBStat) (err
 	}
 	seriesArray = append(seriesArray, series)
 
-	series = datadog.Series{Metric: hostname + ".net.sent", Type: datadog.PtrString("gauge")}
+	series = datadog.Series{Metric: "notehub." + hostname + ".net.sent", Type: datadog.PtrString("gauge")}
 	for _, stat := range aggregatedStats {
 		point := []*float64{
 			datadog.PtrFloat64(float64(stat.Time)),
@@ -65,7 +65,7 @@ func datadogUploadStats(hostname string, addedStats map[string][]AppLBStat) (err
 	}
 	seriesArray = append(seriesArray, series)
 
-	series = datadog.Series{Metric: hostname + ".handlers", Type: datadog.PtrString("gauge")}
+	series = datadog.Series{Metric: "notehub." + hostname + ".handlers", Type: datadog.PtrString("gauge")}
 	for _, stat := range aggregatedStats {
 		point := []*float64{
 			datadog.PtrFloat64(float64(stat.Time)),
@@ -75,7 +75,7 @@ func datadogUploadStats(hostname string, addedStats map[string][]AppLBStat) (err
 	}
 	seriesArray = append(seriesArray, series)
 
-	series = datadog.Series{Metric: hostname + ".events.received", Type: datadog.PtrString("gauge")}
+	series = datadog.Series{Metric: "notehub." + hostname + ".events.received", Type: datadog.PtrString("gauge")}
 	for _, stat := range aggregatedStats {
 		point := []*float64{
 			datadog.PtrFloat64(float64(stat.Time)),
@@ -85,7 +85,7 @@ func datadogUploadStats(hostname string, addedStats map[string][]AppLBStat) (err
 	}
 	seriesArray = append(seriesArray, series)
 
-	series = datadog.Series{Metric: hostname + ".events.routed", Type: datadog.PtrString("gauge")}
+	series = datadog.Series{Metric: "notehub." + hostname + ".events.routed", Type: datadog.PtrString("gauge")}
 	for _, stat := range aggregatedStats {
 		point := []*float64{
 			datadog.PtrFloat64(float64(stat.Time)),
@@ -95,7 +95,7 @@ func datadogUploadStats(hostname string, addedStats map[string][]AppLBStat) (err
 	}
 	seriesArray = append(seriesArray, series)
 
-	series = datadog.Series{Metric: hostname + ".database.reads", Type: datadog.PtrString("gauge")}
+	series = datadog.Series{Metric: "notehub." + hostname + ".database.reads", Type: datadog.PtrString("gauge")}
 	for _, stat := range aggregatedStats {
 		point := []*float64{
 			datadog.PtrFloat64(float64(stat.Time)),
@@ -105,7 +105,7 @@ func datadogUploadStats(hostname string, addedStats map[string][]AppLBStat) (err
 	}
 	seriesArray = append(seriesArray, series)
 
-	series = datadog.Series{Metric: hostname + ".database.writes", Type: datadog.PtrString("gauge")}
+	series = datadog.Series{Metric: "notehub." + hostname + ".database.writes", Type: datadog.PtrString("gauge")}
 	for _, stat := range aggregatedStats {
 		point := []*float64{
 			datadog.PtrFloat64(float64(stat.Time)),
@@ -115,7 +115,7 @@ func datadogUploadStats(hostname string, addedStats map[string][]AppLBStat) (err
 	}
 	seriesArray = append(seriesArray, series)
 
-	series = datadog.Series{Metric: hostname + ".api.calls", Type: datadog.PtrString("gauge")}
+	series = datadog.Series{Metric: "notehub." + hostname + ".api.calls", Type: datadog.PtrString("gauge")}
 	for _, stat := range aggregatedStats {
 		point := []*float64{
 			datadog.PtrFloat64(float64(stat.Time)),
@@ -126,7 +126,12 @@ func datadogUploadStats(hostname string, addedStats map[string][]AppLBStat) (err
 	seriesArray = append(seriesArray, series)
 
 	// Submit the metrics
-	ctx := datadog.NewDefaultContext(context.Background())
+	ctx := context.Background()
+	ctx = context.WithValue(ctx, datadog.ContextServerVariables, map[string]string{"site": Config.DatadogSite})
+	keys := make(map[string]datadog.APIKey)
+	keys["apiKeyAuth"] = datadog.APIKey{Key: Config.DatadogAPIKey}
+	keys["appKeyAuth"] = datadog.APIKey{Key: Config.DatadogAppKey}
+	ctx = context.WithValue(ctx, datadog.ContextAPIKeys, keys)
 	configuration := datadog.NewConfiguration()
 	apiClient := datadog.NewAPIClient(configuration)
 	body := datadog.MetricsPayload{Series: seriesArray}
