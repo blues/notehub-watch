@@ -61,7 +61,7 @@ func statsMaintainer() {
 
 		// Proceed if signalled, else do this several times per hour
 		// because stats are only maintained by services for an hour.
-		statsMaintainNow.Wait(time.Duration(time.Minute * 15))
+		statsMaintainNow.Wait(time.Minute * time.Duration(Config.MonitorPeriodMins))
 
 		// Maintain for every enabled host
 		for _, host := range Config.MonitoredHosts {
@@ -102,14 +102,14 @@ func statsInit() {
 		if !host.Disabled {
 			hs, err := readFileLocally(host.Name, todayTime())
 			if err == nil {
-				added := uAddStats(host.Name, host.Addr, hs.Stats)
+				added, _ := uAddStats(host.Name, host.Addr, hs.Stats)
 				if added > 0 {
 					fmt.Printf("stats: loaded %d stats for %s from today\n", added, host.Name)
 				}
 			}
 			hs, err = readFileLocally(host.Name, yesterdayTime())
 			if err == nil {
-				added := uAddStats(host.Name, host.Addr, hs.Stats)
+				added, _ := uAddStats(host.Name, host.Addr, hs.Stats)
 				if added > 0 {
 					fmt.Printf("stats: loaded %d stats for %s from yesterday\n", added, host.Name)
 				}
@@ -121,12 +121,15 @@ func statsInit() {
 }
 
 // Add stats to the in-memory vector of stats.
-func uAddStats(hostname string, hostaddr string, s map[string][]AppLBStat) (added int) {
+func uAddStats(hostname string, hostaddr string, s map[string][]AppLBStat) (added int, addedStats map[string][]AppLBStat) {
 
 	// Exit if no map
 	if s == nil {
 		return
 	}
+
+	// Initialize output map
+	addedStats = make(map[string][]AppLBStat)
 
 	// Get the host's stats record
 	hs := stats[hostname]
@@ -233,6 +236,7 @@ func uAddStats(hostname string, hostaddr string, s map[string][]AppLBStat) (adde
 
 	// For each new stat coming in, set the array contents
 	for siid, sis := range s {
+		var newStats []AppLBStat
 		for _, snew := range sis {
 			i := (mostRecentTime - snew.SnapshotTaken) / 60 / bucketMins
 			if hs.Stats[siid][i].Started == snew.Started {
@@ -244,8 +248,12 @@ func uAddStats(hostname string, hostaddr string, s map[string][]AppLBStat) (adde
 					fmt.Printf("overwriting %s entry %d\n", siid, i)
 				}
 				hs.Stats[siid][i] = snew
+				newStats = append(newStats, snew)
 				added++
 			}
+		}
+		if len(newStats) > 0 {
+			addedStats[siid] = newStats
 		}
 	}
 
@@ -323,7 +331,7 @@ func statsMaintainHost(hostname string, hostaddr string) (err error) {
 
 	// Update the stats in-memory
 	statsLock.Lock()
-	added := uAddStats(hostname, hostaddr, stats)
+	added, addedStats := uAddStats(hostname, hostaddr, stats)
 	statsLock.Unlock()
 	if added > 0 {
 		fmt.Printf("stats: added %d stats for %s\n", added, hostname)
@@ -348,6 +356,9 @@ func statsMaintainHost(hostname string, hostaddr string) (err error) {
 			fmt.Printf("stats: error uploading %s to S3: %s\n", statsFilename(hostname, yesterdayTime()), err)
 		}
 	}
+
+	// Post the new stats
+	writeNewStatsToDataDog(hostname, hostaddr, addedStats)
 
 	// Done
 	return
@@ -410,4 +421,22 @@ func writeFileToS3(filename string, contents []byte) (err error) {
 	})
 
 	return
+}
+
+// Write new stats to DataDog
+func writeNewStatsToDataDog(hostname string, hostaddr string, addedStats map[string][]AppLBStat) (err error) {
+
+	// If no new stats
+	if len(addedStats) == 0 {
+		return
+	}
+
+	fmt.Printf("***** %s *****\n", hostname)
+	// Show them
+	for siid, stats := range addedStats {
+		fmt.Printf("*** %s %s %d ***\n%+v\n", hostaddr, siid, len(stats), stats)
+	}
+
+	return
+
 }

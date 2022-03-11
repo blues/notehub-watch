@@ -24,6 +24,9 @@ type ServiceConfig struct {
 	// Host URL
 	HostURL string `json:"host_url,omitempty"`
 
+	// Monitoring period
+	MonitorPeriodMins int `json:"monitor_mins,omitempty"`
+
 	// Monitored hosts
 	MonitoredHosts []MonitoredHost `json:"monitor,omitempty"`
 
