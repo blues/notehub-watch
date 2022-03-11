@@ -9,11 +9,13 @@ require (
 )
 
 require (
+	github.com/DataDog/datadog-api-client-go v1.10.0 // indirect
 	github.com/StackExchange/wmi v0.0.0-20190523213315-cbe66965904d // indirect
 	github.com/aws/aws-sdk-go v1.43.16 // indirect
 	github.com/creack/goselect v0.1.1 // indirect
 	github.com/go-ole/go-ole v1.2.4 // indirect
 	github.com/gofrs/flock v0.7.1 // indirect
+	github.com/golang/protobuf v1.2.0 // indirect
 	github.com/gorilla/websocket v1.5.0 // indirect
 	github.com/jessevdk/go-flags v1.5.0 // indirect
 	github.com/jmespath/go-jmespath v0.4.0 // indirect
@@ -30,7 +32,9 @@ require (
 	go.bug.st/serial v1.0.0 // indirect
 	golang.org/x/crypto v0.0.0-20210711020723-a769d52b0f97 // indirect
 	golang.org/x/net v0.0.0-20220127200216-cd36cc0744dd // indirect
+	golang.org/x/oauth2 v0.0.0-20200107190931-bf48bf16ab8d // indirect
 	golang.org/x/sys v0.0.0-20211216021012-1d35b9e2eb4e // indirect
 	golang.org/x/text v0.3.7 // indirect
+	google.golang.org/appengine v1.4.0 // indirect
 	periph.io/x/periph v3.6.2+incompatible // indirect
 )

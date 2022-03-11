@@ -5,18 +5,28 @@
 package main
 
 import (
-	"bytes"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"sort"
 	"sync"
 	"time"
-
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/credentials"
-	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/s3/s3manager"
 )
+
+// AggregatedStat is a structure used to aggregate stats across service instances
+type AggregatedStat struct {
+	Time           int64  `json:"time,omitempty"`
+	DiskReads      uint64 `json:"disk_read,omitempty"`
+	DiskWrites     uint64 `json:"disk_write,omitempty"`
+	NetReceived    uint64 `json:"net_received,omitempty"`
+	NetSent        uint64 `json:"net_sent,omitempty"`
+	Handlers       int64  `json:"handlers_discovery,omitempty"`
+	EventsReceived int64  `json:"events_received,omitempty"`
+	EventsRouted   int64  `json:"events_routed,omitempty"`
+	DatabaseReads  int64  `json:"database_read,omitempty"`
+	DatabaseWrites int64  `json:"database_write,omitempty"`
+	APICalls       int64  `json:"api_calls,omitempty"`
+}
 
 // Periodic stats publisher.  The stats publisher maintains, in the local system's data directory,
 // a file that shadows what it keeps in-memory: 1 day's worth of stats data starting at UTC midnight.
@@ -346,7 +356,7 @@ func statsMaintainHost(hostname string, hostaddr string) (err error) {
 	if err != nil {
 		fmt.Printf("stats: error writing %s: %s\n", statsFilename(hostname, todayTime()), err)
 	} else {
-		err = writeFileToS3(statsFilename(hostname, todayTime()), contents)
+		err = s3UploadStats(statsFilename(hostname, todayTime()), contents)
 		if err != nil {
 			fmt.Printf("stats: error uploading %s to S3: %s\n", statsFilename(hostname, todayTime()), err)
 		}
@@ -355,7 +365,7 @@ func statsMaintainHost(hostname string, hostaddr string) (err error) {
 	if err != nil {
 		fmt.Printf("stats: error writing %s: %s\n", statsFilename(hostname, yesterdayTime()), err)
 	} else {
-		err = writeFileToS3(statsFilename(hostname, yesterdayTime()), contents)
+		err = s3UploadStats(statsFilename(hostname, yesterdayTime()), contents)
 		if err != nil {
 			fmt.Printf("stats: error uploading %s to S3: %s\n", statsFilename(hostname, yesterdayTime()), err)
 		}
@@ -364,7 +374,7 @@ func statsMaintainHost(hostname string, hostaddr string) (err error) {
 	// If this is just the initial set of stats that were being loaded from the file system, ignore it,
 	// else write the stats to datadog
 	if len(addedStats) > 0 && time.Now().UTC().Unix() > statsInitCompleted+60 {
-		writeNewStatsToDataDog(hostname, hostaddr, addedStats)
+		datadogUploadStats(hostname, addedStats)
 	}
 
 	// Done
@@ -402,48 +412,92 @@ func writeFileLocally(hostname string, beginTime int64, duration int64) (content
 	return
 }
 
-// Write a file to S3
-func writeFileToS3(filename string, contents []byte) (err error) {
+type statOccurrence []AggregatedStat
 
-	var sess *session.Session
-	sess, err = session.NewSession(
-		&aws.Config{
-			Region: aws.String(Config.AWSRegion),
-			Credentials: credentials.NewStaticCredentials(
-				Config.AWSAccessKeyID,
-				Config.AWSAccessKey,
-				"",
-			),
-		})
-	if err != nil {
-		return
-	}
+func (list statOccurrence) Len() int { return len(list) }
 
-	uploader := s3manager.NewUploader(sess)
-	_, err = uploader.Upload(&s3manager.UploadInput{
-		Bucket: aws.String(Config.AWSBucket),
-		ACL:    aws.String("public-read"),
-		Key:    aws.String(filename),
-		Body:   bytes.NewReader(contents),
-	})
+func (list statOccurrence) Swap(i, j int) { list[i], list[j] = list[j], list[i] }
 
-	return
+func (list statOccurrence) Less(i, j int) bool {
+	var si = list[i]
+	var sj = list[j]
+	return si.Time < sj.Time
 }
 
-// Write new stats to DataDog
-func writeNewStatsToDataDog(hostname string, hostaddr string, addedStats map[string][]AppLBStat) (err error) {
+// Aggregate a notehub stats structure across service instances
+func statsAggregate(allStats map[string][]AppLBStat) (bucketSecs int64, aggregatedStats []AggregatedStat) {
 
-	// If no new stats
-	if len(addedStats) == 0 {
+	// Assuming that all stats are on the same aligned timebase, fetch it
+	if len(allStats) == 0 {
+		return
+	}
+	for _, sis := range allStats {
+		if len(sis) != 0 {
+			bucketSecs = sis[0].BucketMins * 60
+			break
+		}
+	}
+	if bucketSecs == 0 {
 		return
 	}
 
-	fmt.Printf("***** %s *****\n", hostname)
-	// Show them
-	for siid, stats := range addedStats {
-		fmt.Printf("*** %s %s %d ***\n%+v\n", hostaddr, siid, len(stats), stats)
+	// Create a data structure that aggregates stats.  This is somewhat challenging because
+	// the different service instances began their "5 minute buckets" on different time bases
+	// and as such we can only aggregate them by seeing if they are in the same 'time bucket',
+	// as defined by the snapshot time divided by the seconds-per-bucket.
+	aggregatedStatsByBucket := make(map[int]AggregatedStat)
+	for _, sis := range allStats {
+		for _, s := range sis {
+			bucketID := int(s.SnapshotTaken / bucketSecs)
+			as := aggregatedStatsByBucket[bucketID]
+			as.Time = int64(bucketID) * bucketSecs
+
+			// Aggregate a common stat across instances
+			as.DiskReads += s.OSDiskRead
+			as.DiskWrites += s.OSDiskWrite
+			as.NetReceived += s.OSNetReceived
+			as.NetSent += s.OSNetSent
+
+			// Aggregate handlers.  Note that I made an explicit decision not to aggregate
+			// Notification handlers or Discovery handlers because generally the use of
+			// this statistic is to understand how many total devices are being served.
+			as.Handlers += s.EphemeralHandlersActivated
+			as.Handlers += s.ContinuousHandlersActivated
+
+			// Events
+			as.EventsReceived += s.EventsEnqueued
+			as.EventsRouted += s.EventsRouted
+
+			// Databases
+			if s.Databases != nil {
+				for _, db := range s.Databases {
+					as.DatabaseReads += db.Reads
+					as.DatabaseWrites += db.Writes
+				}
+			}
+
+			// API calls
+			if s.API != nil {
+				for _, apiCalls := range s.API {
+					as.APICalls += apiCalls
+				}
+			}
+
+			// Update the aggregated stat
+			aggregatedStatsByBucket[bucketID] = as
+
+		}
 	}
 
+	// Generate a flat array of stats
+	for _, s := range aggregatedStatsByBucket {
+		aggregatedStats = append(aggregatedStats, s)
+	}
+
+	// Sort the stats
+	sort.Sort(statOccurrence(aggregatedStats))
+
+	// Done
 	return
 
 }

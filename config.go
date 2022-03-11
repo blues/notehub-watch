@@ -50,6 +50,10 @@ type ServiceConfig struct {
 	AWSAccessKeyID string `json:"aws_access_key_id,omitempty"`
 	AWSAccessKey   string `json:"aws_access_key,omitempty"`
 	AWSBucket      string `json:"aws_bucket,omitempty"`
+
+	// Datadog creds
+	DatadogKeyID string `json:"datadog_key_id,omitempty"`
+	DatadogKey   string `json:"datadog_key,omitempty"`
 }
 
 // ConfigPath (here for golint)
