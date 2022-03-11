@@ -102,11 +102,17 @@ func statsInit() {
 		if !host.Disabled {
 			hs, err := readFileLocally(host.Name, todayTime())
 			if err == nil {
-				uAddStats(host.Name, host.Addr, hs.Stats)
+				added := uAddStats(host.Name, host.Addr, hs.Stats)
+				if added > 0 {
+					fmt.Printf("stats: loaded %d stats for %s from today\n", added, host.Name)
+				}
 			}
 			hs, err = readFileLocally(host.Name, yesterdayTime())
 			if err == nil {
-				uAddStats(host.Name, host.Addr, hs.Stats)
+				added := uAddStats(host.Name, host.Addr, hs.Stats)
+				if added > 0 {
+					fmt.Printf("stats: loaded %d stats for %s from yesterday\n", added, host.Name)
+				}
 			}
 		}
 	}
@@ -115,7 +121,7 @@ func statsInit() {
 }
 
 // Add stats to the in-memory vector of stats.
-func uAddStats(hostname string, hostaddr string, s map[string][]AppLBStat) {
+func uAddStats(hostname string, hostaddr string, s map[string][]AppLBStat) (added int) {
 
 	// Exit if no map
 	if s == nil {
@@ -238,12 +244,14 @@ func uAddStats(hostname string, hostaddr string, s map[string][]AppLBStat) {
 					fmt.Printf("overwriting %s entry %d\n", siid, i)
 				}
 				hs.Stats[siid][i] = snew
+				added++
 			}
 		}
 	}
 
 	// Update the main stats
 	stats[hostname] = hs
+	return
 
 }
 
@@ -315,17 +323,30 @@ func statsMaintainHost(hostname string, hostaddr string) (err error) {
 
 	// Update the stats in-memory
 	statsLock.Lock()
-	uAddStats(hostname, hostaddr, stats)
+	added := uAddStats(hostname, hostaddr, stats)
 	statsLock.Unlock()
+	if added > 0 {
+		fmt.Printf("stats: added %d stats for %s\n", added, hostname)
+	}
 
 	// Update the stats for yesterday and today into the file system
 	contents, err := writeFileLocally(hostname, todayTime(), secs1Day)
 	if err != nil {
-		writeFileToS3(statsFilename(hostname, todayTime()), contents)
+		fmt.Printf("stats: error writing %s: %s\n", statsFilename(hostname, todayTime()), err)
+	} else {
+		err = writeFileToS3(statsFilename(hostname, todayTime()), contents)
+		if err != nil {
+			fmt.Printf("stats: error uploading %s to S3: %s\n", statsFilename(hostname, todayTime()), err)
+		}
 	}
 	contents, err = writeFileLocally(hostname, yesterdayTime(), secs1Day)
 	if err != nil {
-		writeFileToS3(statsFilename(hostname, yesterdayTime()), contents)
+		fmt.Printf("stats: error writing %s: %s\n", statsFilename(hostname, yesterdayTime()), err)
+	} else {
+		err = writeFileToS3(statsFilename(hostname, yesterdayTime()), contents)
+		if err != nil {
+			fmt.Printf("stats: error uploading %s to S3: %s\n", statsFilename(hostname, yesterdayTime()), err)
+		}
 	}
 
 	// Done
