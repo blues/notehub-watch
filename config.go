@@ -41,6 +41,12 @@ type ServiceConfig struct {
 
 	// Slack app integration
 	SlackWebhookURL string `json:"slack_webhook_url,omitempty"`
+
+	// AWS info used for S3 upload
+	AWSRegion      string `json:"aws_region,omitempty"`
+	AWSAccessKeyID string `json:"aws_access_key_id,omitempty"`
+	AWSAccessKey   string `json:"aws_access_key,omitempty"`
+	AWSBucket      string `json:"aws_bucket,omitempty"`
 }
 
 // ConfigPath (here for golint)

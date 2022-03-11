@@ -5,11 +5,17 @@
 package main
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"sync"
 	"time"
+
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/credentials"
+	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go/service/s3/s3manager"
 )
 
 // Periodic stats publisher.  The stats publisher maintains, in the local system's data directory,
@@ -73,10 +79,12 @@ func statsMaintainer() {
 
 // Get the stats filename for a given UTC date
 func statsFilename(host string, filetime int64) (filename string) {
-	timestr := time.Unix(filetime, 0).Format("20060102")
-	filename = configDataDirectory + "/" + host + "-" + timestr + ".json"
-	return
+	return host + "-" + time.Unix(filetime, 0).Format("20060102") + ".json"
+}
 
+// Get the stats filename's full path
+func statsFilepath(host string, filetime int64) (filepath string) {
+	return configDataDirectory + "/" + statsFilename(host, filetime)
 }
 
 // Load stats from the file system and initialize for processing
@@ -92,23 +100,13 @@ func statsInit() {
 
 	for _, host := range Config.MonitoredHosts {
 		if !host.Disabled {
-			contents, err := ioutil.ReadFile(statsFilename(host.Name, todayTime()))
+			hs, err := readFileLocally(host.Name, todayTime())
 			if err == nil {
-				var hs HostStats
-				err = json.Unmarshal(contents, &hs)
-				if err == nil {
-					uAddStats(host.Name, host.Addr, hs.Stats)
-					fmt.Printf("%s: %d stats loaded from today\n", host.Name, len(hs.Stats))
-				}
+				uAddStats(host.Name, host.Addr, hs.Stats)
 			}
-			contents, err = ioutil.ReadFile(statsFilename(host.Name, yesterdayTime()))
+			hs, err = readFileLocally(host.Name, yesterdayTime())
 			if err == nil {
-				var hs HostStats
-				err = json.Unmarshal(contents, &hs)
-				if err == nil {
-					uAddStats(host.Name, host.Addr, hs.Stats)
-					fmt.Printf("%s: %d stats loaded from yesterday\n", host.Name, len(hs.Stats))
-				}
+				uAddStats(host.Name, host.Addr, hs.Stats)
 			}
 		}
 	}
@@ -249,52 +247,6 @@ func uAddStats(hostname string, hostaddr string, s map[string][]AppLBStat) {
 
 }
 
-// Get the UTC for today's midnight
-func todayTime() int64 {
-	return (time.Now().UTC().Unix() / secs1Day) * secs1Day
-}
-
-// Get the UTC for today's midnight
-func yesterdayTime() int64 {
-	return todayTime() - secs1Day
-}
-
-// Maintain a single host
-func statsMaintainHost(hostname string, hostaddr string) (err error) {
-
-	// Get the stats
-	var stats map[string][]AppLBStat
-	stats, err = watcherGetStats(hostaddr)
-	if err != nil {
-		return
-	}
-
-	// Update the stats in-memory
-	statsLock.Lock()
-	uAddStats(hostname, hostaddr, stats)
-	statsLock.Unlock()
-
-	// Extract today's and yesterday's stats
-	statsLock.Lock()
-	hsToday := uExtractStats(hostname, todayTime(), secs1Day)
-	hsYesterday := uExtractStats(hostname, yesterdayTime(), secs1Day)
-	statsLock.Unlock()
-
-	// Update the stats for yesterday and today into the file system
-	sJSON, err := json.Marshal(hsToday)
-	if err == nil {
-		ioutil.WriteFile(statsFilename(hostname, todayTime()), sJSON, 0644)
-	}
-	sJSON, err = json.Marshal(hsYesterday)
-	if err == nil {
-		ioutil.WriteFile(statsFilename(hostname, yesterdayTime()), sJSON, 0644)
-	}
-
-	// Done
-	return
-
-}
-
 // Extract stats for the given host for a time range
 func uExtractStats(hostname string, beginTime int64, duration int64) (hsret HostStats) {
 
@@ -339,4 +291,102 @@ func uExtractStats(hostname string, beginTime int64, duration int64) (hsret Host
 	// Done
 	return
 
+}
+
+// Get the UTC for today's midnight
+func todayTime() int64 {
+	return (time.Now().UTC().Unix() / secs1Day) * secs1Day
+}
+
+// Get the UTC for today's midnight
+func yesterdayTime() int64 {
+	return todayTime() - secs1Day
+}
+
+// Maintain a single host
+func statsMaintainHost(hostname string, hostaddr string) (err error) {
+
+	// Get the stats
+	var stats map[string][]AppLBStat
+	stats, err = watcherGetStats(hostaddr)
+	if err != nil {
+		return
+	}
+
+	// Update the stats in-memory
+	statsLock.Lock()
+	uAddStats(hostname, hostaddr, stats)
+	statsLock.Unlock()
+
+	// Update the stats for yesterday and today into the file system
+	contents, err := writeFileLocally(hostname, todayTime(), secs1Day)
+	if err != nil {
+		writeFileToS3(statsFilename(hostname, todayTime()), contents)
+	}
+	contents, err = writeFileLocally(hostname, yesterdayTime(), secs1Day)
+	if err != nil {
+		writeFileToS3(statsFilename(hostname, yesterdayTime()), contents)
+	}
+
+	// Done
+	return
+
+}
+
+// Read a file locally
+func readFileLocally(hostname string, beginTime int64) (hs HostStats, err error) {
+	var contents []byte
+	contents, err = ioutil.ReadFile(statsFilepath(hostname, beginTime))
+	if err != nil {
+		return
+	}
+	err = json.Unmarshal(contents, &hs)
+	if err != nil {
+		return
+	}
+	return
+}
+
+// Write a file locally
+func writeFileLocally(hostname string, beginTime int64, duration int64) (contents []byte, err error) {
+	statsLock.Lock()
+	hs := uExtractStats(hostname, beginTime, duration)
+	statsLock.Unlock()
+	contents, err = json.Marshal(hs)
+	if err != nil {
+		return
+	}
+	err = ioutil.WriteFile(statsFilepath(hostname, beginTime), contents, 0644)
+	if err != nil {
+		return
+	}
+	return
+}
+
+// Write a file to S3
+func writeFileToS3(filename string, contents []byte) (err error) {
+
+	var sess *session.Session
+	sess, err = session.NewSession(
+		&aws.Config{
+			Region: aws.String(Config.AWSRegion),
+			Credentials: credentials.NewStaticCredentials(
+				Config.AWSAccessKeyID,
+				Config.AWSAccessKey,
+				"",
+			),
+		})
+	if err != nil {
+		return
+	}
+
+	uploader := s3manager.NewUploader(sess)
+	_, err = uploader.Upload(&s3manager.UploadInput{
+		Bucket: aws.String(Config.AWSBucket),
+		ACL:    aws.String("public-read"),
+		Key:    aws.String(filename),
+		Body:   bytes.NewReader(contents),
+	})
+
+	return
 }
