@@ -42,6 +42,7 @@ type HostStats struct {
 // Globals
 const secs1Day = (60 * 60 * 24)
 
+var statsInitCompleted int64
 var statsMaintainNow *Event
 var statsLock sync.Mutex
 var stats map[string]HostStats
@@ -117,6 +118,9 @@ func statsInit() {
 		}
 	}
 	statsLock.Unlock()
+
+	// Remember when we began initialization
+	statsInitCompleted = time.Now().UTC().Unix()
 
 }
 
@@ -357,8 +361,11 @@ func statsMaintainHost(hostname string, hostaddr string) (err error) {
 		}
 	}
 
-	// Post the new stats
-	writeNewStatsToDataDog(hostname, hostaddr, addedStats)
+	// If this is just the initial set of stats that were being loaded from the file system, ignore it,
+	// else write the stats to datadog
+	if len(addedStats) > 0 && time.Now().UTC().Unix() > statsInitCompleted+60 {
+		writeNewStatsToDataDog(hostname, hostaddr, addedStats)
+	}
 
 	// Done
 	return
