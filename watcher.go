@@ -134,6 +134,11 @@ func watcherGetServiceInstances(hostaddr string) (serviceInstanceIDs []string, s
 // Retrieve the ping info from a handler
 func getServiceInstanceInfo(addr string, siid string, showWhat string) (pb PingBody, err error) {
 
+	// Prefix in case it's missing
+	if !strings.Contains(addr, "://") {
+		addr = "https://" + addr
+	}
+
 	// Get the data
 	url := fmt.Sprintf("%s/ping?show=\"%s\"", addr, showWhat)
 	if siid != "" {

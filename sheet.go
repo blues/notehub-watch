@@ -47,7 +47,7 @@ func sheetGetHostStats(hostaddr string) (response string) {
 	// Get the high-level uptime info
 	var pb PingBody
 	pb, err := getServiceInstanceInfo(hostaddr, "", "lb")
-	fmt.Printf("%+v\n", pb)
+	fmt.Printf("%s: %s\n%+v\n", hostaddr, err, pb)
 	return "OZZIE"
 
 	// Get the list of service instances on the host
