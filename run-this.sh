@@ -9,7 +9,8 @@ set -v
 export PATH=$PATH:/usr/local/go/bin
 git reset --hard
 git pull
-go get -u
+# go get -u
+go get
 go build
 
 sudo ./notehub-watch
