@@ -139,8 +139,8 @@ func sheetAddTab(f *excelize.File, sheetName string, siid string, stats []AppLBS
 	f.NewSheet(sheetName)
 
 	// Generate styles
-	styleBold, _ := f.NewStyle(`{"font":{"bold":true,"italic":false}}`)
-	styleBoldItalic, _ := f.NewStyle(`{"font":{"bold":true,"italic":true}}`)
+	styleBold, _ := f.NewStyle(`{"font":{"color":"green","bold":true,"italic":false}}`)
+	styleBoldItalic, _ := f.NewStyle(`{"font":{"color":"red","bold":true,"italic":true}}`)
 	styleRightAligned, _ := f.NewStyle(`{"alignment":{"horizontal":"right"}}`)
 
 	// Base for dynamic info
