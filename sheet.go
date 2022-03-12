@@ -114,7 +114,7 @@ func sheetGetHostStats(hostaddr string) (response string) {
 	// Generate response
 	stime := time.Unix(ss.Started, 0).UTC()
 	est, _ := time.LoadLocation("EST")
-	estFmt := stime.In(est).Format("Mon Jan 02 15:04 MST")
+	estFmt := stime.In(est).Format("Mon Jan 02 15:04PM MST")
 	utcFmt := stime.Format("2006-01-02T15:04:05Z")
 	response += "```"
 	response += fmt.Sprintf("      host: %s\n", hostCleaned)
