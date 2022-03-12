@@ -157,6 +157,9 @@ func sheetAddTab(f *excelize.File, sheetName string, siid string, stats []AppLBS
 	row++
 	row++
 
+	// Freeze panes
+	f.SetPanes(sheetName, `{"freeze":true,"split":false,"x_split":row,"y_split":col}`)
+
 	// Exit if no stats
 	if len(stats) == 0 {
 		return
