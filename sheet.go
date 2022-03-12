@@ -398,7 +398,7 @@ func cell(col int, row int) string {
 // Generate a time header at the specified col/row
 func timeHeader(f *excelize.File, sheetName string, col int, row int, bucketMins int, buckets int) {
 	for i := 0; i < buckets; i++ {
-		f.SetCellValue(sheetName, cell(col+i, row), uptimeStr(int64((i+1)*bucketMins*60), 0))
+		f.SetCellValue(sheetName, cell(col+i, row), uptimeStr(0, (int64(i)+1)*int64(bucketMins)*60))
 	}
 }
 
