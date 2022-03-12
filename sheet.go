@@ -179,6 +179,14 @@ func sheetAddTab(f *excelize.File, sheetName string, siid string, stats []AppLBS
 	}
 	row++
 
+	f.SetCellValue(sheetName, cell(col, row), "sampled")
+	for i, stat := range stats {
+		if stat.SnapshotTaken != 0 {
+			f.SetCellValue(sheetName, cell(col+1+i, row), time.Unix(stat.SnapshotTaken, 0))
+		}
+	}
+	row++
+
 	f.SetCellValue(sheetName, cell(col, row), "uptime")
 	for i, stat := range stats {
 		if stat.Started != 0 {
