@@ -13,54 +13,56 @@ import (
 	"time"
 )
 
-// Watcher show command
-func watcherShow(hostaddr string, showWhat string) (result string) {
+// Current "live" info
+type serviceSummary struct {
+	Started              int64
+	ContinuousHandlers   int64
+	NotificationHandlers int64
+	EphemeralHandlers    int64
+	DiscoveryHandlers    int64
+	ServiceInstanceIDs   []string
+	ServiceInstanceAddrs []string
+}
 
+// Watcher show command
+func watcherShow(hostname string, showWhat string) (result string) {
+
+	// Map name to address
+	hostaddr := ""
+	validHosts := ""
+	for _, v := range Config.MonitoredHosts {
+		if hostname == v.Name {
+			hostaddr = v.Addr
+			break
+		}
+		if validHosts != "" {
+			validHosts += " or "
+		}
+		validHosts += "'" + v.Name + "'"
+	}
 	if hostaddr == "" {
 		return "" +
 			"/notehub <host>\n" +
 			"/notehub <host> show <what>\n" +
-			"<host> is prod, staging, or your local hostname\n" +
-			"<what> is goroutines, heap, handlers\n" +
-			""
+			"<host> is " + validHosts + "\n" +
+			"<what> is goroutines, heap, handlers\n"
 	}
 
-	targetHost := hostaddr
-
-	// Production
-	if hostaddr == "p" || hostaddr == "prod" || hostaddr == "production" {
-		targetHost = "notefile.net"
-	}
-
-	// Staging
-	if hostaddr == "s" || hostaddr == "staging" {
-		targetHost = "staging.blues.tools"
-	}
-
-	// Localdev
-	if !strings.Contains(hostaddr, ".") {
-		targetHost = hostaddr + ".blues.tools"
-	}
-
-	// We must target the API service for this host
-	if !strings.HasPrefix(targetHost, "api.") {
-		targetHost = "api." + targetHost
-	}
-
-	return watcherShowHost(targetHost, showWhat)
+	// Show the host
+	return watcherShowHost(hostname, hostaddr, showWhat)
 
 }
 
 // Show something about the host
-func watcherShowHost(hostaddr string, showWhat string) (response string) {
+func watcherShowHost(hostname string, hostaddr string, showWhat string) (response string) {
 
 	// If showing nothing, done
 	if showWhat == "" {
-		return sheetGetHostStats(hostaddr)
+		return sheetGetHostStats(hostname, hostaddr)
 	}
 
 	// Get the list of handlers on the host
-	serviceInstanceIDs, serviceInstanceAddrs, serviceNames, err := watcherGetServiceInstances(hostaddr)
+	serviceInstanceIDs, serviceInstanceAddrs, err := watcherGetServiceInstances(hostaddr)
 	if err != nil {
 		return err.Error()
 	}
@@ -68,7 +70,7 @@ func watcherShowHost(hostaddr string, showWhat string) (response string) {
 	// Show the handlers
 	for i, addr := range serviceInstanceAddrs {
 		response += "\n"
-		response += fmt.Sprintf("*NODE %s (%s)*\n", serviceInstanceIDs[i], serviceNames[i])
+		response += fmt.Sprintf("*NODE %s*\n", serviceInstanceIDs[i])
 		r, errstr := watcherShowServiceInstance(addr, serviceInstanceIDs[i], showWhat)
 		if errstr != "" {
 			response += "  " + errstr + "\n"
@@ -82,7 +84,7 @@ func watcherShowHost(hostaddr string, showWhat string) (response string) {
 }
 
 // Get the list of handlers
-func watcherGetServiceInstances(hostaddr string) (serviceInstanceIDs []string, serviceInstanceAddrs []string, serviceNames []string, err error) {
+func watcherGetServiceInstances(hostaddr string) (serviceInstanceIDs []string, serviceInstanceAddrs []string, err error) {
 
 	url := "https://" + hostaddr + "/ping?show=\"handlers\""
 	req, err2 := http.NewRequest("GET", url, nil)
@@ -122,7 +124,6 @@ func watcherGetServiceInstances(hostaddr string) (serviceInstanceIDs []string, s
 		// a service instance simply because on Local Dev we have a single NodeID that hosts all of the
 		// different services that collect stats within their own process address spaces.
 		serviceInstanceIDs = append(serviceInstanceIDs, h.NodeID+":"+h.PrimaryService)
-		serviceNames = append(serviceNames, h.PrimaryService)
 		addr := fmt.Sprintf("http://%s", hostaddr)
 		serviceInstanceAddrs = append(serviceInstanceAddrs, addr)
 	}
@@ -358,26 +359,38 @@ func ConvertStatsFromAbsoluteToRelative(startTime int64, bucketMins int64, stats
 }
 
 // Retrieve a sample of data from the specified host, returning a vector of available stats indexed by SIID
-func watcherGetStats(hostaddr string) (stats map[string][]AppLBStat, err error) {
+func watcherGetStats(hostaddr string) (ss serviceSummary, stats map[string][]AppLBStat, err error) {
 
 	// Instantiate the stats map
 	stats = map[string][]AppLBStat{}
 
 	// Get the list of service instances on the host
-	serviceInstanceIDs, serviceInstanceAddrs, _, err2 := watcherGetServiceInstances(hostaddr)
-	if err2 != nil {
-		err = err2
+	ss.ServiceInstanceIDs, ss.ServiceInstanceAddrs, err = watcherGetServiceInstances(hostaddr)
+	if err != nil {
 		return
 	}
 
 	// Iterate over each service instance, gathering its stats
-	for i, siid := range serviceInstanceIDs {
+	for i, siid := range ss.ServiceInstanceIDs {
 
 		// Get the info
 		var pb PingBody
-		pb, err = getServiceInstanceInfo(serviceInstanceAddrs[i], siid, "lb")
+		pb, err = getServiceInstanceInfo(ss.ServiceInstanceAddrs[i], siid, "lb")
 		if err != nil {
 			return
+		}
+
+		// Update service summary
+		if len(*pb.Body.LBStatus) > 0 {
+			ss.Started = (*pb.Body.LBStatus)[0].Started
+			ss.ContinuousHandlers += (*pb.Body.LBStatus)[0].ContinuousHandlersActivated -
+				(*pb.Body.LBStatus)[0].ContinuousHandlersDeactivated
+			ss.NotificationHandlers += (*pb.Body.LBStatus)[0].NotificationHandlersActivated -
+				(*pb.Body.LBStatus)[0].NotificationHandlersDeactivated
+			ss.EphemeralHandlers += (*pb.Body.LBStatus)[0].EphemeralHandlersActivated -
+				(*pb.Body.LBStatus)[0].EphemeralHandlersDeactivated
+			ss.DiscoveryHandlers += (*pb.Body.LBStatus)[0].DiscoveryHandlersActivated -
+				(*pb.Body.LBStatus)[0].DiscoveryHandlersDeactivated
 		}
 
 		// If the server hasn't been up long enough to have stats.  Note that [0] is the

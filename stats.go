@@ -107,35 +107,44 @@ func statsInit() {
 
 	// Load yesterday's and today's stats from the file system
 	statsLock.Lock()
+	defer statsLock.Unlock()
+
 	stats = make(map[string]HostStats)
 
 	for _, host := range Config.MonitoredHosts {
 		if !host.Disabled {
 			hs, err := readFileLocally(host.Name, todayTime())
 			if err == nil {
-				added, _ := uAddStats(host.Name, host.Addr, hs.Stats)
+				added, _ := uStatsAdd(host.Name, host.Addr, hs.Stats)
 				if added > 0 {
 					fmt.Printf("stats: loaded %d stats for %s from today\n", added, host.Name)
 				}
 			}
 			hs, err = readFileLocally(host.Name, yesterdayTime())
 			if err == nil {
-				added, _ := uAddStats(host.Name, host.Addr, hs.Stats)
+				added, _ := uStatsAdd(host.Name, host.Addr, hs.Stats)
 				if added > 0 {
 					fmt.Printf("stats: loaded %d stats for %s from yesterday\n", added, host.Name)
 				}
 			}
 		}
 	}
-	statsLock.Unlock()
 
 	// Remember when we began initialization
 	statsInitCompleted = time.Now().UTC().Unix()
 
 }
 
+// Add stats
+func statsAdd(hostname string, hostaddr string, s map[string][]AppLBStat) (added int, addedStats map[string][]AppLBStat) {
+	statsLock.Lock()
+	defer statsLock.Unlock()
+	added, addedStats = uStatsAdd(hostname, hostaddr, s)
+	return
+}
+
 // Add stats to the in-memory vector of stats.
-func uAddStats(hostname string, hostaddr string, s map[string][]AppLBStat) (added int, addedStats map[string][]AppLBStat) {
+func uStatsAdd(hostname string, hostaddr string, s map[string][]AppLBStat) (added int, addedStats map[string][]AppLBStat) {
 
 	// Exit if no map
 	if s == nil {
@@ -281,10 +290,24 @@ func uAddStats(hostname string, hostaddr string, s map[string][]AppLBStat) (adde
 }
 
 // Extract stats for the given host for a time range
-func uExtractStats(hostname string, beginTime int64, duration int64) (hsret HostStats) {
+func statsExtract(hostname string, beginTime int64, duration int64) (hsret HostStats, exists bool) {
+	statsLock.Lock()
+	defer statsLock.Unlock()
+	hsret, exists = uStatsExtract(hostname, beginTime, duration)
+	return
+}
+
+// Extract stats for the given host for a time range, locked
+func uStatsExtract(hostname string, beginTime int64, duration int64) (hsret HostStats, exists bool) {
+
+	// Get the existing value, and exit if we want the whole thing
+	hsret, exists = stats[hostname]
+	if duration == 0 {
+		return
+	}
 
 	// Initialize host stats
-	hs := stats[hostname]
+	hs := hsret
 	hsret = HostStats{}
 	hsret.Name = hs.Name
 	hsret.Addr = hs.Addr
@@ -341,15 +364,13 @@ func statsMaintainHost(hostname string, hostaddr string) (err error) {
 
 	// Get the stats
 	var stats map[string][]AppLBStat
-	stats, err = watcherGetStats(hostaddr)
+	_, stats, err = watcherGetStats(hostaddr)
 	if err != nil {
 		return
 	}
 
 	// Update the stats in-memory
-	statsLock.Lock()
-	added, addedStats := uAddStats(hostname, hostaddr, stats)
-	statsLock.Unlock()
+	added, addedStats := statsAdd(hostname, hostaddr, stats)
 	if added > 0 {
 		fmt.Printf("stats: added %d new stats for %s\n", added, hostname)
 	}
@@ -401,9 +422,7 @@ func readFileLocally(hostname string, beginTime int64) (hs HostStats, err error)
 
 // Write a file locally
 func writeFileLocally(hostname string, beginTime int64, duration int64) (contents []byte, err error) {
-	statsLock.Lock()
-	hs := uExtractStats(hostname, beginTime, duration)
-	statsLock.Unlock()
+	hs, _ := statsExtract(hostname, beginTime, duration)
 	contents, err = json.Marshal(hs)
 	if err != nil {
 		return

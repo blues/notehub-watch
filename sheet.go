@@ -41,35 +41,37 @@ func inboundWebSheetHandler(w http.ResponseWriter, r *http.Request) {
 
 }
 
-// Current "live" info
-type serviceSummary struct {
-	Started              int64
-	ServiceInstances     int64
-	ContinuousHandlers   int64
-	NotificationHandlers int64
-	EphemeralHandlers    int64
-	DiscoveryHandlers    int64
-}
-
 // Generate a sheet for this host
-func sheetGetHostStats(hostaddr string) (response string) {
+func sheetGetHostStats(hostname string, hostaddr string) (response string) {
 
-	// Get the list of service instances on the host
-	serviceInstanceIDs, serviceInstanceAddrs, serviceNames, err := watcherGetServiceInstances(hostaddr)
+	// Get the most recent stats
+	ss, stats, err := watcherGetStats(hostaddr)
 	if err != nil {
 		return err.Error()
+	}
+
+	// Update the stats in-memory
+	statsAdd(hostname, hostaddr, stats)
+
+	// Get the entire set of stats available in-memory
+	hs, exists := statsExtract(hostname, 0, 0)
+	if !exists {
+		response = fmt.Sprintf("unknown host: %s", hostname)
 	}
 
 	// Create a new spreadsheet
 	f := excelize.NewFile()
 
 	// Generate a page within the sheet for each service instance
-	ss := serviceSummary{}
 	sheetNums := map[string]int{}
-	for i := range serviceInstanceAddrs {
+	for siid, stats := range hs.Stats {
 
 		// Generate the sheet name
-		ht := serviceNames[i]
+		s := strings.Split(siid, ":")
+		ht := "unknown-service-type"
+		if len(s) == 2 {
+			ht = s[1]
+		}
 		sn := sheetNums[ht]
 		sn++
 		sheetNums[ht] = sn
@@ -86,7 +88,7 @@ func sheetGetHostStats(hostaddr string) (response string) {
 		}
 
 		// Generate the sheet for this service instance
-		errstr := sheetAddTab(f, &ss, sheetName, serviceInstanceAddrs[i], serviceInstanceIDs[i])
+		errstr := sheetAddTab(f, sheetName, siid, stats)
 		if errstr != "" {
 			response = errstr
 			return
@@ -120,7 +122,7 @@ func sheetGetHostStats(hostaddr string) (response string) {
 	response += fmt.Sprintf("      host: %s\n", hostCleaned)
 	response += fmt.Sprintf("   started: %s (%s)\n", estFmt, utcFmt)
 	response += fmt.Sprintf("    uptime: %s\n", uptimeStr(ss.Started, time.Now().UTC().Unix()))
-	response += fmt.Sprintf("     nodes: %d\n", ss.ServiceInstances)
+	response += fmt.Sprintf("     nodes: %d\n", len(ss.ServiceInstanceIDs))
 	response += fmt.Sprintf("  handlers: %d (continuous:%d notification:%d ephemeral:%d discovery:%d)\n",
 		ss.ContinuousHandlers+ss.NotificationHandlers+ss.EphemeralHandlers+ss.DiscoveryHandlers,
 		ss.ContinuousHandlers, ss.NotificationHandlers, ss.EphemeralHandlers, ss.DiscoveryHandlers)
@@ -131,30 +133,7 @@ func sheetGetHostStats(hostaddr string) (response string) {
 }
 
 // Add the stats for a service instance as a tabbed sheet within the xlsx
-func sheetAddTab(f *excelize.File, ss *serviceSummary, sheetName string, addr string, siid string) (errstr string) {
-
-	// Get the info from the handler
-	var pb PingBody
-	pb, err := getServiceInstanceInfo(addr, siid, "lb")
-	if err != nil {
-		errstr = err.Error()
-		return
-	}
-	if pb.Body.LBStatus == nil || len(*pb.Body.LBStatus) == 0 {
-		return "no data available from handler"
-	}
-
-	// Update service summary
-	ss.ServiceInstances++
-	ss.Started = (*pb.Body.LBStatus)[0].Started
-	ss.ContinuousHandlers += (*pb.Body.LBStatus)[0].ContinuousHandlersActivated -
-		(*pb.Body.LBStatus)[0].ContinuousHandlersDeactivated
-	ss.NotificationHandlers += (*pb.Body.LBStatus)[0].NotificationHandlersActivated -
-		(*pb.Body.LBStatus)[0].NotificationHandlersDeactivated
-	ss.EphemeralHandlers += (*pb.Body.LBStatus)[0].EphemeralHandlersActivated -
-		(*pb.Body.LBStatus)[0].EphemeralHandlersDeactivated
-	ss.DiscoveryHandlers += (*pb.Body.LBStatus)[0].DiscoveryHandlersActivated -
-		(*pb.Body.LBStatus)[0].DiscoveryHandlersDeactivated
+func sheetAddTab(f *excelize.File, sheetName string, siid string, stats []AppLBStat) (errstr string) {
 
 	// Generate the sheet
 	f.NewSheet(sheetName)
@@ -174,169 +153,125 @@ func sheetAddTab(f *excelize.File, ss *serviceSummary, sheetName string, addr st
 	row++
 	row++
 
-	// Generate aggregate info if enough are available to convert absolute to relative - that is,
-	// [0] is the 'current stats', and all the rest are absolute.  In order to produce 1 bucket
-	// of good 'relative' data, we need to subtract it from the one beyond it.
-	if len(*pb.Body.LBStatus) > 2 {
+	// Exit if no stats
+	if len(stats) == 0 {
+		return
+	}
 
-		// Extract all available stats, and convert them from absolute to per-bucket relative.
-		stats := ConvertStatsFromAbsoluteToRelative(
-			(*pb.Body.LBStatus)[0].Started,
-			(*pb.Body.LBStatus)[0].BucketMins,
-			(*pb.Body.LBStatus)[1:])
+	// Bucket parameters are assumed to be uniform
+	buckets := len(stats)
+	bucketMins := int(stats[0].BucketMins)
 
-		// Number of buckets to process
-		bucketMins := int((*pb.Body.LBStatus)[0].BucketMins)
-		buckets := len(stats)
+	// OS stats
+	f.SetCellValue(sheetName, cell(col, row), "OS (MiB)")
+	f.SetCellStyle(sheetName, cell(col, row), cell(col, row), styleBoldItalic)
+	timeHeader(f, sheetName, col+1, row, bucketMins, buckets)
+	row++
 
-		// OS stats
-		f.SetCellValue(sheetName, cell(col, row), "OS (MiB)")
+	f.SetCellValue(sheetName, cell(col, row), "mfree")
+	for i, stat := range stats {
+		f.SetCellValue(sheetName, cell(col+1+i, row), stat.OSMemFree/(1024*1024))
+	}
+	row++
+
+	f.SetCellValue(sheetName, cell(col, row), "mtotal")
+	for i, stat := range stats {
+		f.SetCellValue(sheetName, cell(col+1+i, row), stat.OSMemTotal/(1024*1024))
+	}
+	row++
+
+	f.SetCellValue(sheetName, cell(col, row), "diskrd")
+	for i, stat := range stats {
+		f.SetCellValue(sheetName, cell(col+1+i, row), stat.OSDiskRead/(1024*1024))
+	}
+	row++
+
+	f.SetCellValue(sheetName, cell(col, row), "diskwr")
+	for i, stat := range stats {
+		f.SetCellValue(sheetName, cell(col+1+i, row), stat.OSDiskWrite/(1024*1024))
+	}
+	row++
+
+	f.SetCellValue(sheetName, cell(col, row), "netrcv")
+	for i, stat := range stats {
+		f.SetCellValue(sheetName, cell(col+1+i, row), stat.OSNetReceived/(1024*1024))
+	}
+	row++
+
+	f.SetCellValue(sheetName, cell(col, row), "netsnd")
+	for i, stat := range stats {
+		f.SetCellValue(sheetName, cell(col+1+i, row), stat.OSNetSent/(1024*1024))
+	}
+	row++
+
+	row++
+
+	// Handler stats
+	f.SetCellValue(sheetName, cell(col, row), "Handlers")
+	f.SetCellStyle(sheetName, cell(col, row), cell(col, row), styleBoldItalic)
+	timeHeader(f, sheetName, col+1, row, bucketMins, buckets)
+	row++
+
+	f.SetCellValue(sheetName, cell(col, row), "contin")
+	for i, stat := range stats {
+		f.SetCellValue(sheetName, cell(col+1+i, row), stat.ContinuousHandlersActivated)
+	}
+	row++
+
+	f.SetCellValue(sheetName, cell(col, row), "notif")
+	for i, stat := range stats {
+		f.SetCellValue(sheetName, cell(col+1+i, row), stat.NotificationHandlersActivated)
+	}
+	row++
+
+	f.SetCellValue(sheetName, cell(col, row), "ephem")
+	for i, stat := range stats {
+		f.SetCellValue(sheetName, cell(col+1+i, row), stat.EphemeralHandlersActivated)
+	}
+	row++
+
+	f.SetCellValue(sheetName, cell(col, row), "disco")
+	for i, stat := range stats {
+		f.SetCellValue(sheetName, cell(col+1+i, row), stat.DiscoveryHandlersActivated)
+	}
+	row++
+
+	row++
+
+	// Event stats
+	f.SetCellValue(sheetName, cell(col, row), "Events")
+	f.SetCellStyle(sheetName, cell(col, row), cell(col, row), styleBoldItalic)
+	timeHeader(f, sheetName, col+1, row, bucketMins, buckets)
+	row++
+
+	f.SetCellValue(sheetName, cell(col, row), "queued")
+	for i, stat := range stats {
+		f.SetCellValue(sheetName, cell(col+1+i, row), stat.EventsEnqueued)
+	}
+	row++
+
+	f.SetCellValue(sheetName, cell(col, row), "routed")
+	for i, stat := range stats {
+		f.SetCellValue(sheetName, cell(col+1+i, row), stat.EventsRouted)
+	}
+	row++
+
+	row++
+
+	// Fatals stats
+	if len(stats[0].Fatals) > 0 {
+
+		f.SetCellValue(sheetName, cell(col, row), "Fatals")
 		f.SetCellStyle(sheetName, cell(col, row), cell(col, row), styleBoldItalic)
 		timeHeader(f, sheetName, col+1, row, bucketMins, buckets)
 		row++
 
-		f.SetCellValue(sheetName, cell(col, row), "mfree")
-		for i, stat := range stats {
-			f.SetCellValue(sheetName, cell(col+1+i, row), stat.OSMemFree/(1024*1024))
-		}
-		row++
+		for k := range stats[0].Fatals {
 
-		f.SetCellValue(sheetName, cell(col, row), "mtotal")
-		for i, stat := range stats {
-			f.SetCellValue(sheetName, cell(col+1+i, row), stat.OSMemTotal/(1024*1024))
-		}
-		row++
-
-		f.SetCellValue(sheetName, cell(col, row), "diskrd")
-		for i, stat := range stats {
-			f.SetCellValue(sheetName, cell(col+1+i, row), stat.OSDiskRead/(1024*1024))
-		}
-		row++
-
-		f.SetCellValue(sheetName, cell(col, row), "diskwr")
-		for i, stat := range stats {
-			f.SetCellValue(sheetName, cell(col+1+i, row), stat.OSDiskWrite/(1024*1024))
-		}
-		row++
-
-		f.SetCellValue(sheetName, cell(col, row), "netrcv")
-		for i, stat := range stats {
-			f.SetCellValue(sheetName, cell(col+1+i, row), stat.OSNetReceived/(1024*1024))
-		}
-		row++
-
-		f.SetCellValue(sheetName, cell(col, row), "netsnd")
-		for i, stat := range stats {
-			f.SetCellValue(sheetName, cell(col+1+i, row), stat.OSNetSent/(1024*1024))
-		}
-		row++
-
-		row++
-
-		// Handler stats
-		f.SetCellValue(sheetName, cell(col, row), "Handlers")
-		f.SetCellStyle(sheetName, cell(col, row), cell(col, row), styleBoldItalic)
-		timeHeader(f, sheetName, col+1, row, bucketMins, buckets)
-		row++
-
-		f.SetCellValue(sheetName, cell(col, row), "contin")
-		for i, stat := range stats {
-			f.SetCellValue(sheetName, cell(col+1+i, row), stat.ContinuousHandlersActivated)
-		}
-		row++
-
-		f.SetCellValue(sheetName, cell(col, row), "notif")
-		for i, stat := range stats {
-			f.SetCellValue(sheetName, cell(col+1+i, row), stat.NotificationHandlersActivated)
-		}
-		row++
-
-		f.SetCellValue(sheetName, cell(col, row), "ephem")
-		for i, stat := range stats {
-			f.SetCellValue(sheetName, cell(col+1+i, row), stat.EphemeralHandlersActivated)
-		}
-		row++
-
-		f.SetCellValue(sheetName, cell(col, row), "disco")
-		for i, stat := range stats {
-			f.SetCellValue(sheetName, cell(col+1+i, row), stat.DiscoveryHandlersActivated)
-		}
-		row++
-
-		row++
-
-		// Event stats
-		f.SetCellValue(sheetName, cell(col, row), "Events")
-		f.SetCellStyle(sheetName, cell(col, row), cell(col, row), styleBoldItalic)
-		timeHeader(f, sheetName, col+1, row, bucketMins, buckets)
-		row++
-
-		f.SetCellValue(sheetName, cell(col, row), "queued")
-		for i, stat := range stats {
-			f.SetCellValue(sheetName, cell(col+1+i, row), stat.EventsEnqueued)
-		}
-		row++
-
-		f.SetCellValue(sheetName, cell(col, row), "routed")
-		for i, stat := range stats {
-			f.SetCellValue(sheetName, cell(col+1+i, row), stat.EventsRouted)
-		}
-		row++
-
-		row++
-
-		// Fatals stats
-		if len(stats[0].Fatals) > 0 {
-
-			f.SetCellValue(sheetName, cell(col, row), "Fatals")
-			f.SetCellStyle(sheetName, cell(col, row), cell(col, row), styleBoldItalic)
-			timeHeader(f, sheetName, col+1, row, bucketMins, buckets)
-			row++
-
-			for k := range stats[0].Fatals {
-
-				f.SetCellValue(sheetName, cell(col, row), k)
-				f.SetCellStyle(sheetName, cell(col, row), cell(col, row), styleBold)
-				for i, stat := range stats {
-					f.SetCellValue(sheetName, cell(col+1+i, row), stat.Fatals[k])
-				}
-				row++
-
-			}
-
-			row++
-
-		}
-
-		// Cache stats
-		f.SetCellValue(sheetName, cell(col, row), "Caches")
-		f.SetCellStyle(sheetName, cell(col, row), cell(col, row), styleBoldItalic)
-		row++
-
-		for k := range stats[0].Caches {
-			row++
-
-			f.SetCellValue(sheetName, cell(col, row), k+" cache")
+			f.SetCellValue(sheetName, cell(col, row), k)
 			f.SetCellStyle(sheetName, cell(col, row), cell(col, row), styleBold)
-			row++
-			timeHeader(f, sheetName, col+1, row, bucketMins, buckets)
-			row++
-
-			f.SetCellValue(sheetName, cell(col, row), "refreshed")
 			for i, stat := range stats {
-				f.SetCellValue(sheetName, cell(col+1+i, row), stat.Caches[k].Invalidations)
-			}
-			row++
-
-			f.SetCellValue(sheetName, cell(col, row), "entries")
-			for i, stat := range stats {
-				f.SetCellValue(sheetName, cell(col+1+i, row), stat.Caches[k].Entries)
-			}
-			row++
-
-			f.SetCellValue(sheetName, cell(col, row), "entriesHWM")
-			for i, stat := range stats {
-				f.SetCellValue(sheetName, cell(col+1+i, row), stat.Caches[k].EntriesHWM)
+				f.SetCellValue(sheetName, cell(col+1+i, row), stat.Fatals[k])
 			}
 			row++
 
@@ -344,12 +279,94 @@ func sheetAddTab(f *excelize.File, ss *serviceSummary, sheetName string, addr st
 
 		row++
 
-		// Database stats
-		f.SetCellValue(sheetName, cell(col, row), "Databases")
+	}
+
+	// Cache stats
+	f.SetCellValue(sheetName, cell(col, row), "Caches")
+	f.SetCellStyle(sheetName, cell(col, row), cell(col, row), styleBoldItalic)
+	row++
+
+	for k := range stats[0].Caches {
+		row++
+
+		f.SetCellValue(sheetName, cell(col, row), k+" cache")
+		f.SetCellStyle(sheetName, cell(col, row), cell(col, row), styleBold)
+		row++
+		timeHeader(f, sheetName, col+1, row, bucketMins, buckets)
+		row++
+
+		f.SetCellValue(sheetName, cell(col, row), "refreshed")
+		for i, stat := range stats {
+			f.SetCellValue(sheetName, cell(col+1+i, row), stat.Caches[k].Invalidations)
+		}
+		row++
+
+		f.SetCellValue(sheetName, cell(col, row), "entries")
+		for i, stat := range stats {
+			f.SetCellValue(sheetName, cell(col+1+i, row), stat.Caches[k].Entries)
+		}
+		row++
+
+		f.SetCellValue(sheetName, cell(col, row), "entriesHWM")
+		for i, stat := range stats {
+			f.SetCellValue(sheetName, cell(col+1+i, row), stat.Caches[k].EntriesHWM)
+		}
+		row++
+
+	}
+
+	row++
+
+	// Database stats
+	f.SetCellValue(sheetName, cell(col, row), "Databases")
+	f.SetCellStyle(sheetName, cell(col, row), cell(col, row), styleBoldItalic)
+	row++
+
+	for k := range stats[0].Databases {
+		row++
+
+		f.SetCellValue(sheetName, cell(col, row), k)
+		f.SetCellStyle(sheetName, cell(col, row), cell(col, row), styleBold)
+		row++
+		timeHeader(f, sheetName, col+1, row, bucketMins, buckets)
+		row++
+
+		f.SetCellValue(sheetName, cell(col, row), "reads")
+		for i, stat := range stats {
+			f.SetCellValue(sheetName, cell(col+1+i, row), stat.Databases[k].Reads)
+		}
+		row++
+
+		f.SetCellValue(sheetName, cell(col, row), "writes")
+		for i, stat := range stats {
+			f.SetCellValue(sheetName, cell(col+1+i, row), stat.Databases[k].Writes)
+		}
+		row++
+
+		f.SetCellValue(sheetName, cell(col, row), "readMs")
+		for i, stat := range stats {
+			f.SetCellValue(sheetName, cell(col+1+i, row), stat.Databases[k].ReadMs)
+		}
+		row++
+
+		f.SetCellValue(sheetName, cell(col, row), "writeMs")
+		for i, stat := range stats {
+			f.SetCellValue(sheetName, cell(col+1+i, row), stat.Databases[k].WriteMs)
+		}
+		row++
+
+	}
+
+	row++
+
+	// API stats
+	if len(stats[0].API) > 0 {
+
+		f.SetCellValue(sheetName, cell(col, row), "API")
 		f.SetCellStyle(sheetName, cell(col, row), cell(col, row), styleBoldItalic)
 		row++
 
-		for k := range stats[0].Databases {
+		for k := range stats[0].API {
 			row++
 
 			f.SetCellValue(sheetName, cell(col, row), k)
@@ -358,59 +375,13 @@ func sheetAddTab(f *excelize.File, ss *serviceSummary, sheetName string, addr st
 			timeHeader(f, sheetName, col+1, row, bucketMins, buckets)
 			row++
 
-			f.SetCellValue(sheetName, cell(col, row), "reads")
 			for i, stat := range stats {
-				f.SetCellValue(sheetName, cell(col+1+i, row), stat.Databases[k].Reads)
+				f.SetCellValue(sheetName, cell(col+1+i, row), stat.API[k])
 			}
-			row++
-
-			f.SetCellValue(sheetName, cell(col, row), "writes")
-			for i, stat := range stats {
-				f.SetCellValue(sheetName, cell(col+1+i, row), stat.Databases[k].Writes)
-			}
-			row++
-
-			f.SetCellValue(sheetName, cell(col, row), "readMs")
-			for i, stat := range stats {
-				f.SetCellValue(sheetName, cell(col+1+i, row), stat.Databases[k].ReadMs)
-			}
-			row++
-
-			f.SetCellValue(sheetName, cell(col, row), "writeMs")
-			for i, stat := range stats {
-				f.SetCellValue(sheetName, cell(col+1+i, row), stat.Databases[k].WriteMs)
-			}
-			row++
 
 		}
 
 		row++
-
-		// API stats
-		if len(stats[0].API) > 0 {
-
-			f.SetCellValue(sheetName, cell(col, row), "API")
-			f.SetCellStyle(sheetName, cell(col, row), cell(col, row), styleBoldItalic)
-			row++
-
-			for k := range stats[0].API {
-				row++
-
-				f.SetCellValue(sheetName, cell(col, row), k)
-				f.SetCellStyle(sheetName, cell(col, row), cell(col, row), styleBold)
-				row++
-				timeHeader(f, sheetName, col+1, row, bucketMins, buckets)
-				row++
-
-				for i, stat := range stats {
-					f.SetCellValue(sheetName, cell(col+1+i, row), stat.API[k])
-				}
-
-			}
-
-			row++
-
-		}
 
 	}
 
