@@ -262,20 +262,19 @@ func uStatsAdd(hostname string, hostaddr string, s map[string][]AppLBStat) (adde
 		var newStats []AppLBStat
 		for _, snew := range sis {
 			i := (mostRecentTime - snew.SnapshotTaken) / 60 / bucketMins
-			if i >= int64(len(sis)) {
-				break
-			}
-			if hs.Stats[siid][i].Started == snew.Started {
-				if addStatsTrace {
-					fmt.Printf("skipping %s entry %d\n", siid, i)
+			if i >= 0 && i < int64(len(hs.Stats[siid])) {
+				if hs.Stats[siid][i].Started == snew.Started {
+					if addStatsTrace {
+						fmt.Printf("skipping %s entry %d\n", siid, i)
+					}
+				} else {
+					if addStatsTrace {
+						fmt.Printf("overwriting %s entry %d\n", siid, i)
+					}
+					hs.Stats[siid][i] = snew
+					newStats = append(newStats, snew)
+					added++
 				}
-			} else {
-				if addStatsTrace {
-					fmt.Printf("overwriting %s entry %d\n", siid, i)
-				}
-				hs.Stats[siid][i] = snew
-				newStats = append(newStats, snew)
-				added++
 			}
 		}
 		if len(newStats) > 0 {
