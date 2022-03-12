@@ -253,6 +253,9 @@ func uAddStats(hostname string, hostaddr string, s map[string][]AppLBStat) (adde
 		var newStats []AppLBStat
 		for _, snew := range sis {
 			i := (mostRecentTime - snew.SnapshotTaken) / 60 / bucketMins
+			if i >= int64(len(sis)) {
+				break
+			}
 			if hs.Stats[siid][i].Started == snew.Started {
 				if addStatsTrace {
 					fmt.Printf("skipping %s entry %d\n", siid, i)
