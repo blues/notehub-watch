@@ -141,6 +141,7 @@ func sheetAddTab(f *excelize.File, sheetName string, siid string, stats []AppLBS
 	// Generate styles
 	styleBold, _ := f.NewStyle(`{"font":{"bold":true,"italic":false}}`)
 	styleBoldItalic, _ := f.NewStyle(`{"font":{"bold":true,"italic":true}}`)
+	styleRightAligned, _ := f.NewStyle(`{"alignment":{"horizontal":"right"}}`)
 
 	// Base for dynamic info
 	col := 2
@@ -175,6 +176,7 @@ func sheetAddTab(f *excelize.File, sheetName string, siid string, stats []AppLBS
 			est, _ := time.LoadLocation("EST")
 			estFmt := stime.In(est).Format("Mon Jan 02")
 			f.SetCellValue(sheetName, cell(col+1+i, row), estFmt)
+			f.SetCellStyle(sheetName, cell(col+1+i, row), cell(col+1+i, row), styleRightAligned)
 		}
 	}
 	row++
@@ -192,7 +194,8 @@ func sheetAddTab(f *excelize.File, sheetName string, siid string, stats []AppLBS
 		if stat.Started != 0 {
 			f.SetCellValue(sheetName, cell(col+1+i, row), uptimeStr(stat.Started, stat.SnapshotTaken))
 			colname, _ := excelize.ColumnNumberToName(col + 1 + i)
-			f.SetColWidth(sheetName, colname, colname, 113)
+			f.SetColWidth(sheetName, colname, colname, 13)
+			f.SetCellStyle(sheetName, cell(col+1+i, row), cell(col+1+i, row), styleRightAligned)
 		}
 	}
 	row++
