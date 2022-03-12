@@ -191,8 +191,8 @@ func sheetAddTab(f *excelize.File, sheetName string, siid string, stats []AppLBS
 	for i, stat := range stats {
 		if stat.Started != 0 {
 			f.SetCellValue(sheetName, cell(col+1+i, row), uptimeStr(stat.Started, stat.SnapshotTaken))
-			colname, _ := excelize.ColumnNumberToName(col + 1)
-			f.SetColWidth(sheetName, colname, colname, 12.83)
+			colname, _ := excelize.ColumnNumberToName(col + 1 + i)
+			f.SetColWidth(sheetName, colname, colname, 113)
 		}
 	}
 	row++
@@ -426,8 +426,10 @@ func cell(col int, row int) string {
 
 // Generate a time header at the specified col/row
 func timeHeader(f *excelize.File, sheetName string, col int, row int, bucketMins int, buckets int) {
+	styleRightAligned, _ := f.NewStyle(`{"alignment":{"horizontal":"right"}}`)
 	for i := 0; i < buckets; i++ {
 		f.SetCellValue(sheetName, cell(col+i, row), uptimeStr(0, (int64(i)+1)*int64(bucketMins)*60))
+		f.SetCellStyle(sheetName, cell(col+i, row), cell(col+i, row), styleRightAligned)
 	}
 }
 
