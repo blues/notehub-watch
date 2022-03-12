@@ -125,7 +125,7 @@ func sheetGetHostStats(hostaddr string) (response string) {
 		ss.ContinuousHandlers+ss.NotificationHandlers+ss.EphemeralHandlers+ss.DiscoveryHandlers,
 		ss.ContinuousHandlers, ss.NotificationHandlers, ss.EphemeralHandlers, ss.DiscoveryHandlers)
 	response += fmt.Sprintf("  download: <%s%s%s|%s>", Config.HostURL, sheetRoute, filename, filename)
-	response += "```"
+	response += "```" + "\n"
 	response += fmt.Sprintf("<%s%s%s|%s>", Config.HostURL, sheetRoute, filename, filename)
 	return
 
