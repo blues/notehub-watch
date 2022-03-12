@@ -145,8 +145,8 @@ func sheetAddTab(f *excelize.File, sheetName string, siid string, stats []AppLBS
 	styleRightAligned, _ := f.NewStyle(`{"alignment":{"horizontal":"right"}}`)
 
 	// Base for dynamic info
-	row := 2
-	col := 2
+	row := 1
+	col := 1
 	colname, _ := excelize.ColumnNumberToName(col)
 	f.SetColWidth(sheetName, colname, colname, 13)
 
@@ -158,7 +158,7 @@ func sheetAddTab(f *excelize.File, sheetName string, siid string, stats []AppLBS
 	row++
 
 	// Freeze panes
-	f.SetPanes(sheetName, `{"freeze":true,"x_split":2,"y_split":1,"top_left_cell":"C2","active_pane":"bottomRight","panes":[{"pane":"topLeft"},{"pane":"topRight"},{"pane":"bottomLeft"},{"active_cell":"C2", "sqref":"C2", "pane":"bottomRight"}]}`)
+	f.SetPanes(sheetName, `{"freeze":true,"x_split":1,"y_split":1,"top_left_cell":"B2","active_pane":"bottomRight","panes":[{"pane":"topLeft"},{"pane":"topRight"},{"pane":"bottomLeft"},{"active_cell":"B2", "sqref":"B2", "pane":"bottomRight"}]}`)
 
 	// Exit if no stats
 	if len(stats) == 0 {
