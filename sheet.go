@@ -58,7 +58,6 @@ func sheetGetHostStats(hostname string, hostaddr string) (response string) {
 	if !exists {
 		response = fmt.Sprintf("unknown host: %s", hostname)
 	}
-	fmt.Printf("OZZIE %+v\n", hs)
 
 	// Create a new spreadsheet
 	f := excelize.NewFile()
@@ -167,6 +166,17 @@ func sheetAddTab(f *excelize.File, sheetName string, siid string, stats []AppLBS
 	f.SetCellValue(sheetName, cell(col, row), "OS (MiB)")
 	f.SetCellStyle(sheetName, cell(col, row), cell(col, row), styleBoldItalic)
 	timeHeader(f, sheetName, col+1, row, bucketMins, buckets)
+	row++
+
+	f.SetCellValue(sheetName, cell(col, row), "boot EST")
+	for i, stat := range stats {
+		if stat.Started != 0 {
+			stime := time.Unix(stat.Started, 0).UTC()
+			est, _ := time.LoadLocation("EST")
+			estFmt := stime.In(est).Format("Mon 01/02 15PM")
+			f.SetCellValue(sheetName, cell(col+1+i, row), estFmt)
+		}
+	}
 	row++
 
 	f.SetCellValue(sheetName, cell(col, row), "mfree")
