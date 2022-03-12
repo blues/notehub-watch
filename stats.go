@@ -265,11 +265,11 @@ func uStatsAdd(hostname string, hostaddr string, s map[string][]AppLBStat) (adde
 			if i >= 0 && i < int64(len(hs.Stats[siid])) {
 				if hs.Stats[siid][i].Started == snew.Started {
 					if addStatsTrace {
-						fmt.Printf("skipping %s entry %d\n", siid, i)
+						fmt.Printf("skipping %s existing entry %d\n", siid, i)
 					}
 				} else {
 					if addStatsTrace {
-						fmt.Printf("overwriting %s entry %d\n", siid, i)
+						fmt.Printf("initializing %s new entry %d\n", siid, i)
 					}
 					hs.Stats[siid][i] = snew
 					newStats = append(newStats, snew)

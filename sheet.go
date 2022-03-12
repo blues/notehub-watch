@@ -144,8 +144,10 @@ func sheetAddTab(f *excelize.File, sheetName string, siid string, stats []AppLBS
 	styleRightAligned, _ := f.NewStyle(`{"alignment":{"horizontal":"right"}}`)
 
 	// Base for dynamic info
-	col := 2
 	row := 2
+	col := 2
+	colname, _ := excelize.ColumnNumberToName(col)
+	f.SetColWidth(sheetName, colname, colname, 13)
 
 	// Title banner
 	f.SetCellValue(sheetName, cell(col, row), "Node SIID")
