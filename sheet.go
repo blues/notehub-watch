@@ -179,7 +179,7 @@ func sheetAddTab(f *excelize.File, sheetName string, siid string, stats []AppLBS
 	}
 	row++
 
-	f.SetCellValue(sheetName, cell(col, row), "sampled")
+	f.SetCellValue(sheetName, cell(col, row), "sampled UTC")
 	for i, stat := range stats {
 		if stat.SnapshotTaken != 0 {
 			f.SetCellValue(sheetName, cell(col+1+i, row), time.Unix(stat.SnapshotTaken, 0))
@@ -191,6 +191,8 @@ func sheetAddTab(f *excelize.File, sheetName string, siid string, stats []AppLBS
 	for i, stat := range stats {
 		if stat.Started != 0 {
 			f.SetCellValue(sheetName, cell(col+1+i, row), uptimeStr(stat.Started, stat.SnapshotTaken))
+			colname, _ := excelize.ColumnNumberToName(col + 1)
+			f.SetColWidth(sheetName, colname, colname, 12.83)
 		}
 	}
 	row++
