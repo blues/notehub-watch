@@ -41,14 +41,18 @@ func inboundWebSheetHandler(w http.ResponseWriter, r *http.Request) {
 
 }
 
+// Current "live" info
+type serviceSummary struct {
+	Started              int64
+	ServiceInstances     int64
+	ContinuousHandlers   int64
+	NotificationHandlers int64
+	EphemeralHandlers    int64
+	DiscoveryHandlers    int64
+}
+
 // Generate a sheet for this host
 func sheetGetHostStats(hostaddr string) (response string) {
-
-	// Get the high-level uptime info
-	var pb PingBody
-	pb, err := getServiceInstanceInfo(hostaddr, "", "lb")
-	fmt.Printf("%s: %s\n%+v\n", hostaddr, err, pb)
-	return "OZZIE"
 
 	// Get the list of service instances on the host
 	serviceInstanceIDs, serviceInstanceAddrs, serviceNames, err := watcherGetServiceInstances(hostaddr)
@@ -60,6 +64,7 @@ func sheetGetHostStats(hostaddr string) (response string) {
 	f := excelize.NewFile()
 
 	// Generate a page within the sheet for each service instance
+	ss := serviceSummary{}
 	sheetNums := map[string]int{}
 	for i := range serviceInstanceAddrs {
 
@@ -81,7 +86,7 @@ func sheetGetHostStats(hostaddr string) (response string) {
 		}
 
 		// Generate the sheet for this service instance
-		errstr := sheetAddTab(f, sheetName, serviceInstanceAddrs[i], serviceInstanceIDs[i])
+		errstr := sheetAddTab(f, &ss, sheetName, serviceInstanceAddrs[i], serviceInstanceIDs[i])
 		if errstr != "" {
 			response = errstr
 			return
@@ -106,14 +111,25 @@ func sheetGetHostStats(hostaddr string) (response string) {
 		return err.Error()
 	}
 
-	// Done
-	response = fmt.Sprintf("<%s%s%s|%s>", Config.HostURL, sheetRoute, filename, filename)
+	// Generate response
+	stime := time.Unix(ss.Started, 0).UTC()
+	est, _ := time.LoadLocation("EST")
+	estFmt := stime.In(est).Format("Mon, 02-Jan 06 15:04 MST")
+	utcFmt := stime.Format("2006-01-02T15:04:05Z")
+	response += fmt.Sprintf("      host: %s\n", hostCleaned)
+	response += fmt.Sprintf("   started: %s (%s)\n", estFmt, utcFmt)
+	response += fmt.Sprintf("    uptime: %s\n", uptimeStr(ss.Started, time.Now().UTC().Unix()))
+	response += fmt.Sprintf("     nodes: %d\n", ss.ServiceInstances)
+	response += fmt.Sprintf("  handlers: %d (continuous:%d notification:%d ephemeral:%d discovery:%d)\n",
+		ss.ContinuousHandlers+ss.NotificationHandlers+ss.EphemeralHandlers+ss.DiscoveryHandlers,
+		ss.ContinuousHandlers, ss.NotificationHandlers, ss.EphemeralHandlers, ss.DiscoveryHandlers)
+	response += fmt.Sprintf("   details: <%s%s%s|%s>", Config.HostURL, sheetRoute, filename, filename)
 	return
 
 }
 
 // Add the stats for a service instance as a tabbed sheet within the xlsx
-func sheetAddTab(f *excelize.File, sheetName string, addr string, siid string) (errstr string) {
+func sheetAddTab(f *excelize.File, ss *serviceSummary, sheetName string, addr string, siid string) (errstr string) {
 
 	// Get the info from the handler
 	var pb PingBody
@@ -126,6 +142,18 @@ func sheetAddTab(f *excelize.File, sheetName string, addr string, siid string) (
 		return "no data available from handler"
 	}
 
+	// Update service summary
+	ss.ServiceInstances++
+	ss.Started = (*pb.Body.LBStatus)[0].Started
+	ss.ContinuousHandlers += (*pb.Body.LBStatus)[0].ContinuousHandlersActivated -
+		(*pb.Body.LBStatus)[0].ContinuousHandlersDeactivated
+	ss.NotificationHandlers += (*pb.Body.LBStatus)[0].NotificationHandlersActivated -
+		(*pb.Body.LBStatus)[0].NotificationHandlersDeactivated
+	ss.EphemeralHandlers += (*pb.Body.LBStatus)[0].EphemeralHandlersActivated -
+		(*pb.Body.LBStatus)[0].EphemeralHandlersDeactivated
+	ss.DiscoveryHandlers += (*pb.Body.LBStatus)[0].DiscoveryHandlersActivated -
+		(*pb.Body.LBStatus)[0].DiscoveryHandlersDeactivated
+
 	// Generate the sheet
 	f.NewSheet(sheetName)
 
@@ -137,53 +165,11 @@ func sheetAddTab(f *excelize.File, sheetName string, addr string, siid string) (
 	col := 2
 	row := 2
 
-	// Service Instances
+	// Title banner
 	f.SetCellValue(sheetName, cell(col, row), "Node SIID")
 	f.SetCellStyle(sheetName, cell(col, row), cell(col, row), styleBoldItalic)
 	f.SetCellValue(sheetName, cell(col+1, row), siid)
 	row++
-
-	// Uptime
-	uptimeSecs := time.Now().Unix() - (*pb.Body.LBStatus)[0].Started
-	uptimeDays := uptimeSecs / (24 * 60 * 60)
-	uptimeSecs -= uptimeDays * (24 * 60 * 60)
-	uptimeHours := uptimeSecs / (60 * 60)
-	uptimeSecs -= uptimeHours * (60 * 60)
-	uptimeMins := uptimeSecs / 60
-	uptimeSecs -= uptimeMins * 60
-	uptimeStr := fmt.Sprintf("%dd:%dh:%dm", uptimeDays, uptimeHours, uptimeMins)
-	f.SetCellValue(sheetName, cell(col, row), "Uptime")
-	f.SetCellStyle(sheetName, cell(col, row), cell(col, row), styleBoldItalic)
-	f.SetCellValue(sheetName, cell(col+1, row), uptimeStr)
-	row++
-
-	// Handlers
-	continuousActive := (*pb.Body.LBStatus)[0].ContinuousHandlersActivated -
-		(*pb.Body.LBStatus)[0].ContinuousHandlersDeactivated
-	notificationActive := (*pb.Body.LBStatus)[0].NotificationHandlersActivated -
-		(*pb.Body.LBStatus)[0].NotificationHandlersDeactivated
-	ephemeralActive := (*pb.Body.LBStatus)[0].EphemeralHandlersActivated -
-		(*pb.Body.LBStatus)[0].EphemeralHandlersDeactivated
-	discoveryActive := (*pb.Body.LBStatus)[0].DiscoveryHandlersActivated -
-		(*pb.Body.LBStatus)[0].DiscoveryHandlersDeactivated
-	totalActive := continuousActive + notificationActive + ephemeralActive + discoveryActive
-	f.SetCellValue(sheetName, cell(col, row), "Handlers")
-	f.SetCellStyle(sheetName, cell(col, row), cell(col, row), styleBoldItalic)
-	f.SetCellValue(sheetName, cell(col+1, row), totalActive)
-
-	f.SetCellValue(sheetName, cell(col+3, row), "continuous")
-	f.SetCellValue(sheetName, cell(col+4, row), continuousActive)
-	row++
-	f.SetCellValue(sheetName, cell(col+3, row), "notification")
-	f.SetCellValue(sheetName, cell(col+4, row), notificationActive)
-	row++
-	f.SetCellValue(sheetName, cell(col+3, row), "ephemeral")
-	f.SetCellValue(sheetName, cell(col+4, row), ephemeralActive)
-	row++
-	f.SetCellValue(sheetName, cell(col+3, row), "discovery")
-	f.SetCellValue(sheetName, cell(col+4, row), discoveryActive)
-	row++
-
 	row++
 
 	// Generate aggregate info if enough are available to convert absolute to relative - that is,
@@ -441,4 +427,23 @@ func timeHeader(f *excelize.File, sheetName string, col int, row int, bucketMins
 	for i := 0; i < buckets; i++ {
 		f.SetCellValue(sheetName, cell(col+i, row), fmt.Sprintf("%dm", (i+1)*bucketMins))
 	}
+}
+
+// Generate an uptime string
+func uptimeStr(started int64, now int64) (s string) {
+	uptimeSecs := now - started
+	uptimeDays := uptimeSecs / (24 * 60 * 60)
+	uptimeSecs -= uptimeDays * (24 * 60 * 60)
+	uptimeHours := uptimeSecs / (60 * 60)
+	uptimeSecs -= uptimeHours * (60 * 60)
+	uptimeMins := uptimeSecs / 60
+	uptimeSecs -= uptimeMins * 60
+	if uptimeDays > 0 {
+		s = fmt.Sprintf("%dd:%dh:%dm", uptimeDays, uptimeHours, uptimeMins)
+	} else if uptimeHours > 0 {
+		s = fmt.Sprintf("%dh:%dm", uptimeHours, uptimeMins)
+	} else {
+		s = fmt.Sprintf("%dm", uptimeMins)
+	}
+	return s
 }
