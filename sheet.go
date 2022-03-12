@@ -151,7 +151,7 @@ func sheetAddTab(f *excelize.File, sheetName string, siid string, stats []AppLBS
 	f.SetColWidth(sheetName, colname, colname, 13)
 
 	// Freeze panes
-	f.SetPanes(sheetName, `{"freeze":true,"x_split":1,"y_split":0,"top_left_cell":"B3","active_pane":"bottomRight","panes":[{"pane":"topLeft"},{"pane":"topRight"},{"pane":"bottomLeft"},{"active_cell":"B3", "sqref":"B3", "pane":"bottomRight"}]}`)
+	f.SetPanes(sheetName, `{"freeze":true,"x_split":1,"y_split":2,"top_left_cell":"B3","active_pane":"bottomRight","panes":[{"pane":"topLeft"},{"pane":"topRight"},{"pane":"bottomLeft"},{"active_cell":"B3", "sqref":"B3", "pane":"bottomRight"}]}`)
 
 	// Title banner
 	f.SetCellValue(sheetName, cell(col, row), "Node SIID")
