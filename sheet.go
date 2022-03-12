@@ -449,9 +449,9 @@ func cell(col int, row int) string {
 
 // Generate a time header at the specified col/row
 func timeHeader(f *excelize.File, sheetName string, col int, row int, bucketMins int, buckets int) {
-	styleRightAligned, _ := f.NewStyle(`{"alignment":{"horizontal":"right"}}`)
+	styleRightAlignedItalic, _ := f.NewStyle(`{"alignment":{"horizontal":"right"},"font":{"italic":true}}`)
 	for i := 0; i < buckets; i++ {
 		f.SetCellValue(sheetName, cell(col+i, row), uptimeStr(0, (int64(i)+1)*int64(bucketMins)*60))
-		f.SetCellStyle(sheetName, cell(col+i, row), cell(col+i, row), styleRightAligned)
+		f.SetCellStyle(sheetName, cell(col+i, row), cell(col+i, row), styleRightAlignedItalic)
 	}
 }
