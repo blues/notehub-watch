@@ -114,7 +114,7 @@ func sheetGetHostStats(hostaddr string) (response string) {
 	// Generate response
 	stime := time.Unix(ss.Started, 0).UTC()
 	est, _ := time.LoadLocation("EST")
-	estFmt := stime.In(est).Format("Mon, 02-Jan 06 15:04 MST")
+	estFmt := stime.In(est).Format("Mon Jan 02 15:04 MST")
 	utcFmt := stime.Format("2006-01-02T15:04:05Z")
 	response += "```"
 	response += fmt.Sprintf("      host: %s\n", hostCleaned)
@@ -441,9 +441,9 @@ func uptimeStr(started int64, now int64) (s string) {
 	uptimeMins := uptimeSecs / 60
 	uptimeSecs -= uptimeMins * 60
 	if uptimeDays > 0 {
-		s = fmt.Sprintf("%dd:%dh:%dm", uptimeDays, uptimeHours, uptimeMins)
+		s = fmt.Sprintf("%dd %dh %dm", uptimeDays, uptimeHours, uptimeMins)
 	} else if uptimeHours > 0 {
-		s = fmt.Sprintf("%dh:%dm", uptimeHours, uptimeMins)
+		s = fmt.Sprintf("%dh %dm", uptimeHours, uptimeMins)
 	} else {
 		s = fmt.Sprintf("%dm", uptimeMins)
 	}

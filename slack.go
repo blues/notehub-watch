@@ -69,7 +69,7 @@ func inboundWebSlackRequestHandler(w http.ResponseWriter, r *http.Request) {
 
 // True if we're using blocks, which have certain limitations
 func slackUsingBlocksForResponses() bool {
-	return true
+	return false
 }
 
 // Slack /notehub request handler
