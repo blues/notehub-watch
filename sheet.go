@@ -44,6 +44,12 @@ func inboundWebSheetHandler(w http.ResponseWriter, r *http.Request) {
 // Generate a sheet for this host
 func sheetGetHostStats(hostaddr string) (response string) {
 
+	// Get the high-level uptime info
+	var pb PingBody
+	pb, err := getServiceInstanceInfo(hostaddr, "", "lb")
+	fmt.Printf("%+v\n", pb)
+	return "OZZIE"
+
 	// Get the list of service instances on the host
 	serviceInstanceIDs, serviceInstanceAddrs, serviceNames, err := watcherGetServiceInstances(hostaddr)
 	if err != nil {
