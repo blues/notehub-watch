@@ -150,15 +150,15 @@ func sheetAddTab(f *excelize.File, sheetName string, siid string, stats []AppLBS
 	colname, _ := excelize.ColumnNumberToName(col)
 	f.SetColWidth(sheetName, colname, colname, 13)
 
+	// Freeze panes
+	f.SetPanes(sheetName, `{"freeze":true,"x_split":1,"y_split":0,"top_left_cell":"B3","active_pane":"bottomRight","panes":[{"pane":"topLeft"},{"pane":"topRight"},{"pane":"bottomLeft"},{"active_cell":"B3", "sqref":"B3", "pane":"bottomRight"}]}`)
+
 	// Title banner
 	f.SetCellValue(sheetName, cell(col, row), "Node SIID")
 	f.SetCellStyle(sheetName, cell(col, row), cell(col, row), styleCategory)
 	f.SetCellValue(sheetName, cell(col+1, row), siid)
 	row++
 	row++
-
-	// Freeze panes
-	f.SetPanes(sheetName, `{"freeze":true,"x_split":1,"y_split":1,"top_left_cell":"B2","active_pane":"bottomRight","panes":[{"pane":"topLeft"},{"pane":"topRight"},{"pane":"bottomLeft"},{"active_cell":"B2", "sqref":"B2", "pane":"bottomRight"}]}`)
 
 	// Exit if no stats
 	if len(stats) == 0 {
