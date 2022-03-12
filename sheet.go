@@ -201,50 +201,62 @@ func sheetAddTab(f *excelize.File, sheetName string, siid string, stats []AppLBS
 	for i, stat := range stats {
 		if stat.Started != 0 {
 			f.SetCellValue(sheetName, cell(col+1+i, row), uptimeStr(stat.Started, stat.SnapshotTaken))
-			f.SetCellStyle(sheetName, cell(col+1+i, row), cell(col+1+i, row), styleRightAligned)
 		}
+		f.SetCellStyle(sheetName, cell(col+1+i, row), cell(col+1+i, row), styleRightAligned)
 	}
 	row++
 
 	f.SetCellValue(sheetName, cell(col, row), "mfree")
 	f.SetCellStyle(sheetName, cell(col, row), cell(col, row), styleMetric)
 	for i, stat := range stats {
-		f.SetCellValue(sheetName, cell(col+1+i, row), stat.OSMemFree/(1024*1024))
+		if stat.Started != 0 {
+			f.SetCellValue(sheetName, cell(col+1+i, row), stat.OSMemFree/(1024*1024))
+		}
 	}
 	row++
 
 	f.SetCellValue(sheetName, cell(col, row), "mtotal")
 	f.SetCellStyle(sheetName, cell(col, row), cell(col, row), styleMetric)
 	for i, stat := range stats {
-		f.SetCellValue(sheetName, cell(col+1+i, row), stat.OSMemTotal/(1024*1024))
+		if stat.Started != 0 {
+			f.SetCellValue(sheetName, cell(col+1+i, row), stat.OSMemTotal/(1024*1024))
+		}
 	}
 	row++
 
 	f.SetCellValue(sheetName, cell(col, row), "diskrd")
 	f.SetCellStyle(sheetName, cell(col, row), cell(col, row), styleMetric)
 	for i, stat := range stats {
-		f.SetCellValue(sheetName, cell(col+1+i, row), stat.OSDiskRead/(1024*1024))
+		if stat.Started != 0 {
+			f.SetCellValue(sheetName, cell(col+1+i, row), stat.OSDiskRead/(1024*1024))
+		}
 	}
 	row++
 
 	f.SetCellValue(sheetName, cell(col, row), "diskwr")
 	f.SetCellStyle(sheetName, cell(col, row), cell(col, row), styleMetric)
 	for i, stat := range stats {
-		f.SetCellValue(sheetName, cell(col+1+i, row), stat.OSDiskWrite/(1024*1024))
+		if stat.Started != 0 {
+			f.SetCellValue(sheetName, cell(col+1+i, row), stat.OSDiskWrite/(1024*1024))
+		}
 	}
 	row++
 
 	f.SetCellValue(sheetName, cell(col, row), "netrcv")
 	f.SetCellStyle(sheetName, cell(col, row), cell(col, row), styleMetric)
 	for i, stat := range stats {
-		f.SetCellValue(sheetName, cell(col+1+i, row), stat.OSNetReceived/(1024*1024))
+		if stat.Started != 0 {
+			f.SetCellValue(sheetName, cell(col+1+i, row), stat.OSNetReceived/(1024*1024))
+		}
 	}
 	row++
 
 	f.SetCellValue(sheetName, cell(col, row), "netsnd")
 	f.SetCellStyle(sheetName, cell(col, row), cell(col, row), styleMetric)
 	for i, stat := range stats {
-		f.SetCellValue(sheetName, cell(col+1+i, row), stat.OSNetSent/(1024*1024))
+		if stat.Started != 0 {
+			f.SetCellValue(sheetName, cell(col+1+i, row), stat.OSNetSent/(1024*1024))
+		}
 	}
 	row++
 
