@@ -173,7 +173,7 @@ func sheetAddTab(f *excelize.File, sheetName string, siid string, stats []AppLBS
 		if stat.Started != 0 {
 			stime := time.Unix(stat.Started, 0).UTC()
 			est, _ := time.LoadLocation("EST")
-			estFmt := stime.In(est).Format("Mon Jan 02 15:04PM")
+			estFmt := stime.In(est).Format("Mon Jan 02     15:04PM")
 			f.SetCellValue(sheetName, cell(col+1+i, row), estFmt)
 		}
 	}
@@ -181,7 +181,9 @@ func sheetAddTab(f *excelize.File, sheetName string, siid string, stats []AppLBS
 
 	f.SetCellValue(sheetName, cell(col, row), "uptime")
 	for i, stat := range stats {
-		f.SetCellValue(sheetName, cell(col+1+i, row), uptimeStr(stat.Started, time.Now().UTC().Unix()))
+		if stat.Started != 0 {
+			f.SetCellValue(sheetName, cell(col+1+i, row), uptimeStr(stat.Started, time.Now().UTC().Unix()))
+		}
 	}
 	row++
 
