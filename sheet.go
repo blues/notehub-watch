@@ -169,6 +169,16 @@ func sheetAddTab(f *excelize.File, sheetName string, siid string, stats []AppLBS
 	timeHeader(f, sheetName, col+1, row, bucketMins, buckets)
 	row++
 
+	f.SetCellValue(sheetName, cell(col, row), "sampled UTC")
+	for i, stat := range stats {
+		if stat.SnapshotTaken != 0 {
+			f.SetCellValue(sheetName, cell(col+1+i, row), time.Unix(stat.SnapshotTaken, 0))
+			colname, _ := excelize.ColumnNumberToName(col + 1 + i)
+			f.SetColWidth(sheetName, colname, colname, 13)
+		}
+	}
+	row++
+
 	f.SetCellValue(sheetName, cell(col, row), "boot EST")
 	for i, stat := range stats {
 		if stat.Started != 0 {
@@ -181,20 +191,10 @@ func sheetAddTab(f *excelize.File, sheetName string, siid string, stats []AppLBS
 	}
 	row++
 
-	f.SetCellValue(sheetName, cell(col, row), "sampled UTC")
-	for i, stat := range stats {
-		if stat.SnapshotTaken != 0 {
-			f.SetCellValue(sheetName, cell(col+1+i, row), time.Unix(stat.SnapshotTaken, 0))
-		}
-	}
-	row++
-
 	f.SetCellValue(sheetName, cell(col, row), "uptime")
 	for i, stat := range stats {
 		if stat.Started != 0 {
 			f.SetCellValue(sheetName, cell(col+1+i, row), uptimeStr(stat.Started, stat.SnapshotTaken))
-			colname, _ := excelize.ColumnNumberToName(col + 1 + i)
-			f.SetColWidth(sheetName, colname, colname, 13)
 			f.SetCellStyle(sheetName, cell(col+1+i, row), cell(col+1+i, row), styleRightAligned)
 		}
 	}
