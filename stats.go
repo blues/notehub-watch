@@ -58,7 +58,7 @@ var statsLock sync.Mutex
 var stats map[string]HostStats
 
 // Trace
-const addStatsTrace = true
+const addStatsTrace = false
 
 // Stats maintenance task
 func statsMaintainer() {
