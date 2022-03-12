@@ -323,7 +323,6 @@ func sheetAddTab(f *excelize.File, sheetName string, siid string, stats []AppLBS
 
 		f.SetCellValue(sheetName, cell(col, row), k+" cache")
 		f.SetCellStyle(sheetName, cell(col, row), cell(col, row), styleBold)
-		row++
 		timeHeader(f, sheetName, col+1, row, bucketMins, buckets)
 		row++
 
