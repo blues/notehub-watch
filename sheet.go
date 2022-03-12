@@ -139,8 +139,8 @@ func sheetAddTab(f *excelize.File, sheetName string, siid string, stats []AppLBS
 	f.NewSheet(sheetName)
 
 	// Generate styles
-	styleBold, _ := f.NewStyle(`{"font":{"color":"green","bold":true,"italic":false}}`)
-	styleBoldItalic, _ := f.NewStyle(`{"font":{"color":"red","bold":true,"italic":true}}`)
+	styleBold, _ := f.NewStyle(`{"font":{"color":"00ff00","bold":true,"italic":false}}`)
+	styleBoldItalic, _ := f.NewStyle(`{"font":{"color":"ff0000","bold":true,"italic":true}}`)
 	styleRightAligned, _ := f.NewStyle(`{"alignment":{"horizontal":"right"}}`)
 
 	// Base for dynamic info
@@ -449,7 +449,7 @@ func cell(col int, row int) string {
 
 // Generate a time header at the specified col/row
 func timeHeader(f *excelize.File, sheetName string, col int, row int, bucketMins int, buckets int) {
-	style, _ := f.NewStyle(`{"alignment":{"horizontal":"right"},"font":{"color":"blue","bold":true,"italic":true}}`)
+	style, _ := f.NewStyle(`{"alignment":{"horizontal":"right"},"font":{"color":"0000ff","bold":true,"italic":true}}`)
 	for i := 0; i < buckets; i++ {
 		f.SetCellValue(sheetName, cell(col+i, row), uptimeStr(0, (int64(i)+1)*int64(bucketMins)*60))
 		f.SetCellStyle(sheetName, cell(col+i, row), cell(col+i, row), style)
