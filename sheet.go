@@ -139,8 +139,9 @@ func sheetAddTab(f *excelize.File, sheetName string, siid string, stats []AppLBS
 	f.NewSheet(sheetName)
 
 	// Generate styles
-	styleBold, _ := f.NewStyle(`{"font":{"color":"007f00","bold":true,"italic":false}}`)
-	styleBoldItalic, _ := f.NewStyle(`{"font":{"color":"ff0000","bold":true,"italic":true}}`)
+	styleMetric, _ := f.NewStyle(`{"font":{"color":"00007f"}}`)
+	styleCategory, _ := f.NewStyle(`{"font":{"color":"ff0000","bold":true,"italic":true}}`)
+	styleSubcategory, _ := f.NewStyle(`{"font":{"color":"007f00","bold":true,"italic":false}}`)
 	styleRightAligned, _ := f.NewStyle(`{"alignment":{"horizontal":"right"}}`)
 
 	// Base for dynamic info
@@ -151,7 +152,7 @@ func sheetAddTab(f *excelize.File, sheetName string, siid string, stats []AppLBS
 
 	// Title banner
 	f.SetCellValue(sheetName, cell(col, row), "Node SIID")
-	f.SetCellStyle(sheetName, cell(col, row), cell(col, row), styleBoldItalic)
+	f.SetCellStyle(sheetName, cell(col, row), cell(col, row), styleCategory)
 	f.SetCellValue(sheetName, cell(col+1, row), siid)
 	row++
 	row++
@@ -167,11 +168,12 @@ func sheetAddTab(f *excelize.File, sheetName string, siid string, stats []AppLBS
 
 	// OS stats
 	f.SetCellValue(sheetName, cell(col, row), "OS (MiB)")
-	f.SetCellStyle(sheetName, cell(col, row), cell(col, row), styleBoldItalic)
+	f.SetCellStyle(sheetName, cell(col, row), cell(col, row), styleCategory)
 	timeHeader(f, sheetName, col+1, row, bucketMins, buckets)
 	row++
 
 	f.SetCellValue(sheetName, cell(col, row), "sampled UTC")
+	f.SetCellStyle(sheetName, cell(col, row), cell(col, row), styleMetric)
 	for i, stat := range stats {
 		if stat.SnapshotTaken != 0 {
 			f.SetCellValue(sheetName, cell(col+1+i, row), time.Unix(stat.SnapshotTaken, 0))
@@ -182,6 +184,7 @@ func sheetAddTab(f *excelize.File, sheetName string, siid string, stats []AppLBS
 	row++
 
 	f.SetCellValue(sheetName, cell(col, row), "boot EST")
+	f.SetCellStyle(sheetName, cell(col, row), cell(col, row), styleMetric)
 	for i, stat := range stats {
 		if stat.Started != 0 {
 			stime := time.Unix(stat.Started, 0).UTC()
@@ -194,6 +197,7 @@ func sheetAddTab(f *excelize.File, sheetName string, siid string, stats []AppLBS
 	row++
 
 	f.SetCellValue(sheetName, cell(col, row), "uptime")
+	f.SetCellStyle(sheetName, cell(col, row), cell(col, row), styleMetric)
 	for i, stat := range stats {
 		if stat.Started != 0 {
 			f.SetCellValue(sheetName, cell(col+1+i, row), uptimeStr(stat.Started, stat.SnapshotTaken))
@@ -203,36 +207,42 @@ func sheetAddTab(f *excelize.File, sheetName string, siid string, stats []AppLBS
 	row++
 
 	f.SetCellValue(sheetName, cell(col, row), "mfree")
+	f.SetCellStyle(sheetName, cell(col, row), cell(col, row), styleMetric)
 	for i, stat := range stats {
 		f.SetCellValue(sheetName, cell(col+1+i, row), stat.OSMemFree/(1024*1024))
 	}
 	row++
 
 	f.SetCellValue(sheetName, cell(col, row), "mtotal")
+	f.SetCellStyle(sheetName, cell(col, row), cell(col, row), styleMetric)
 	for i, stat := range stats {
 		f.SetCellValue(sheetName, cell(col+1+i, row), stat.OSMemTotal/(1024*1024))
 	}
 	row++
 
 	f.SetCellValue(sheetName, cell(col, row), "diskrd")
+	f.SetCellStyle(sheetName, cell(col, row), cell(col, row), styleMetric)
 	for i, stat := range stats {
 		f.SetCellValue(sheetName, cell(col+1+i, row), stat.OSDiskRead/(1024*1024))
 	}
 	row++
 
 	f.SetCellValue(sheetName, cell(col, row), "diskwr")
+	f.SetCellStyle(sheetName, cell(col, row), cell(col, row), styleMetric)
 	for i, stat := range stats {
 		f.SetCellValue(sheetName, cell(col+1+i, row), stat.OSDiskWrite/(1024*1024))
 	}
 	row++
 
 	f.SetCellValue(sheetName, cell(col, row), "netrcv")
+	f.SetCellStyle(sheetName, cell(col, row), cell(col, row), styleMetric)
 	for i, stat := range stats {
 		f.SetCellValue(sheetName, cell(col+1+i, row), stat.OSNetReceived/(1024*1024))
 	}
 	row++
 
 	f.SetCellValue(sheetName, cell(col, row), "netsnd")
+	f.SetCellStyle(sheetName, cell(col, row), cell(col, row), styleMetric)
 	for i, stat := range stats {
 		f.SetCellValue(sheetName, cell(col+1+i, row), stat.OSNetSent/(1024*1024))
 	}
@@ -242,29 +252,33 @@ func sheetAddTab(f *excelize.File, sheetName string, siid string, stats []AppLBS
 
 	// Handler stats
 	f.SetCellValue(sheetName, cell(col, row), "Handlers")
-	f.SetCellStyle(sheetName, cell(col, row), cell(col, row), styleBoldItalic)
+	f.SetCellStyle(sheetName, cell(col, row), cell(col, row), styleCategory)
 	timeHeader(f, sheetName, col+1, row, bucketMins, buckets)
 	row++
 
 	f.SetCellValue(sheetName, cell(col, row), "contin")
+	f.SetCellStyle(sheetName, cell(col, row), cell(col, row), styleMetric)
 	for i, stat := range stats {
 		f.SetCellValue(sheetName, cell(col+1+i, row), stat.ContinuousHandlersActivated)
 	}
 	row++
 
 	f.SetCellValue(sheetName, cell(col, row), "notif")
+	f.SetCellStyle(sheetName, cell(col, row), cell(col, row), styleMetric)
 	for i, stat := range stats {
 		f.SetCellValue(sheetName, cell(col+1+i, row), stat.NotificationHandlersActivated)
 	}
 	row++
 
 	f.SetCellValue(sheetName, cell(col, row), "ephem")
+	f.SetCellStyle(sheetName, cell(col, row), cell(col, row), styleMetric)
 	for i, stat := range stats {
 		f.SetCellValue(sheetName, cell(col+1+i, row), stat.EphemeralHandlersActivated)
 	}
 	row++
 
 	f.SetCellValue(sheetName, cell(col, row), "disco")
+	f.SetCellStyle(sheetName, cell(col, row), cell(col, row), styleMetric)
 	for i, stat := range stats {
 		f.SetCellValue(sheetName, cell(col+1+i, row), stat.DiscoveryHandlersActivated)
 	}
@@ -274,17 +288,19 @@ func sheetAddTab(f *excelize.File, sheetName string, siid string, stats []AppLBS
 
 	// Event stats
 	f.SetCellValue(sheetName, cell(col, row), "Events")
-	f.SetCellStyle(sheetName, cell(col, row), cell(col, row), styleBoldItalic)
+	f.SetCellStyle(sheetName, cell(col, row), cell(col, row), styleCategory)
 	timeHeader(f, sheetName, col+1, row, bucketMins, buckets)
 	row++
 
 	f.SetCellValue(sheetName, cell(col, row), "queued")
+	f.SetCellStyle(sheetName, cell(col, row), cell(col, row), styleMetric)
 	for i, stat := range stats {
 		f.SetCellValue(sheetName, cell(col+1+i, row), stat.EventsEnqueued)
 	}
 	row++
 
 	f.SetCellValue(sheetName, cell(col, row), "routed")
+	f.SetCellStyle(sheetName, cell(col, row), cell(col, row), styleMetric)
 	for i, stat := range stats {
 		f.SetCellValue(sheetName, cell(col+1+i, row), stat.EventsRouted)
 	}
@@ -296,14 +312,14 @@ func sheetAddTab(f *excelize.File, sheetName string, siid string, stats []AppLBS
 	if len(stats[0].Fatals) > 0 {
 
 		f.SetCellValue(sheetName, cell(col, row), "Fatals")
-		f.SetCellStyle(sheetName, cell(col, row), cell(col, row), styleBoldItalic)
+		f.SetCellStyle(sheetName, cell(col, row), cell(col, row), styleCategory)
 		timeHeader(f, sheetName, col+1, row, bucketMins, buckets)
 		row++
 
 		for k := range stats[0].Fatals {
 
 			f.SetCellValue(sheetName, cell(col, row), k)
-			f.SetCellStyle(sheetName, cell(col, row), cell(col, row), styleBold)
+			f.SetCellStyle(sheetName, cell(col, row), cell(col, row), styleSubcategory)
 			for i, stat := range stats {
 				f.SetCellValue(sheetName, cell(col+1+i, row), stat.Fatals[k])
 			}
@@ -317,30 +333,33 @@ func sheetAddTab(f *excelize.File, sheetName string, siid string, stats []AppLBS
 
 	// Cache stats
 	f.SetCellValue(sheetName, cell(col, row), "Caches")
-	f.SetCellStyle(sheetName, cell(col, row), cell(col, row), styleBoldItalic)
+	f.SetCellStyle(sheetName, cell(col, row), cell(col, row), styleCategory)
 	row++
 
 	for k := range stats[0].Caches {
 		row++
 
 		f.SetCellValue(sheetName, cell(col, row), k+" cache")
-		f.SetCellStyle(sheetName, cell(col, row), cell(col, row), styleBold)
+		f.SetCellStyle(sheetName, cell(col, row), cell(col, row), styleSubcategory)
 		timeHeader(f, sheetName, col+1, row, bucketMins, buckets)
 		row++
 
 		f.SetCellValue(sheetName, cell(col, row), "refreshed")
+		f.SetCellStyle(sheetName, cell(col, row), cell(col, row), styleMetric)
 		for i, stat := range stats {
 			f.SetCellValue(sheetName, cell(col+1+i, row), stat.Caches[k].Invalidations)
 		}
 		row++
 
 		f.SetCellValue(sheetName, cell(col, row), "entries")
+		f.SetCellStyle(sheetName, cell(col, row), cell(col, row), styleMetric)
 		for i, stat := range stats {
 			f.SetCellValue(sheetName, cell(col+1+i, row), stat.Caches[k].Entries)
 		}
 		row++
 
 		f.SetCellValue(sheetName, cell(col, row), "entriesHWM")
+		f.SetCellStyle(sheetName, cell(col, row), cell(col, row), styleMetric)
 		for i, stat := range stats {
 			f.SetCellValue(sheetName, cell(col+1+i, row), stat.Caches[k].EntriesHWM)
 		}
@@ -352,37 +371,41 @@ func sheetAddTab(f *excelize.File, sheetName string, siid string, stats []AppLBS
 
 	// Database stats
 	f.SetCellValue(sheetName, cell(col, row), "Databases")
-	f.SetCellStyle(sheetName, cell(col, row), cell(col, row), styleBoldItalic)
+	f.SetCellStyle(sheetName, cell(col, row), cell(col, row), styleCategory)
 	row++
 
 	for k := range stats[0].Databases {
 		row++
 
 		f.SetCellValue(sheetName, cell(col, row), k)
-		f.SetCellStyle(sheetName, cell(col, row), cell(col, row), styleBold)
+		f.SetCellStyle(sheetName, cell(col, row), cell(col, row), styleSubcategory)
 		row++
 		timeHeader(f, sheetName, col+1, row, bucketMins, buckets)
 		row++
 
 		f.SetCellValue(sheetName, cell(col, row), "reads")
+		f.SetCellStyle(sheetName, cell(col, row), cell(col, row), styleMetric)
 		for i, stat := range stats {
 			f.SetCellValue(sheetName, cell(col+1+i, row), stat.Databases[k].Reads)
 		}
 		row++
 
 		f.SetCellValue(sheetName, cell(col, row), "writes")
+		f.SetCellStyle(sheetName, cell(col, row), cell(col, row), styleMetric)
 		for i, stat := range stats {
 			f.SetCellValue(sheetName, cell(col+1+i, row), stat.Databases[k].Writes)
 		}
 		row++
 
 		f.SetCellValue(sheetName, cell(col, row), "readMs")
+		f.SetCellStyle(sheetName, cell(col, row), cell(col, row), styleMetric)
 		for i, stat := range stats {
 			f.SetCellValue(sheetName, cell(col+1+i, row), stat.Databases[k].ReadMs)
 		}
 		row++
 
 		f.SetCellValue(sheetName, cell(col, row), "writeMs")
+		f.SetCellStyle(sheetName, cell(col, row), cell(col, row), styleMetric)
 		for i, stat := range stats {
 			f.SetCellValue(sheetName, cell(col+1+i, row), stat.Databases[k].WriteMs)
 		}
@@ -396,14 +419,14 @@ func sheetAddTab(f *excelize.File, sheetName string, siid string, stats []AppLBS
 	if len(stats[0].API) > 0 {
 
 		f.SetCellValue(sheetName, cell(col, row), "API")
-		f.SetCellStyle(sheetName, cell(col, row), cell(col, row), styleBoldItalic)
+		f.SetCellStyle(sheetName, cell(col, row), cell(col, row), styleCategory)
 		row++
 
 		for k := range stats[0].API {
 			row++
 
 			f.SetCellValue(sheetName, cell(col, row), k)
-			f.SetCellStyle(sheetName, cell(col, row), cell(col, row), styleBold)
+			f.SetCellStyle(sheetName, cell(col, row), cell(col, row), styleSubcategory)
 			row++
 			timeHeader(f, sheetName, col+1, row, bucketMins, buckets)
 			row++
