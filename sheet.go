@@ -422,21 +422,6 @@ func sheetAddTab(f *excelize.File, sheetName string, siid string, stats []AppLBS
 	return
 }
 
-// Get the cell address for a given 1-based coordinate
-func cell(col int, row int) string {
-	cell, _ := excelize.CoordinatesToCellName(col, row)
-	return cell
-}
-
-// Generate a time header at the specified col/row
-func timeHeader(f *excelize.File, sheetName string, col int, row int, bucketMins int, buckets int) {
-	styleRightAligned, _ := f.NewStyle(`{"alignment":{"horizontal":"right"}}`)
-	for i := 0; i < buckets; i++ {
-		f.SetCellValue(sheetName, cell(col+i, row), uptimeStr(0, (int64(i)+1)*int64(bucketMins)*60))
-		f.SetCellStyle(sheetName, cell(col+i, row), cell(col+i, row), styleRightAligned)
-	}
-}
-
 // Generate an uptime string
 func uptimeStr(started int64, now int64) (s string) {
 	uptimeSecs := now - started
@@ -454,4 +439,19 @@ func uptimeStr(started int64, now int64) (s string) {
 		s = fmt.Sprintf("%dm", uptimeMins)
 	}
 	return s
+}
+
+// Get the cell address for a given 1-based coordinate
+func cell(col int, row int) string {
+	cell, _ := excelize.CoordinatesToCellName(col, row)
+	return cell
+}
+
+// Generate a time header at the specified col/row
+func timeHeader(f *excelize.File, sheetName string, col int, row int, bucketMins int, buckets int) {
+	styleRightAligned, _ := f.NewStyle(`{"alignment":{"horizontal":"right"}}`)
+	for i := 0; i < buckets; i++ {
+		f.SetCellValue(sheetName, cell(col+i, row), uptimeStr(0, (int64(i)+1)*int64(bucketMins)*60))
+		f.SetCellStyle(sheetName, cell(col+i, row), cell(col+i, row), styleRightAligned)
+	}
 }
