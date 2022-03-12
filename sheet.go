@@ -116,6 +116,7 @@ func sheetGetHostStats(hostaddr string) (response string) {
 	est, _ := time.LoadLocation("EST")
 	estFmt := stime.In(est).Format("Mon, 02-Jan 06 15:04 MST")
 	utcFmt := stime.Format("2006-01-02T15:04:05Z")
+	response += "```"
 	response += fmt.Sprintf("      host: %s\n", hostCleaned)
 	response += fmt.Sprintf("   started: %s (%s)\n", estFmt, utcFmt)
 	response += fmt.Sprintf("    uptime: %s\n", uptimeStr(ss.Started, time.Now().UTC().Unix()))
@@ -124,6 +125,7 @@ func sheetGetHostStats(hostaddr string) (response string) {
 		ss.ContinuousHandlers+ss.NotificationHandlers+ss.EphemeralHandlers+ss.DiscoveryHandlers,
 		ss.ContinuousHandlers, ss.NotificationHandlers, ss.EphemeralHandlers, ss.DiscoveryHandlers)
 	response += fmt.Sprintf("   details: <%s%s%s|%s>", Config.HostURL, sheetRoute, filename, filename)
+	response += "```"
 	return
 
 }
