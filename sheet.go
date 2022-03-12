@@ -45,26 +45,27 @@ func inboundWebSheetHandler(w http.ResponseWriter, r *http.Request) {
 func sheetGetHostStats(hostname string, hostaddr string) (response string) {
 
 	// Get the most recent stats
-	ss, stats, err := watcherGetStats(hostaddr)
+	ss, stats1h, err := watcherGetStats(hostaddr)
 	if err != nil {
 		return err.Error()
 	}
 
 	// Update the stats in-memory
-	statsAdd(hostname, hostaddr, stats)
+	statsAdd(hostname, hostaddr, stats1h)
 
 	// Get the entire set of stats available in-memory
 	hs, exists := statsExtract(hostname, 0, 0)
 	if !exists {
 		response = fmt.Sprintf("unknown host: %s", hostname)
 	}
+	fmt.Printf("OZZIE %+v\n", hs)
 
 	// Create a new spreadsheet
 	f := excelize.NewFile()
 
 	// Generate a page within the sheet for each service instance
 	sheetNums := map[string]int{}
-	for siid, stats := range hs.Stats {
+	for siid, stats48h := range hs.Stats {
 
 		// Generate the sheet name
 		s := strings.Split(siid, ":")
@@ -88,7 +89,7 @@ func sheetGetHostStats(hostname string, hostaddr string) (response string) {
 		}
 
 		// Generate the sheet for this service instance
-		errstr := sheetAddTab(f, sheetName, siid, stats)
+		errstr := sheetAddTab(f, sheetName, siid, stats48h)
 		if errstr != "" {
 			response = errstr
 			return
