@@ -380,6 +380,8 @@ func sheetAddTab(f *excelize.File, sheetName string, siid string, stats []AppLBS
 		f.SetCellValue(sheetName, cell(col, row), k)
 		f.SetCellStyle(sheetName, cell(col, row), cell(col, row), styleSubcategory)
 		row++
+		f.SetCellValue(sheetName, cell(col, row), "database")
+		f.SetCellStyle(sheetName, cell(col, row), cell(col, row), styleMetric)
 		timeHeader(f, sheetName, col+1, row, bucketMins, buckets)
 		row++
 
@@ -428,9 +430,13 @@ func sheetAddTab(f *excelize.File, sheetName string, siid string, stats []AppLBS
 			f.SetCellValue(sheetName, cell(col, row), k)
 			f.SetCellStyle(sheetName, cell(col, row), cell(col, row), styleSubcategory)
 			row++
+			f.SetCellValue(sheetName, cell(col, row), "api")
+			f.SetCellStyle(sheetName, cell(col, row), cell(col, row), styleMetric)
 			timeHeader(f, sheetName, col+1, row, bucketMins, buckets)
 			row++
 
+			f.SetCellValue(sheetName, cell(col, row), "calls")
+			f.SetCellStyle(sheetName, cell(col, row), cell(col, row), styleMetric)
 			for i, stat := range stats {
 				f.SetCellValue(sheetName, cell(col+1+i, row), stat.API[k])
 			}
