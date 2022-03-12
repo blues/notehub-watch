@@ -31,14 +31,16 @@ func watcherShow(hostname string, showWhat string) (result string) {
 	hostaddr := ""
 	validHosts := ""
 	for _, v := range Config.MonitoredHosts {
-		if hostname == v.Name {
-			hostaddr = v.Addr
-			break
+		if !v.Disabled {
+			if hostname == v.Name {
+				hostaddr = v.Addr
+				break
+			}
+			if validHosts != "" {
+				validHosts += " or "
+			}
+			validHosts += "'" + v.Name + "'"
 		}
-		if validHosts != "" {
-			validHosts += " or "
-		}
-		validHosts += "'" + v.Name + "'"
 	}
 	if hostaddr == "" {
 		return "" +
