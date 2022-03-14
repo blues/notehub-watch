@@ -53,14 +53,16 @@ func pingWatcher() {
 					if prevTime == 0 {
 						prevTime = pb.Body.Started
 					}
-					fmt.Printf("OZZIE: %d %d %+v\n", prevTime, pb.Body.Started, pb)
-					if prevTime != pb.Body.Started {
-						err = fmt.Errorf("%s: restarted after having been active for %s",
+					diffSecs := prevTime - pb.Body.Started
+					if diffSecs < 0 {
+						diffSecs = -diffSecs
+					}
+					if diffSecs > 300 {
+						err = fmt.Errorf("@channel: %s was just restarted after having been active for %s",
 							host.Name, uptimeStr(prevTime, pb.Body.Started))
 					}
 					startTimes[host.Name] = pb.Body.Started
 				}
-				fmt.Printf("OZZIE: '%s'(%d) %s\n", host.Name, startTimes[host.Name], err)
 
 				// If an error, post it
 				if err != nil {
