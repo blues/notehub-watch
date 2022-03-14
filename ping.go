@@ -57,8 +57,8 @@ func pingWatcher() {
 					if prevTime != pb.Body.Started {
 						err = fmt.Errorf("%s: restarted after having been active for %s",
 							host.Name, uptimeStr(prevTime, pb.Body.Started))
-						startTimes[host.Name] = pb.Body.Started
 					}
+					startTimes[host.Name] = pb.Body.Started
 				}
 				fmt.Printf("OZZIE: '%s'(%d) %s\n", host.Name, startTimes[host.Name], err)
 
