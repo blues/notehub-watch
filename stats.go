@@ -79,7 +79,7 @@ func statsMaintainer() {
 			if !host.Disabled {
 				err = statsMaintainHost(host.Name, host.Addr)
 				if err != nil {
-					fmt.Printf("statsMaintainHost: %s\n", err)
+					slackSendMessage(fmt.Sprintf("%s: error updating stats: %s", host.Name, err))
 				}
 			}
 		}

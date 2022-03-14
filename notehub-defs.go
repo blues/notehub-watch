@@ -33,6 +33,7 @@ type PingRequest struct {
 	ServerIP        string        `json:"server,omitempty"`
 	InstanceID      string        `json:"instance,omitempty"`
 	Time            string        `json:"time,omitempty"`
+	Started         int64         `json:"started,omitempty"`
 	HeapSize        uint64        `json:"heap_size,omitempty"`
 	HeapFree        uint64        `json:"heap_free,omitempty"`
 	HeapUsed        uint64        `json:"heap_used,omitempty"`

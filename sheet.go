@@ -469,6 +469,9 @@ func sheetAddTab(f *excelize.File, sheetName string, siid string, stats []AppLBS
 // Generate an uptime string
 func uptimeStr(started int64, now int64) (s string) {
 	uptimeSecs := now - started
+	if uptimeSecs < 0 {
+		uptimeSecs = -uptimeSecs
+	}
 	uptimeDays := uptimeSecs / (24 * 60 * 60)
 	uptimeSecs -= uptimeDays * (24 * 60 * 60)
 	uptimeHours := uptimeSecs / (60 * 60)

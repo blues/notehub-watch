@@ -28,6 +28,9 @@ func main() {
 	// Spawn the stats maintenance task
 	go statsMaintainer()
 
+	// Spawn the availability task
+	go pingWatcher()
+
 	// Spawn the console input handler
 	go inputHandler()
 
