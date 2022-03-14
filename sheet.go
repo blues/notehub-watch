@@ -44,14 +44,12 @@ func inboundWebSheetHandler(w http.ResponseWriter, r *http.Request) {
 // Generate a sheet for this host
 func sheetGetHostStats(hostname string, hostaddr string) (response string) {
 
-	// Get the most recent stats
+	// Get the most recent stats, ignoring errors
 	ss, stats1h, err := watcherGetStats(hostaddr)
-	if err != nil {
-		return err.Error()
+	if err == nil {
+		// Update the stats in-memory
+		statsAdd(hostname, hostaddr, stats1h)
 	}
-
-	// Update the stats in-memory
-	statsAdd(hostname, hostaddr, stats1h)
 
 	// Get the entire set of stats available in-memory
 	hs, exists := statsExtract(hostname, 0, 0)

@@ -398,7 +398,7 @@ func watcherGetStats(hostaddr string) (ss serviceSummary, stats map[string][]App
 		// If the server hasn't been up long enough to have stats.  Note that [0] is the
 		// current stats, and we need at least two more to compute relative stats.
 		if len(*pb.Body.LBStatus) < 3 {
-			err = fmt.Errorf("server hasn't been up long enough to have valid stats")
+			err = fmt.Errorf("server hasn't been up long enough to have useful stats")
 			return
 		}
 
