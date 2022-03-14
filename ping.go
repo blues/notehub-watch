@@ -60,7 +60,7 @@ func pingWatcher() {
 						startTimes[host.Name] = pb.Body.Started
 					}
 				}
-				fmt.Printf("OZZIE: %s\n", err)
+				fmt.Printf("OZZIE: '%s'(%d) %s\n", host.Name, startTimes[host.Name], err)
 
 				// If an error, post it
 				if err != nil {
