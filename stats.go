@@ -79,7 +79,7 @@ func statsMaintainer() {
 			if !host.Disabled {
 				err = statsMaintainHost(host.Name, host.Addr)
 				if err != nil {
-					fmt.Printf("%s: error updating stats: %s", host.Name, err)
+					fmt.Printf("%s: error updating stats: %s\n", host.Name, err)
 				}
 			}
 		}

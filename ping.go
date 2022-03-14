@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strings"
 	"time"
 )
 
@@ -43,6 +44,11 @@ func pingWatcher() {
 				}
 				if err == nil {
 					err = json.Unmarshal(rspJSON, &pb)
+				}
+
+				// Substitute a different error
+				if strings.Contains(err.Error(), "unexpected end of JSON input") {
+					err = fmt.Errorf("server not responding")
 				}
 
 				// See if the start time is the same
