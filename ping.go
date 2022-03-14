@@ -46,19 +46,24 @@ func pingWatcher() {
 				}
 
 				// See if the start time is the same
-				prevTime := startTimes[host.Name]
-				if prevTime == 0 {
-					prevTime = pb.Body.Started
+				if err != nil {
+					err = fmt.Errorf("%s: error pinging host: %s", host.Name, err)
+				} else {
+					prevTime := startTimes[host.Name]
+					if prevTime == 0 {
+						prevTime = pb.Body.Started
+					}
+					if prevTime != pb.Body.Started {
+						err = fmt.Errorf("%s: restarted after having been active for %s",
+							host.Name, uptimeStr(prevTime, pb.Body.Started))
+						startTimes[host.Name] = pb.Body.Started
+					}
 				}
-				if prevTime != pb.Body.Started {
-					err = fmt.Errorf("%s: restarted after having been active for %s",
-						host.Name, uptimeStr(prevTime, pb.Body.Started))
-					startTimes[host.Name] = pb.Body.Started
-				}
+				fmt.Printf("OZZIE: %s: %s\n", host.Name, err)
 
 				// If an error, post it
 				if err != nil {
-					slackSendMessage(fmt.Sprintf("%s: error updating stats: %s", host.Name, err))
+					slackSendMessage(err.Error())
 				}
 
 			}
