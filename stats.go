@@ -351,11 +351,19 @@ func statsAnalyze(prefix string, stats []AppLBStat) {
 		lowest = s.SnapshotTaken
 		if prev != 0 {
 			if lowest >= prev {
-				fmt.Printf("%s*** prev:%d this:%d\n", prefix, prev, lowest)
+				t1 := time.Unix(prev, 0).UTC()
+				t1s := t1.Format("01-02 15:04:05")
+				t2 := time.Unix(lowest, 0).UTC()
+				t2s := t2.Format("01-02 15:04:05")
+				fmt.Printf("%s*** prev:%s this:%s\n", prefix, t1s, t2s)
 			}
 			shouldBe := prev + (bucketMins * 60)
 			if shouldBe != lowest {
-				fmt.Printf("%s*** this:%d shouldBe:%d\n", prefix, lowest, shouldBe)
+				t1 := time.Unix(lowest, 0).UTC()
+				t1s := t1.Format("01-02 15:04:05")
+				t2 := time.Unix(shouldBe, 0).UTC()
+				t2s := t2.Format("01-02 15:04:05")
+				fmt.Printf("%s*** this:%s shouldBe:%s\n", prefix, t1s, t2s)
 			}
 		}
 		prev = lowest
