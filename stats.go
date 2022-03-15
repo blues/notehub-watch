@@ -88,6 +88,28 @@ func statsMaintainer() {
 
 }
 
+// Stats pruning task that runs once per day and cleans old stats out of memory
+func statsPruner() {
+
+	for {
+
+		// Prune
+		if statsInitCompleted != 0 {
+			for _, host := range Config.MonitoredHosts {
+				if !host.Disabled {
+					statsPruneHost(host.Name, yesterdayTime()-secs1Day)
+				}
+			}
+
+		}
+
+		// Sleep
+		time.Sleep(24 * time.Hour)
+
+	}
+
+}
+
 // Get the stats filename for a given UTC date
 func statsFilename(host string, filetime int64) (filename string) {
 	return host + "-" + time.Unix(filetime, 0).Format("20060102") + ".json"
@@ -293,6 +315,86 @@ func uStatsAdd(hostname string, hostaddr string, s map[string][]AppLBStat) (adde
 	// Update the main stats
 	stats[hostname] = hs
 	return
+
+}
+
+// Analyze stats for a host
+func statsAnalyzeHost(hostname string) {
+	statsLock.Lock()
+	defer statsLock.Unlock()
+	fmt.Printf("Stats for host: %s\n", hostname)
+	hs := stats[hostname]
+	for siid, sis := range hs.Stats {
+		fmt.Printf("    %s\n", siid)
+		statsAnalyze("        ", sis)
+	}
+}
+
+// Analyze stats
+func statsAnalyze(prefix string, stats []AppLBStat) {
+	var highest, lowest, prev, bucketMins int64
+	count := 0
+	blank := 0
+	for _, s := range stats {
+		if s.SnapshotTaken == 0 {
+			blank++
+			continue
+		}
+		count++
+		bucketMins = s.BucketMins
+		if blank != 0 {
+			fmt.Printf("%s*** blank before nonblank entry\n", prefix)
+		}
+		if highest == 0 {
+			highest = s.SnapshotTaken
+		}
+		lowest = s.SnapshotTaken
+		if prev != 0 {
+			if lowest >= prev {
+				fmt.Printf("%s*** prev:%d this:%d\n", prefix, prev, lowest)
+			}
+			shouldBe := prev + (bucketMins * 60)
+			if shouldBe != lowest {
+				fmt.Printf("%s*** this:%d shouldBe:%d\n", prefix, lowest, shouldBe)
+			}
+		}
+		prev = lowest
+	}
+	t1 := time.Unix(highest, 0).UTC()
+	t1s := t1.Format("01-02 15:04:05")
+	t2 := time.Unix(lowest, 0).UTC()
+	t2s := t2.Format("01-02 15:04:05")
+	t3 := time.Unix(lowest-(int64(blank)*bucketMins*60), 0).UTC()
+	t3s := t3.Format("01-02 15:04:05")
+	fmt.Printf("%s%s - %s (%d entries) [%d blank %s]\n", prefix, t1s, t2s, count, blank, t3s)
+}
+
+// Prune stats from memory
+func statsPruneHost(hostname string, beginTime int64) {
+	statsLock.Lock()
+	defer statsLock.Unlock()
+
+	// Get the existing value, and exit if we want the whole thing
+	hs := stats[hostname]
+
+	// Loop, appending and filtering
+	for siid, sis := range hs.Stats {
+
+		// Only retain what we want
+		sisNew := []AppLBStat{}
+		for _, s := range sis {
+			if s.SnapshotTaken > beginTime {
+				sisNew = append(sisNew, s)
+			}
+		}
+
+		// Update the stats
+		hs.Stats[siid] = sisNew
+
+	}
+
+	// Update the host
+	stats[hostname] = hs
 
 }
 

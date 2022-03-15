@@ -71,6 +71,9 @@ func inputHandler() {
 		case "stats":
 			statsMaintainNow.Signal()
 
+		case "analyze":
+			statsAnalyzeHost(arg1)
+
 		case "":
 
 		case "q":
