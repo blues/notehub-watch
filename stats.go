@@ -335,7 +335,7 @@ func statsAnalyze(prefix string, stats []AppLBStat) {
 	var highest, lowest, prev, bucketMins int64
 	count := 0
 	blank := 0
-	for _, s := range stats {
+	for i, s := range stats {
 		if s.SnapshotTaken == 0 {
 			blank++
 			continue
@@ -355,7 +355,7 @@ func statsAnalyze(prefix string, stats []AppLBStat) {
 				t1s := t1.Format("01-02 15:04:05")
 				t2 := time.Unix(lowest, 0).UTC()
 				t2s := t2.Format("01-02 15:04:05")
-				fmt.Printf("%s*** prev:%s this:%s\n", prefix, t1s, t2s)
+				fmt.Printf("%s*** %d prev:%s this:%s\n", prefix, i, t1s, t2s)
 			}
 			shouldBe := prev + (bucketMins * 60)
 			if shouldBe != lowest {
@@ -363,7 +363,7 @@ func statsAnalyze(prefix string, stats []AppLBStat) {
 				t1s := t1.Format("01-02 15:04:05")
 				t2 := time.Unix(shouldBe, 0).UTC()
 				t2s := t2.Format("01-02 15:04:05")
-				fmt.Printf("%s*** this:%s shouldBe:%s\n", prefix, t1s, t2s)
+				fmt.Printf("%s*** %d this:%s shouldBe:%s\n", prefix, i, t1s, t2s)
 			}
 		}
 		prev = lowest
