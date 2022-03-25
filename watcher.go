@@ -60,6 +60,7 @@ func watcherShow(hostname string, showWhat string) (result string) {
 
 // An async version of the sheet host stats procedure
 func asyncSheetGetHostStats(hostname string, hostaddr string) {
+	time.Sleep(3 * time.Second)
 	slackSendMessage(sheetGetHostStats(hostname, hostaddr))
 }
 
@@ -70,6 +71,7 @@ func watcherShowHost(hostname string, hostaddr string, showWhat string) (respons
 	if showWhat == "" {
 		if asyncSheetRequest {
 			go asyncSheetGetHostStats(hostname, hostaddr)
+			return "ok"
 		}
 		return sheetGetHostStats(hostname, hostaddr)
 	}
