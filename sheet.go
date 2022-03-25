@@ -41,6 +41,51 @@ func inboundWebSheetHandler(w http.ResponseWriter, r *http.Request) {
 
 }
 
+// Add all the tabs for this service type
+func sheetAddTabs(serviceType string, hs *HostStats, f *excelize.File) (response string) {
+
+	var sn int
+	for siid, stats48h := range hs.Stats {
+
+		// Generate the sheet name
+		s := strings.Split(siid, ":")
+		ht := "unknown-service-type"
+		if len(s) == 2 {
+			ht = s[1]
+		}
+
+		// Skip if it's not what we're looking for
+		if ht != serviceType {
+			continue
+		}
+
+		// Bump the sheet number
+		sn++
+
+		// Generate the title
+		var sheetName string
+		switch ht {
+		case DcServiceNameNoteDiscovery:
+			sheetName = fmt.Sprintf("Discover%d", sn)
+		case DcServiceNameNoteboard:
+			sheetName = fmt.Sprintf("Noteboard#%d", sn)
+		case DcServiceNameNotehandlerTCP:
+			sheetName = fmt.Sprintf("Handler%d", sn)
+		default:
+			sheetName = fmt.Sprintf("%s%d", ht, sn)
+		}
+
+		// Generate the sheet for this service instance
+		response = sheetAddTab(f, sheetName, siid, stats48h)
+		if response != "" {
+			break
+		}
+
+	}
+
+	return
+}
+
 // Generate a sheet for this host
 func sheetGetHostStats(hostname string, hostaddr string) (response string) {
 
@@ -61,37 +106,20 @@ func sheetGetHostStats(hostname string, hostaddr string) (response string) {
 	f := excelize.NewFile()
 
 	// Generate a page within the sheet for each service instance
-	sheetNums := map[string]int{}
-	for siid, stats48h := range hs.Stats {
-
-		// Generate the sheet name
-		s := strings.Split(siid, ":")
-		ht := "unknown-service-type"
-		if len(s) == 2 {
-			ht = s[1]
-		}
-		sn := sheetNums[ht]
-		sn++
-		sheetNums[ht] = sn
-		var sheetName string
-		switch ht {
-		case DcServiceNameNoteDiscovery:
-			sheetName = fmt.Sprintf("Discovery #%d", sn)
-		case DcServiceNameNoteboard:
-			sheetName = fmt.Sprintf("Noteboard #%d", sn)
-		case DcServiceNameNotehandlerTCP:
-			sheetName = fmt.Sprintf("Handler #%d", sn)
-		default:
-			sheetName = fmt.Sprintf("%s #%d", ht, sn)
-		}
-
-		// Generate the sheet for this service instance
-		errstr := sheetAddTab(f, sheetName, siid, stats48h)
-		if errstr != "" {
-			response = errstr
-			return
-		}
-
+	if response == "" {
+		response = sheetAddTabs(DcServiceNameNotehandlerTCP, &hs, f)
+	}
+	if response == "" {
+		response = sheetAddTabs(DcServiceNameNoteDiscovery, &hs, f)
+	}
+	if response == "" {
+		response = sheetAddTabs(DcServiceNameNoteboard, &hs, f)
+	}
+	if response == "" {
+		response = sheetAddTabs("", &hs, f)
+	}
+	if response != "" {
+		return
 	}
 
 	// Delete the default sheet
