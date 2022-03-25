@@ -13,6 +13,9 @@ import (
 	"time"
 )
 
+// Synchronous vs asynchronous sheet request handling, because we're getting "operation timeout"
+const asyncSheetRequest = true
+
 // Current "live" info
 type serviceSummary struct {
 	Started              int64
@@ -55,11 +58,19 @@ func watcherShow(hostname string, showWhat string) (result string) {
 
 }
 
+// An async version of the sheet host stats procedure
+func asyncSheetGetHostStats(hostname string, hostaddr string) {
+	slackSendMessage(sheetGetHostStats(hostname, hostaddr))
+}
+
 // Show something about the host
 func watcherShowHost(hostname string, hostaddr string, showWhat string) (response string) {
 
 	// If showing nothing, done
 	if showWhat == "" {
+		if asyncSheetRequest {
+			go asyncSheetGetHostStats(hostname, hostaddr)
+		}
 		return sheetGetHostStats(hostname, hostaddr)
 	}
 
