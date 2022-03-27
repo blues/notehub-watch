@@ -559,13 +559,12 @@ func writeFileLocally(hostname string, beginTime int64, duration int64) (content
 	return
 }
 
-type statOccurrence []AggregatedStat
+// Sort new-to-old
+type statRecency []AggregatedStat
 
-func (list statOccurrence) Len() int { return len(list) }
-
-func (list statOccurrence) Swap(i, j int) { list[i], list[j] = list[j], list[i] }
-
-func (list statOccurrence) Less(i, j int) bool {
+func (list statRecency) Len() int      { return len(list) }
+func (list statRecency) Swap(i, j int) { list[i], list[j] = list[j], list[i] }
+func (list statRecency) Less(i, j int) bool {
 	var si = list[i]
 	var sj = list[j]
 	return si.Time < sj.Time
@@ -575,6 +574,8 @@ func (list statOccurrence) Less(i, j int) bool {
 func statsAggregateAsLBStat(allStats map[string][]AppLBStat) (aggregatedStats []AppLBStat) {
 
 	bucketSecs, as := statsAggregate(allStats)
+
+	// Pull them together
 	for _, s := range as {
 		lbs := AppLBStat{}
 		lbs.BucketMins = bucketSecs / 60
@@ -712,7 +713,7 @@ func statsAggregate(allStats map[string][]AppLBStat) (bucketSecs int64, aggregat
 	}
 
 	// Sort the stats
-	sort.Sort(statOccurrence(aggregatedStats))
+	sort.Sort(statRecency(aggregatedStats))
 
 	// Done
 	return

@@ -8,9 +8,21 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"sort"
 
 	datadog "github.com/DataDog/datadog-api-client-go/api/v1/datadog"
 )
+
+// Sort old-to-new
+type statOccurrence []AggregatedStat
+
+func (list statOccurrence) Len() int      { return len(list) }
+func (list statOccurrence) Swap(i, j int) { list[i], list[j] = list[j], list[i] }
+func (list statOccurrence) Less(i, j int) bool {
+	var si = list[i]
+	var sj = list[j]
+	return si.Time < sj.Time
+}
 
 // Write new stats to DataDog
 func datadogUploadStats(hostname string, addedStats map[string][]AppLBStat) (err error) {
@@ -20,6 +32,9 @@ func datadogUploadStats(hostname string, addedStats map[string][]AppLBStat) (err
 	if bucketSecs == 0 || len(aggregatedStats) == 0 {
 		return
 	}
+
+	// Sort stats as old-to-new
+	sort.Sort(statOccurrence(aggregatedStats))
 
 	// Create the metrics
 	var series datadog.Series
