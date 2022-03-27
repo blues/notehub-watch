@@ -632,7 +632,6 @@ func statsAggregate(allStats map[string][]AppLBStat) (bucketSecs int64, aggregat
 			as.DiskWrites += s.OSDiskWrite
 			as.NetReceived += s.OSNetReceived
 			as.NetSent += s.OSNetSent
-			fmt.Printf("OZZIE %d %d %d %d\n", as.DiskReads, as.DiskWrites, as.NetReceived, as.NetSent)
 
 			// Aggregate handlers.
 			as.HandlersEphemeral += s.EphemeralHandlersActivated
