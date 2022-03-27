@@ -16,6 +16,9 @@ import (
 	"github.com/xuri/excelize/v2"
 )
 
+// Trace
+const sheetTrace = true
+
 // The route to our sheet handler
 const sheetRoute = "/file/"
 
@@ -43,6 +46,10 @@ func inboundWebSheetHandler(w http.ResponseWriter, r *http.Request) {
 
 // Add all the tabs for this service type
 func sheetAddTabs(serviceType string, hs *HostStats, f *excelize.File) (response string) {
+
+	if sheetTrace {
+		fmt.Printf("sheetAddTabs: %s\n", serviceType)
+	}
 
 	var sn int
 	for siid, stats48h := range hs.Stats {
@@ -90,13 +97,21 @@ func sheetAddTabs(serviceType string, hs *HostStats, f *excelize.File) (response
 func sheetGetHostStats(hostname string, hostaddr string) (response string) {
 
 	// Get the most recent stats, ignoring errors
+	if sheetTrace {
+		fmt.Printf("sheetGetHostStats: get stats for %s\n", hostname)
+	}
 	ss, stats1h, err := watcherGetStats(hostaddr)
 	if err == nil {
-		// Update the stats in-memory
+		if sheetTrace {
+			fmt.Printf("sheetGetHostStats: update stats in memory\n")
+		}
 		statsAdd(hostname, hostaddr, stats1h)
 	}
 
 	// Get the entire set of stats available in-memory
+	if sheetTrace {
+		fmt.Printf("sheetGetHostStats: extract stats\n")
+	}
 	hs, exists := statsExtract(hostname, 0, 0)
 	if !exists {
 		response = fmt.Sprintf("unknown host: %s", hostname)
@@ -154,6 +169,11 @@ func sheetGetHostStats(hostname string, hostaddr string) (response string) {
 		ss.ContinuousHandlers, ss.NotificationHandlers, ss.EphemeralHandlers, ss.DiscoveryHandlers)
 	response += "```" + "\n"
 	response += fmt.Sprintf("<%s%s%s|%s>", Config.HostURL, sheetRoute, filename, filename)
+
+	// Done
+	if sheetTrace {
+		fmt.Printf("sheetGetHostStats: done\n")
+	}
 	return
 
 }

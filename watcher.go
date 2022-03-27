@@ -13,6 +13,9 @@ import (
 	"time"
 )
 
+// Trace
+const watcherTrace = true
+
 // Synchronous vs asynchronous sheet request handling, because we're getting "operation timeout"
 const asyncSheetRequest = true
 
@@ -375,6 +378,11 @@ func ConvertStatsFromAbsoluteToRelative(startTime int64, bucketMins int64, stats
 
 // Retrieve a sample of data from the specified host, returning a vector of available stats indexed by SIID
 func watcherGetStats(hostaddr string) (ss serviceSummary, stats map[string][]AppLBStat, err error) {
+
+	if watcherTrace {
+		fmt.Printf("watcherGetStats: fetching stats for %s\n", hostaddr)
+		defer fmt.Printf("watcherGetStats: completed\n")
+	}
 
 	// Instantiate the stats map
 	stats = map[string][]AppLBStat{}
