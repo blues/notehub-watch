@@ -281,11 +281,11 @@ func sheetAddTab(f *excelize.File, sheetName string, siid string, handler AppHan
 	}
 	row++
 
-	f.SetCellValue(sheetName, cell(col, row), "mfree")
+	f.SetCellValue(sheetName, cell(col, row), "malloc")
 	f.SetCellStyle(sheetName, cell(col, row), cell(col, row), styleMetric)
 	for i, stat := range stats {
 		if stat.Started != 0 {
-			f.SetCellValue(sheetName, cell(col+1+i, row), stat.OSMemFree/(1024*1024))
+			f.SetCellValue(sheetName, cell(col+1+i, row), (stat.OSMemTotal-stat.OSMemFree)/(1024*1024))
 		}
 	}
 	row++

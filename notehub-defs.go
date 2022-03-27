@@ -99,6 +99,7 @@ type AppLBCache struct {
 // AppLBStat is the data structure of a single running statistics batch
 type AppLBStat struct {
 	Started                         int64                    `json:"started,omitempty"`
+	NodeStarted                     int64                    `json:"started_node,omitempty"`
 	BucketMins                      int64                    `json:"minutes,omitempty"`
 	SnapshotTaken                   int64                    `json:"when,omitempty"`
 	OSMemTotal                      uint64                   `json:"mem_total,omitempty"`
