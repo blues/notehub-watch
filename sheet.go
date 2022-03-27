@@ -10,6 +10,7 @@ import (
 	"io"
 	"io/ioutil"
 	"net/http"
+	"sort"
 	"strings"
 	"time"
 
@@ -46,13 +47,18 @@ func inboundWebSheetHandler(w http.ResponseWriter, r *http.Request) {
 
 // Add all the tabs for this service type
 func sheetAddTabs(serviceType string, hs *HostStats, f *excelize.File) (response string) {
+	var sn int
 
 	if sheetTrace {
 		fmt.Printf("sheetAddTabs: %s\n", serviceType)
 	}
 
-	var sn int
-	for siid, stats48h := range hs.Stats {
+	keys := make([]string, 0, len(hs.Stats))
+	for key := range hs.Stats {
+		keys = append(keys, key)
+	}
+	sort.Strings(keys)
+	for _, siid := range keys {
 
 		// Generate the sheet name
 		s := strings.Split(siid, ":")
@@ -65,6 +71,9 @@ func sheetAddTabs(serviceType string, hs *HostStats, f *excelize.File) (response
 		if ht != serviceType {
 			continue
 		}
+
+		// Get the stats
+		stats48h := hs.Stats[siid]
 
 		// Bump the sheet number
 		sn++
