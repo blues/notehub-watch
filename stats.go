@@ -15,6 +15,7 @@ import (
 
 // AggregatedStat is a structure used to aggregate stats across service instances
 type AggregatedStat struct {
+	Started              int64                    `json:"started,omitempty"`
 	Time                 int64                    `json:"time,omitempty"`
 	DiskReads            uint64                   `json:"disk_read,omitempty"`
 	DiskWrites           uint64                   `json:"disk_write,omitempty"`
@@ -577,6 +578,7 @@ func statsAggregateAsLBStat(allStats map[string][]AppLBStat) (aggregatedStats []
 	for _, s := range as {
 		lbs := AppLBStat{}
 		lbs.BucketMins = bucketSecs / 60
+		lbs.Started = s.Started
 		lbs.SnapshotTaken = s.Time
 		lbs.OSDiskRead = s.DiskReads
 		lbs.OSDiskWrite = s.DiskWrites
@@ -623,12 +625,14 @@ func statsAggregate(allStats map[string][]AppLBStat) (bucketSecs int64, aggregat
 			bucketID := int(s.SnapshotTaken / bucketSecs)
 			as := aggregatedStatsByBucket[bucketID]
 			as.Time = int64(bucketID) * bucketSecs
+			as.Started = s.Started
 
 			// Aggregate a common stat across instances
 			as.DiskReads += s.OSDiskRead
 			as.DiskWrites += s.OSDiskWrite
 			as.NetReceived += s.OSNetReceived
 			as.NetSent += s.OSNetSent
+			fmt.Printf("OZZIE %d %d %d %d\n", as.DiskReads, as.DiskWrites, as.NetReceived, as.NetSent)
 
 			// Aggregate handlers.
 			as.HandlersEphemeral += s.EphemeralHandlersActivated
