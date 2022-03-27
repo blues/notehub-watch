@@ -465,16 +465,22 @@ func sheetAddTab(f *excelize.File, sheetName string, siid string, handler AppHan
 
 	row++
 
-	// Database stats
+	// Database stats (display the ones beginning with "app" at the end)
 	f.SetCellValue(sheetName, cell(col, row), "Databases")
 	f.SetCellStyle(sheetName, cell(col, row), cell(col, row), styleCategory)
 	row++
 
-	keys = make([]string, 0, len(stats[0].Databases))
+	var apps, nonapps []string
 	for k := range stats[0].Databases {
-		keys = append(keys, k)
+		if strings.HasPrefix(k, "app:") {
+			apps = append(apps, k)
+		} else {
+			nonapps = append(nonapps, k)
+		}
 	}
-	sort.Strings(keys)
+	sort.Strings(apps)
+	sort.Strings(nonapps)
+	keys = append(nonapps, apps...)
 	for _, k := range keys {
 		row++
 
