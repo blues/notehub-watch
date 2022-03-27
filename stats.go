@@ -567,7 +567,7 @@ func (list statRecency) Swap(i, j int) { list[i], list[j] = list[j], list[i] }
 func (list statRecency) Less(i, j int) bool {
 	var si = list[i]
 	var sj = list[j]
-	return si.Time < sj.Time
+	return si.Time > sj.Time
 }
 
 // Aggregate a notehub stats structure across service instances back into an AppLBStat structure
