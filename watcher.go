@@ -80,7 +80,7 @@ func watcherShowHost(hostname string, hostaddr string, showWhat string) (respons
 	}
 
 	// Get the list of handlers on the host
-	serviceInstanceIDs, serviceInstanceAddrs, err := watcherGetServiceInstances(hostaddr)
+	serviceInstanceIDs, serviceInstanceAddrs, _, err := watcherGetServiceInstances(hostaddr)
 	if err != nil {
 		return err.Error()
 	}
@@ -102,7 +102,7 @@ func watcherShowHost(hostname string, hostaddr string, showWhat string) (respons
 }
 
 // Get the list of handlers
-func watcherGetServiceInstances(hostaddr string) (serviceInstanceIDs []string, serviceInstanceAddrs []string, err error) {
+func watcherGetServiceInstances(hostaddr string) (serviceInstanceIDs []string, serviceInstanceAddrs []string, handlers map[string]AppHandler, err error) {
 
 	url := "https://" + hostaddr + "/ping?show=\"handlers\""
 	req, err2 := http.NewRequest("GET", url, nil)
@@ -136,14 +136,17 @@ func watcherGetServiceInstances(hostaddr string) (serviceInstanceIDs []string, s
 		err = fmt.Errorf("no handlers in " + string(rspJSON))
 		return
 	}
+	handlers = map[string]AppHandler{}
 	for _, h := range *pb.Body.AppHandlers {
 		// Create the SIID out of the NodeID combined with the primary service.  This technique is mimicked
 		// within the actual http-ping.go handling in notehub, and is required for unique addressing of
 		// a service instance simply because on Local Dev we have a single NodeID that hosts all of the
 		// different services that collect stats within their own process address spaces.
-		serviceInstanceIDs = append(serviceInstanceIDs, h.NodeID+":"+h.PrimaryService)
+		siid := h.NodeID + ":" + h.PrimaryService
+		serviceInstanceIDs = append(serviceInstanceIDs, siid)
 		addr := fmt.Sprintf("http://%s", hostaddr)
 		serviceInstanceAddrs = append(serviceInstanceAddrs, addr)
+		handlers[siid] = h
 	}
 
 	return
@@ -377,7 +380,7 @@ func ConvertStatsFromAbsoluteToRelative(startTime int64, bucketMins int64, stats
 }
 
 // Retrieve a sample of data from the specified host, returning a vector of available stats indexed by SIID
-func watcherGetStats(hostaddr string) (ss serviceSummary, stats map[string][]AppLBStat, err error) {
+func watcherGetStats(hostaddr string) (ss serviceSummary, stats map[string][]AppLBStat, handlers map[string]AppHandler, err error) {
 
 	if watcherTrace {
 		fmt.Printf("watcherGetStats: fetching stats for %s\n", hostaddr)
@@ -388,7 +391,7 @@ func watcherGetStats(hostaddr string) (ss serviceSummary, stats map[string][]App
 	stats = map[string][]AppLBStat{}
 
 	// Get the list of service instances on the host
-	ss.ServiceInstanceIDs, ss.ServiceInstanceAddrs, err = watcherGetServiceInstances(hostaddr)
+	ss.ServiceInstanceIDs, ss.ServiceInstanceAddrs, handlers, err = watcherGetServiceInstances(hostaddr)
 	if err != nil {
 		return
 	}

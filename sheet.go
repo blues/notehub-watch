@@ -46,7 +46,7 @@ func inboundWebSheetHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 // Add all the tabs for this service type
-func sheetAddTabs(serviceType string, hs *HostStats, f *excelize.File) (response string) {
+func sheetAddTabs(serviceType string, hs *HostStats, handlers map[string]AppHandler, f *excelize.File) (response string) {
 	var sn int
 
 	if sheetTrace {
@@ -72,9 +72,6 @@ func sheetAddTabs(serviceType string, hs *HostStats, f *excelize.File) (response
 			continue
 		}
 
-		// Get the stats
-		stats48h := hs.Stats[siid]
-
 		// Bump the sheet number
 		sn++
 
@@ -92,7 +89,7 @@ func sheetAddTabs(serviceType string, hs *HostStats, f *excelize.File) (response
 		}
 
 		// Generate the sheet for this service instance
-		response = sheetAddTab(f, sheetName, siid, stats48h)
+		response = sheetAddTab(f, sheetName, siid, handlers[siid], hs.Stats[siid])
 		if response != "" {
 			break
 		}
@@ -109,7 +106,7 @@ func sheetGetHostStats(hostname string, hostaddr string) (response string) {
 	if sheetTrace {
 		fmt.Printf("sheetGetHostStats: get stats for %s\n", hostname)
 	}
-	ss, stats1h, err := watcherGetStats(hostaddr)
+	ss, stats1h, handlers, err := watcherGetStats(hostaddr)
 	if err == nil {
 		if sheetTrace {
 			fmt.Printf("sheetGetHostStats: update stats in memory\n")
@@ -131,16 +128,16 @@ func sheetGetHostStats(hostname string, hostaddr string) (response string) {
 
 	// Generate a page within the sheet for each service instance
 	if response == "" {
-		response = sheetAddTabs(DcServiceNameNotehandlerTCP, &hs, f)
+		response = sheetAddTabs(DcServiceNameNotehandlerTCP, &hs, handlers, f)
 	}
 	if response == "" {
-		response = sheetAddTabs(DcServiceNameNoteDiscovery, &hs, f)
+		response = sheetAddTabs(DcServiceNameNoteDiscovery, &hs, handlers, f)
 	}
 	if response == "" {
-		response = sheetAddTabs(DcServiceNameNoteboard, &hs, f)
+		response = sheetAddTabs(DcServiceNameNoteboard, &hs, handlers, f)
 	}
 	if response == "" {
-		response = sheetAddTabs("", &hs, f)
+		response = sheetAddTabs("", &hs, handlers, f)
 	}
 	if response != "" {
 		return
@@ -191,7 +188,7 @@ func sheetGetHostStats(hostname string, hostaddr string) (response string) {
 }
 
 // Add the stats for a service instance as a tabbed sheet within the xlsx
-func sheetAddTab(f *excelize.File, sheetName string, siid string, stats []AppLBStat) (errstr string) {
+func sheetAddTab(f *excelize.File, sheetName string, siid string, handler AppHandler, stats []AppLBStat) (errstr string) {
 
 	// Generate the sheet
 	f.NewSheet(sheetName)
@@ -211,11 +208,24 @@ func sheetAddTab(f *excelize.File, sheetName string, siid string, stats []AppLBS
 	// Freeze panes
 	f.SetPanes(sheetName, `{"freeze":true,"x_split":1,"y_split":2,"top_left_cell":"B3","active_pane":"bottomRight","panes":[{"pane":"topLeft"},{"pane":"topRight"},{"pane":"bottomLeft"},{"active_cell":"B3", "sqref":"B3", "pane":"bottomRight"}]}`)
 
-	// Title banner
+	// Node info
 	f.SetCellValue(sheetName, cell(col, row), "Node SIID")
 	f.SetCellStyle(sheetName, cell(col, row), cell(col, row), styleCategory)
 	f.SetCellValue(sheetName, cell(col+1, row), siid)
 	row++
+
+	f.SetCellValue(sheetName, cell(col, row), "Node Tags")
+	f.SetCellStyle(sheetName, cell(col, row), cell(col, row), styleCategory)
+	s := ""
+	for i, t := range handler.NodeTags {
+		if i != 0 {
+			s += ", "
+		}
+		s += t
+	}
+	f.SetCellValue(sheetName, cell(col+1, row), s)
+	row++
+
 	row++
 
 	// Exit if no stats
@@ -472,28 +482,28 @@ func sheetAddTab(f *excelize.File, sheetName string, siid string, stats []AppLBS
 		timeHeader(f, sheetName, col+1, row, bucketMins, buckets)
 		row++
 
-		f.SetCellValue(sheetName, cell(col, row), "reads")
+		f.SetCellValue(sheetName, cell(col, row), "queries")
 		f.SetCellStyle(sheetName, cell(col, row), cell(col, row), styleMetric)
 		for i, stat := range stats {
 			f.SetCellValue(sheetName, cell(col+1+i, row), stat.Databases[k].Reads)
 		}
 		row++
 
-		f.SetCellValue(sheetName, cell(col, row), "writes")
+		f.SetCellValue(sheetName, cell(col, row), "execs")
 		f.SetCellStyle(sheetName, cell(col, row), cell(col, row), styleMetric)
 		for i, stat := range stats {
 			f.SetCellValue(sheetName, cell(col+1+i, row), stat.Databases[k].Writes)
 		}
 		row++
 
-		f.SetCellValue(sheetName, cell(col, row), "readMs")
+		f.SetCellValue(sheetName, cell(col, row), "queryMsAvg")
 		f.SetCellStyle(sheetName, cell(col, row), cell(col, row), styleMetric)
 		for i, stat := range stats {
 			f.SetCellValue(sheetName, cell(col+1+i, row), stat.Databases[k].ReadMs)
 		}
 		row++
 
-		f.SetCellValue(sheetName, cell(col, row), "writeMs")
+		f.SetCellValue(sheetName, cell(col, row), "execMsAvg")
 		f.SetCellStyle(sheetName, cell(col, row), cell(col, row), styleMetric)
 		for i, stat := range stats {
 			f.SetCellValue(sheetName, cell(col+1+i, row), stat.Databases[k].WriteMs)
