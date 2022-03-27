@@ -150,6 +150,9 @@ func sheetGetHostStats(hostname string, hostaddr string) (response string) {
 	f.DeleteSheet("Sheet1")
 
 	// Save the spreadsheet to a temp file
+	if sheetTrace {
+		fmt.Printf("sheetGetHostStats: saving sheet\n")
+	}
 	hostCleaned := strings.TrimSuffix(hostaddr, ".blues.tools")
 	hostCleaned = strings.TrimPrefix(hostCleaned, "api.")
 	hostCleaned = strings.TrimPrefix(hostCleaned, "a.")
@@ -386,8 +389,12 @@ func sheetAddTab(f *excelize.File, sheetName string, siid string, stats []AppLBS
 		timeHeader(f, sheetName, col+1, row, bucketMins, buckets)
 		row++
 
+		keys := make([]string, 0, len(stats[0].Fatals))
 		for k := range stats[0].Fatals {
-
+			keys = append(keys, k)
+		}
+		sort.Strings(keys)
+		for _, k := range keys {
 			f.SetCellValue(sheetName, cell(col, row), k)
 			f.SetCellStyle(sheetName, cell(col, row), cell(col, row), styleSubcategory)
 			for i, stat := range stats {
@@ -406,7 +413,12 @@ func sheetAddTab(f *excelize.File, sheetName string, siid string, stats []AppLBS
 	f.SetCellStyle(sheetName, cell(col, row), cell(col, row), styleCategory)
 	row++
 
+	keys := make([]string, 0, len(stats[0].Caches))
 	for k := range stats[0].Caches {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+	for _, k := range keys {
 		row++
 
 		f.SetCellValue(sheetName, cell(col, row), k+" cache")
@@ -444,7 +456,12 @@ func sheetAddTab(f *excelize.File, sheetName string, siid string, stats []AppLBS
 	f.SetCellStyle(sheetName, cell(col, row), cell(col, row), styleCategory)
 	row++
 
+	keys = make([]string, 0, len(stats[0].Databases))
 	for k := range stats[0].Databases {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+	for _, k := range keys {
 		row++
 
 		f.SetCellValue(sheetName, cell(col, row), k)
@@ -494,7 +511,12 @@ func sheetAddTab(f *excelize.File, sheetName string, siid string, stats []AppLBS
 		f.SetCellStyle(sheetName, cell(col, row), cell(col, row), styleCategory)
 		row++
 
+		keys := make([]string, 0, len(stats[0].API))
 		for k := range stats[0].API {
+			keys = append(keys, k)
+		}
+		sort.Strings(keys)
+		for _, k := range keys {
 			row++
 
 			f.SetCellValue(sheetName, cell(col, row), k)
