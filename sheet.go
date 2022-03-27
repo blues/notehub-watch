@@ -81,7 +81,7 @@ func sheetAddTabs(serviceType string, hs *HostStats, handlers map[string]AppHand
 		case DcServiceNameNoteDiscovery:
 			sheetName = fmt.Sprintf("Discover%d", sn)
 		case DcServiceNameNoteboard:
-			sheetName = fmt.Sprintf("Noteboard#%d", sn)
+			sheetName = fmt.Sprintf("Noteboard%d", sn)
 		case DcServiceNameNotehandlerTCP:
 			sheetName = fmt.Sprintf("Handler%d", sn)
 		default:
@@ -218,10 +218,12 @@ func sheetAddTab(f *excelize.File, sheetName string, siid string, handler AppHan
 	f.SetCellStyle(sheetName, cell(col, row), cell(col, row), styleCategory)
 	s := ""
 	for i, t := range handler.NodeTags {
-		if i != 0 {
-			s += ", "
+		if !strings.Contains(t, "/") {
+			if i != 0 {
+				s += ", "
+			}
+			s += t
 		}
-		s += t
 	}
 	f.SetCellValue(sheetName, cell(col+1, row), s)
 	row++
