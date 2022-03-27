@@ -15,17 +15,24 @@ import (
 
 // AggregatedStat is a structure used to aggregate stats across service instances
 type AggregatedStat struct {
-	Time           int64  `json:"time,omitempty"`
-	DiskReads      uint64 `json:"disk_read,omitempty"`
-	DiskWrites     uint64 `json:"disk_write,omitempty"`
-	NetReceived    uint64 `json:"net_received,omitempty"`
-	NetSent        uint64 `json:"net_sent,omitempty"`
-	Handlers       int64  `json:"handlers_discovery,omitempty"`
-	EventsReceived int64  `json:"events_received,omitempty"`
-	EventsRouted   int64  `json:"events_routed,omitempty"`
-	DatabaseReads  int64  `json:"database_read,omitempty"`
-	DatabaseWrites int64  `json:"database_write,omitempty"`
-	APICalls       int64  `json:"api_calls,omitempty"`
+	Time                 int64                    `json:"time,omitempty"`
+	DiskReads            uint64                   `json:"disk_read,omitempty"`
+	DiskWrites           uint64                   `json:"disk_write,omitempty"`
+	NetReceived          uint64                   `json:"net_received,omitempty"`
+	NetSent              uint64                   `json:"net_sent,omitempty"`
+	HandlersEphemeral    int64                    `json:"handlers_ephemeral,omitempty"`
+	HandlersDiscovery    int64                    `json:"handlers_discovery,omitempty"`
+	HandlersContinuous   int64                    `json:"handlers_continuous,omitempty"`
+	HandlersNotification int64                    `json:"handlers_notification,omitempty"`
+	EventsReceived       int64                    `json:"events_received,omitempty"`
+	EventsRouted         int64                    `json:"events_routed,omitempty"`
+	DatabaseReads        int64                    `json:"database_reads,omitempty"`
+	DatabaseWrites       int64                    `json:"database_writes,omitempty"`
+	APITotal             int64                    `json:"api_total,omitempty"`
+	Databases            map[string]AppLBDatabase `json:"databases,omitempty"`
+	Caches               map[string]AppLBCache    `json:"caches,omitempty"`
+	API                  map[string]int64         `json:"api,omitempty"`
+	Fatals               map[string]int64         `json:"fatals,omitempty"`
 }
 
 // Periodic stats publisher.  The stats publisher maintains, in the local system's data directory,
@@ -563,6 +570,34 @@ func (list statOccurrence) Less(i, j int) bool {
 	return si.Time < sj.Time
 }
 
+// Aggregate a notehub stats structure across service instances back into an AppLBStat structure
+func statsAggregateAsLBStat(allStats map[string][]AppLBStat) (aggregatedStats []AppLBStat) {
+
+	bucketSecs, as := statsAggregate(allStats)
+	for _, s := range as {
+		lbs := AppLBStat{}
+		lbs.BucketMins = bucketSecs / 60
+		lbs.SnapshotTaken = s.Time
+		lbs.OSDiskRead = s.DiskReads
+		lbs.OSDiskWrite = s.DiskWrites
+		lbs.OSNetReceived = s.NetReceived
+		lbs.OSNetSent = s.NetSent
+		lbs.DiscoveryHandlersActivated = s.HandlersDiscovery
+		lbs.EphemeralHandlersActivated = s.HandlersEphemeral
+		lbs.ContinuousHandlersActivated = s.HandlersContinuous
+		lbs.NotificationHandlersActivated = s.HandlersNotification
+		lbs.EventsEnqueued = s.EventsReceived
+		lbs.EventsRouted = s.EventsRouted
+		lbs.Databases = s.Databases
+		lbs.Caches = s.Caches
+		lbs.API = s.API
+		lbs.Fatals = s.Fatals
+		aggregatedStats = append(aggregatedStats, lbs)
+	}
+
+	return
+}
+
 // Aggregate a notehub stats structure across service instances
 func statsAggregate(allStats map[string][]AppLBStat) (bucketSecs int64, aggregatedStats []AggregatedStat) {
 
@@ -580,10 +615,8 @@ func statsAggregate(allStats map[string][]AppLBStat) (bucketSecs int64, aggregat
 		return
 	}
 
-	// Create a data structure that aggregates stats.  This is somewhat challenging because
-	// the different service instances began their "5 minute buckets" on different time bases
-	// and as such we can only aggregate them by seeing if they are in the same 'time bucket',
-	// as defined by the snapshot time divided by the seconds-per-bucket.
+	// Create a data structure that aggregates stats, under the assumption that the stat
+	// buckets are aligned.
 	aggregatedStatsByBucket := make(map[int]AggregatedStat)
 	for _, sis := range allStats {
 		for _, s := range sis {
@@ -597,28 +630,70 @@ func statsAggregate(allStats map[string][]AppLBStat) (bucketSecs int64, aggregat
 			as.NetReceived += s.OSNetReceived
 			as.NetSent += s.OSNetSent
 
-			// Aggregate handlers.  Note that I made an explicit decision not to aggregate
-			// Notification handlers or Discovery handlers because generally the use of
-			// this statistic is to understand how many total devices are being served.
-			as.Handlers += s.EphemeralHandlersActivated
-			as.Handlers += s.ContinuousHandlersActivated
+			// Aggregate handlers.
+			as.HandlersEphemeral += s.EphemeralHandlersActivated
+			as.HandlersContinuous += s.ContinuousHandlersActivated
+			as.HandlersDiscovery += s.DiscoveryHandlersActivated
+			as.HandlersNotification += s.NotificationHandlersActivated
 
 			// Events
 			as.EventsReceived += s.EventsEnqueued
 			as.EventsRouted += s.EventsRouted
 
 			// Databases
+			if as.Databases == nil {
+				as.Databases = map[string]AppLBDatabase{}
+			}
 			if s.Databases != nil {
-				for _, db := range s.Databases {
+				for key, db := range s.Databases {
 					as.DatabaseReads += db.Reads
 					as.DatabaseWrites += db.Writes
+					v := as.Databases[key]
+					v.Reads += db.Reads
+					v.Writes += db.Writes
+					if db.ReadMsMax > v.ReadMsMax {
+						v.ReadMsMax = db.ReadMsMax
+					}
+					if db.WriteMsMax > v.WriteMsMax {
+						v.WriteMsMax = db.WriteMsMax
+					}
+					as.Databases[key] = v
+				}
+			}
+
+			// Caches
+			if as.Caches == nil {
+				as.Caches = map[string]AppLBCache{}
+			}
+			if s.Caches != nil {
+				for key, cache := range s.Caches {
+					v := as.Caches[key]
+					v.Invalidations += cache.Invalidations
+					if cache.EntriesHWM > v.EntriesHWM {
+						v.EntriesHWM = cache.EntriesHWM
+					}
+					as.Caches[key] = v
 				}
 			}
 
 			// API calls
+			if as.API == nil {
+				as.API = map[string]int64{}
+			}
 			if s.API != nil {
-				for _, apiCalls := range s.API {
-					as.APICalls += apiCalls
+				for key, apiCalls := range s.API {
+					as.APITotal += apiCalls
+					as.API[key] += apiCalls
+				}
+			}
+
+			// Fatals calls
+			if as.Fatals == nil {
+				as.Fatals = map[string]int64{}
+			}
+			if s.Fatals != nil {
+				for key, fatals := range s.Fatals {
+					as.Fatals[key] += fatals
 				}
 			}
 

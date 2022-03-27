@@ -53,6 +53,8 @@ func sheetAddTabs(serviceType string, hs *HostStats, handlers map[string]AppHand
 		fmt.Printf("sheetAddTabs: %s\n", serviceType)
 	}
 
+	sheetAddTab(f, "Summary", "summary", AppHandler{}, statsAggregateAsLBStat(hs.Stats))
+
 	keys := make([]string, 0, len(hs.Stats))
 	for key := range hs.Stats {
 		keys = append(keys, key)

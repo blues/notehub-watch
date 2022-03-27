@@ -69,7 +69,7 @@ func datadogUploadStats(hostname string, addedStats map[string][]AppLBStat) (err
 	for _, stat := range aggregatedStats {
 		point := []*float64{
 			datadog.PtrFloat64(float64(stat.Time)),
-			datadog.PtrFloat64(float64(stat.Handlers)),
+			datadog.PtrFloat64(float64(stat.HandlersDiscovery + stat.HandlersContinuous)),
 		}
 		series.Points = append(series.Points, point)
 	}
@@ -119,7 +119,7 @@ func datadogUploadStats(hostname string, addedStats map[string][]AppLBStat) (err
 	for _, stat := range aggregatedStats {
 		point := []*float64{
 			datadog.PtrFloat64(float64(stat.Time)),
-			datadog.PtrFloat64(float64(stat.APICalls)),
+			datadog.PtrFloat64(float64(stat.APITotal)),
 		}
 		series.Points = append(series.Points, point)
 	}
