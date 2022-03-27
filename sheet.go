@@ -217,9 +217,9 @@ func sheetAddTab(f *excelize.File, sheetName string, siid string, handler AppHan
 	f.SetCellValue(sheetName, cell(col, row), "Node Tags")
 	f.SetCellStyle(sheetName, cell(col, row), cell(col, row), styleCategory)
 	s := ""
-	for i, t := range handler.NodeTags {
+	for _, t := range handler.NodeTags {
 		if !strings.Contains(t, "/") {
-			if i != 0 {
+			if s != "" {
 				s += ", "
 			}
 			s += t
