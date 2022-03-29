@@ -307,7 +307,7 @@ func uStatsAdd(hostname string, hostaddr string, s map[string][]StatsStat) (adde
 		}
 		if hsBuckets == 0 {
 			hsBuckets = len(sis)
-			hsLeastRecentTime := hs.Time + (bucketSecs * int64(hsBuckets))
+			hsLeastRecentTime := hs.Time - (bucketSecs * int64(hsBuckets))
 			if hsLeastRecentTime > leastRecentTime {
 				fmt.Printf("*** error: hs truncated %d > %d\n", hsLeastRecentTime, leastRecentTime)
 				return
