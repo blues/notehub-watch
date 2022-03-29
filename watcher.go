@@ -427,7 +427,15 @@ func ConvertStatsFromAbsoluteToRelative(stats []StatsStat, bucketSecs int64) (ou
 		stats[i].OSDiskRead -= stats[i+1].OSDiskRead
 		stats[i].OSDiskWrite -= stats[i+1].OSDiskWrite
 
+		// Special handling for these two stats, which seem odd because
+		// occasionally the OS will return numbers lower than the previous ones
+		if stats[i+1].OSNetReceived > stats[i].OSNetReceived {
+			stats[i].OSNetReceived = stats[i+1].OSNetReceived
+		}
 		stats[i].OSNetReceived -= stats[i+1].OSNetReceived
+		if stats[i+1].OSNetSent > stats[i].OSNetSent {
+			stats[i].OSNetSent = stats[i+1].OSNetSent
+		}
 		stats[i].OSNetSent -= stats[i+1].OSNetSent
 
 		stats[i].DiscoveryHandlersActivated -= stats[i+1].DiscoveryHandlersActivated
