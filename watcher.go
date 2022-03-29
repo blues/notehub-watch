@@ -543,11 +543,13 @@ func watcherGetStats(hostname string, hostaddr string) (serviceVersionChanged bo
 
 		// Update the handler with info only contained in the ping body
 		h := handlers[siid]
-		started, _ := time.Parse("2006-01-02T15:04:05Z", pb.Body.NodeStarted)
-		h.NodeStarted = started.Unix()
-		fmt.Printf("OZZIE pb.Body.NodeStarted: %s\n", pb.Body.NodeStarted)
-		fmt.Printf("OZZIE started time: %v\n", started)
-		fmt.Printf("OZZIE started unix: %d\n", h.NodeStarted)
+		if pb.Body.LegacyServiceVersion != 0 {
+			h.NodeStarted = pb.Body.LegacyServiceVersion
+		}
+		if pb.Body.NodeStarted != "" {
+			started, _ := time.Parse("2006-01-02T15:04:05Z", pb.Body.NodeStarted)
+			h.NodeStarted = started.Unix()
+		}
 		handlers[siid] = h
 
 		// Sanity check for format of stats
