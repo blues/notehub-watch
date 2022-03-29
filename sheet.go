@@ -236,7 +236,11 @@ func sheetAddTab(f *excelize.File, sheetName string, siid string, ss serviceSumm
 	if !isSummarySheet {
 		f.SetCellValue(sheetName, cell(col, row), "Started")
 		f.SetCellStyle(sheetName, cell(col, row), cell(col, row), styleCategory)
-		f.SetCellValue(sheetName, cell(col+1, row), time.Unix(handler.NodeStarted, 0).Format("01-02 15:04:05"))
+		if handler.NodeStarted == 0 {
+			f.SetCellValue(sheetName, cell(col+1, row), "unknown")
+		} else {
+			f.SetCellValue(sheetName, cell(col+1, row), time.Unix(handler.NodeStarted, 0).Format("01-02 15:04:05"))
+		}
 	}
 	row++
 
