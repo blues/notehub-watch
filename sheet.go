@@ -400,8 +400,14 @@ func sheetAddTab(f *excelize.File, sheetName string, siid string, ss serviceSumm
 		timeHeader(f, sheetName, col+1, row, bucketMins, buckets)
 		row++
 
-		keys := make([]string, 0, len(stats[0].Fatals))
-		for k := range stats[0].Fatals {
+		km := map[string]bool{}
+		for _, stat := range stats {
+			for k := range stat.Fatals {
+				km[k] = true
+			}
+		}
+		keys := make([]string, 0, len(km))
+		for k := range km {
 			keys = append(keys, k)
 		}
 		sort.Strings(keys)
@@ -424,8 +430,14 @@ func sheetAddTab(f *excelize.File, sheetName string, siid string, ss serviceSumm
 	f.SetCellStyle(sheetName, cell(col, row), cell(col, row), styleCategory)
 	row++
 
-	keys := make([]string, 0, len(stats[0].Caches))
-	for k := range stats[0].Caches {
+	km := map[string]bool{}
+	for _, stat := range stats {
+		for k := range stat.Caches {
+			km[k] = true
+		}
+	}
+	keys := make([]string, 0, len(km))
+	for k := range km {
 		keys = append(keys, k)
 	}
 	sort.Strings(keys)
@@ -467,15 +479,26 @@ func sheetAddTab(f *excelize.File, sheetName string, siid string, ss serviceSumm
 	f.SetCellStyle(sheetName, cell(col, row), cell(col, row), styleCategory)
 	row++
 
-	var apps, nonapps []string
-	for k := range stats[0].Databases {
-		if strings.HasPrefix(k, "app:") {
-			apps = append(apps, k)
-		} else {
-			nonapps = append(nonapps, k)
+	kmApps := map[string]bool{}
+	kmNonApps := map[string]bool{}
+	for _, stat := range stats {
+		for k := range stat.Databases {
+			if strings.HasPrefix(k, "app:") {
+				kmApps[k] = true
+			} else {
+				kmNonApps[k] = true
+			}
 		}
 	}
+	apps := make([]string, 0, len(kmApps))
+	for k := range kmApps {
+		keys = append(keys, k)
+	}
 	sort.Strings(apps)
+	nonapps := make([]string, 0, len(kmNonApps))
+	for k := range kmNonApps {
+		keys = append(keys, k)
+	}
 	sort.Strings(nonapps)
 	keys = append(nonapps, apps...)
 	for _, k := range keys {
@@ -528,8 +551,14 @@ func sheetAddTab(f *excelize.File, sheetName string, siid string, ss serviceSumm
 		f.SetCellStyle(sheetName, cell(col, row), cell(col, row), styleCategory)
 		row++
 
-		keys := make([]string, 0, len(stats[0].API))
-		for k := range stats[0].API {
+		km := map[string]bool{}
+		for _, stat := range stats {
+			for k := range stat.API {
+				km[k] = true
+			}
+		}
+		keys := make([]string, 0, len(km))
+		for k := range km {
 			keys = append(keys, k)
 		}
 		sort.Strings(keys)
