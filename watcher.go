@@ -545,6 +545,9 @@ func watcherGetStats(hostname string, hostaddr string) (serviceVersionChanged bo
 		h := handlers[siid]
 		started, _ := time.Parse("2006-01-02T15:04:05Z", pb.Body.NodeStarted)
 		h.NodeStarted = started.Unix()
+		fmt.Printf("OZZIE pb.Body.NodeStarted: %s\n", pb.Body.NodeStarted)
+		fmt.Printf("OZZIE started time: %v\n", started)
+		fmt.Printf("OZZIE started unix: %d\n", h.NodeStarted)
 		handlers[siid] = h
 
 		// Sanity check for format of stats
