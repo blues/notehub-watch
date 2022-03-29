@@ -273,9 +273,6 @@ func uStatsAdd(hostname string, hostaddr string, s map[string][]StatsStat) (adde
 	// If the time is less recent than the one found, extend all arrays at the end
 	for siid, sis := range hs.Stats {
 		hsLeastRecentTime := hs.Time - (int64(len(sis)) * bucketSecs)
-		if addStatsTrace {
-			fmt.Printf("leastRecent Time in HS = %d\n", hsLeastRecentTime)
-		}
 		if hsLeastRecentTime > leastRecentTime {
 			arrayEntries := (hsLeastRecentTime - leastRecentTime) / bucketSecs
 			if addStatsTrace {
