@@ -68,7 +68,7 @@ var statsServiceVersions map[string]string
 var statsUpdateLock sync.Mutex
 
 // Trace
-const addStatsTrace = false
+const addStatsTrace = true
 
 // Stats maintenance task
 func statsMaintainer() {
