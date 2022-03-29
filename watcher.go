@@ -244,6 +244,9 @@ func getServiceInstances(hostaddr string) (serviceVersion string, serviceInstanc
 	if err != nil {
 		return
 	}
+	if pb.Body.ServiceVersion == "" && pb.Body.LegacyServiceVersion != 0 {
+		pb.Body.ServiceVersion = time.Unix(pb.Body.LegacyServiceVersion, 0).Format("20060102-150405")
+	}
 
 	if pb.Body.AppHandlers == nil {
 		err = fmt.Errorf("no handlers in " + string(rspJSON))
@@ -251,9 +254,6 @@ func getServiceInstances(hostaddr string) (serviceVersion string, serviceInstanc
 	}
 
 	serviceVersion = pb.Body.ServiceVersion
-	if serviceVersion == "" && pb.Body.LegacyServiceVersion != 0 {
-		serviceVersion = time.Unix(pb.Body.LegacyServiceVersion, 0).Format("20060102-150405")
-	}
 
 	handlers = map[string]AppHandler{}
 	for _, h := range *pb.Body.AppHandlers {
@@ -316,6 +316,9 @@ func getServiceInstanceInfo(addr string, siid string, showWhat string) (pb PingB
 	err = json.Unmarshal(rspJSON, &pb)
 	if err != nil {
 		return
+	}
+	if pb.Body.ServiceVersion == "" && pb.Body.LegacyServiceVersion != 0 {
+		pb.Body.ServiceVersion = time.Unix(pb.Body.LegacyServiceVersion, 0).Format("20060102-150405")
 	}
 
 	// Done
