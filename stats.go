@@ -5,21 +5,22 @@
 package main
 
 import (
+	"archive/zip"
 	"bufio"
 	"bytes"
-	"compress/zlib"
 	"encoding/json"
 	"fmt"
 	"io"
 	"io/ioutil"
-	"os"
 	"sort"
 	"sync"
 	"time"
 )
 
 // Standard or zip file
-const fileType = ".zip"
+const zipType = ".zip"
+const jsonType = ".json"
+const currentType = zipType
 
 // AggregatedStat is a structure used to aggregate stats across service instances
 type AggregatedStat struct {
@@ -107,13 +108,13 @@ func statsMaintainer() {
 }
 
 // Get the stats filename for a given UTC date
-func statsFilename(host string, serviceVersion string, filetime int64) (filename string) {
-	return host + "-" + serviceVersion + "-" + time.Unix(filetime, 0).Format("20060102") + fileType
+func statsFilename(host string, serviceVersion string, filetime int64, filetype string) (filename string) {
+	return host + "-" + serviceVersion + "-" + time.Unix(filetime, 0).Format("20060102") + filetype
 }
 
 // Get the stats filename's full path
-func statsFilepath(host string, serviceVersion string, filetime int64) (filepath string) {
-	return configDataDirectory + "/" + statsFilename(host, serviceVersion, filetime)
+func statsFilepath(host string, serviceVersion string, filetime int64, filetype string) (filepath string) {
+	return configDataDirectory + "/" + statsFilename(host, serviceVersion, filetime, filetype)
 }
 
 // Load stats from files
@@ -510,21 +511,21 @@ func uSaveStats(hostname string, serviceVersion string) (err error) {
 	// Update the stats for yesterday and today into the file system
 	contents, err := writeFileLocally(hostname, serviceVersion, todayTime(), secs1Day)
 	if err != nil {
-		fmt.Printf("stats: error writing %s: %s\n", statsFilename(hostname, serviceVersion, todayTime()), err)
+		fmt.Printf("stats: error writing %s: %s\n", statsFilename(hostname, serviceVersion, todayTime(), currentType), err)
 	} else {
-		err = s3UploadStats(statsFilename(hostname, serviceVersion, todayTime()), contents)
+		err = s3UploadStats(statsFilename(hostname, serviceVersion, todayTime(), currentType), contents)
 		if err != nil {
-			fmt.Printf("stats: error uploading %s to S3: %s\n", statsFilename(hostname, serviceVersion, todayTime()), err)
+			fmt.Printf("stats: error uploading %s to S3: %s\n", statsFilename(hostname, serviceVersion, todayTime(), currentType), err)
 		}
 	}
 	if err == nil {
 		contents, err = writeFileLocally(hostname, serviceVersion, yesterdayTime(), secs1Day)
 		if err != nil {
-			fmt.Printf("stats: error writing %s: %s\n", statsFilename(hostname, serviceVersion, yesterdayTime()), err)
+			fmt.Printf("stats: error writing %s: %s\n", statsFilename(hostname, serviceVersion, yesterdayTime(), currentType), err)
 		} else {
-			err = s3UploadStats(statsFilename(hostname, serviceVersion, yesterdayTime()), contents)
+			err = s3UploadStats(statsFilename(hostname, serviceVersion, yesterdayTime(), currentType), contents)
 			if err != nil {
-				fmt.Printf("stats: error uploading %s to S3: %s\n", statsFilename(hostname, serviceVersion, yesterdayTime()), err)
+				fmt.Printf("stats: error uploading %s to S3: %s\n", statsFilename(hostname, serviceVersion, yesterdayTime(), currentType), err)
 			}
 		}
 	}
@@ -602,35 +603,42 @@ func statsUpdateHost(hostname string, hostaddr string) (ss serviceSummary, handl
 
 // Read a file locally
 func readFileLocally(hostname string, serviceVersion string, beginTime int64) (hs HostStats, err error) {
+
+	// Read the contents
 	var contents []byte
-	filepath := statsFilepath(hostname, serviceVersion, beginTime)
-	if fileType == ".json" {
-		contents, err = ioutil.ReadFile(filepath)
-		if err != nil {
-			return
-		}
+	filepath := statsFilepath(hostname, serviceVersion, beginTime, currentType)
+	contents, err = ioutil.ReadFile(filepath)
+	if err != nil {
+		return
 	}
-	if fileType == ".zip" {
-		src, err2 := os.Open(filepath)
+
+	// If it's a zip type, unzip the first file within the archive
+	if currentType == zipType {
+		lenBefore := len(contents)
+		archive, err2 := zip.NewReader(bytes.NewReader(contents), int64(len(contents)))
 		if err2 != nil {
 			err = err2
 			return
 		}
-		defer src.Close()
-		zsrc, err2 := zlib.NewReader(src)
-		if err2 != nil {
-			err = err2
-			return
+		for _, zf := range archive.File {
+			f, err2 := zf.Open()
+			if err != nil {
+				err = err2
+				return
+			}
+			contents, err = ioutil.ReadAll(f)
+			f.Close()
+			if err != nil {
+				return
+			}
+			if len(contents) > 0 {
+				break
+			}
 		}
-		defer zsrc.Close()
-		var contentsBuffered bytes.Buffer
-		bufferedWriter := bufio.NewWriter(&contentsBuffered)
-		_, err = io.Copy(bufferedWriter, zsrc)
-		if err != nil {
-			return
-		}
-		contents = contentsBuffered.Bytes()
+		fmt.Printf("readFile: unzipped %d to %d\n", lenBefore, len(contents))
 	}
+
+	// Unmarshal it
 	err = json.Unmarshal(contents, &hs)
 	if err != nil {
 		return
@@ -640,33 +648,41 @@ func readFileLocally(hostname string, serviceVersion string, beginTime int64) (h
 
 // Write a file locally
 func writeFileLocally(hostname string, serviceVersion string, beginTime int64, duration int64) (contents []byte, err error) {
+
+	// Marshal the stats into a bytes buffer
 	hs, _ := statsExtract(hostname, beginTime, duration)
 	contents, err = json.Marshal(hs)
 	if err != nil {
 		return
 	}
-	filepath := statsFilepath(hostname, serviceVersion, beginTime)
-	if fileType == ".json" {
-		err = ioutil.WriteFile(filepath, contents, 0644)
-		if err != nil {
-			return
-		}
-	}
-	if fileType == ".zip" {
+
+	// If desired, convert the bytes to zip format
+	if currentType == zipType {
+		lenBefore := len(contents)
 		src := bytes.NewReader(contents)
-		dest, err2 := os.Create(filepath)
+		var contentsZipped bytes.Buffer
+		dst := bufio.NewWriter(&contentsZipped)
+		zdst := zip.NewWriter(dst)
+		zfdst, err2 := zdst.Create(statsFilename(hostname, serviceVersion, beginTime, jsonType))
 		if err2 != nil {
 			err = err2
 			return
 		}
-		defer dest.Close()
-		zdest := zlib.NewWriter(dest)
-		defer zdest.Close()
-		_, err = io.Copy(zdest, src)
+		_, err = io.Copy(zfdst, src)
 		if err != nil {
 			return
 		}
+		contents = contentsZipped.Bytes()
+		fmt.Printf("writeFile: zipped %d to %d\n", lenBefore, len(contents))
 	}
+
+	// Write the file
+	err = ioutil.WriteFile(statsFilepath(hostname, serviceVersion, beginTime, currentType), contents, 0644)
+	if err != nil {
+		return
+	}
+
+	// Return the contents
 	return
 }
 
