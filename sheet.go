@@ -192,6 +192,7 @@ func sheetAddTab(f *excelize.File, sheetName string, siid string, ss serviceSumm
 	styleCategory, _ := f.NewStyle(`{"font":{"color":"ff0000","bold":true,"italic":true}}`)
 	styleSubcategory, _ := f.NewStyle(`{"font":{"color":"007f00","bold":true,"italic":false}}`)
 	styleRightAligned, _ := f.NewStyle(`{"alignment":{"horizontal":"right"}}`)
+	styleLeftAligned, _ := f.NewStyle(`{"alignment":{"horizontal":"left"}}`)
 
 	// Base for dynamic info
 	row := 1
@@ -203,9 +204,14 @@ func sheetAddTab(f *excelize.File, sheetName string, siid string, ss serviceSumm
 	f.SetPanes(sheetName, `{"freeze":true,"x_split":1,"y_split":2,"top_left_cell":"B3","active_pane":"bottomRight","panes":[{"pane":"topLeft"},{"pane":"topRight"},{"pane":"bottomLeft"},{"active_cell":"B3", "sqref":"B3", "pane":"bottomRight"}]}`)
 
 	// Node info
-	f.SetCellValue(sheetName, cell(col, row), "Node SIID")
+	f.SetCellValue(sheetName, cell(col, row), "Node")
 	f.SetCellStyle(sheetName, cell(col, row), cell(col, row), styleCategory)
 	f.SetCellValue(sheetName, cell(col+1, row), siid)
+	row++
+
+	f.SetCellValue(sheetName, cell(col, row), "Version")
+	f.SetCellStyle(sheetName, cell(col, row), cell(col, row), styleCategory)
+	f.SetCellValue(sheetName, cell(col+1, row), ss.ServiceVersion)
 	row++
 
 	f.SetCellValue(sheetName, cell(col, row), "Node Tags")
@@ -230,32 +236,27 @@ func sheetAddTab(f *excelize.File, sheetName string, siid string, ss serviceSumm
 	f.SetCellValue(sheetName, cell(col, row), "IPv4")
 	f.SetCellStyle(sheetName, cell(col, row), cell(col, row), styleCategory)
 	f.SetCellValue(sheetName, cell(col+1, row), handler.Ipv4)
+	f.SetCellValue(sheetName, cell(col+2, row), "tcp:")
+	f.SetCellStyle(sheetName, cell(col+2, row), cell(col+2, row), styleRightAligned)
+	f.SetCellValue(sheetName, cell(col+3, row), handler.TCPPort)
+	f.SetCellStyle(sheetName, cell(col+3, row), cell(col+3, row), styleLeftAligned)
+	f.SetCellValue(sheetName, cell(col+4, row), "tcps:")
+	f.SetCellStyle(sheetName, cell(col+4, row), cell(col+4, row), styleRightAligned)
+	f.SetCellValue(sheetName, cell(col+5, row), handler.TCPSPort)
+	f.SetCellStyle(sheetName, cell(col+5, row), cell(col+5, row), styleLeftAligned)
+	f.SetCellValue(sheetName, cell(col+6, row), "http:")
+	f.SetCellStyle(sheetName, cell(col+6, row), cell(col+6, row), styleRightAligned)
+	f.SetCellValue(sheetName, cell(col+7, row), handler.HTTPPort)
+	f.SetCellStyle(sheetName, cell(col+7, row), cell(col+7, row), styleLeftAligned)
+	f.SetCellValue(sheetName, cell(col+8, row), "https:")
+	f.SetCellStyle(sheetName, cell(col+8, row), cell(col+8, row), styleRightAligned)
+	f.SetCellValue(sheetName, cell(col+9, row), handler.HTTPSPort)
+	f.SetCellStyle(sheetName, cell(col+9, row), cell(col+9, row), styleLeftAligned)
 	row++
 
 	f.SetCellValue(sheetName, cell(col, row), "Public IPv4")
 	f.SetCellStyle(sheetName, cell(col, row), cell(col, row), styleCategory)
 	f.SetCellValue(sheetName, cell(col+1, row), handler.PublicIpv4)
-	row++
-
-	f.SetCellValue(sheetName, cell(col, row), "Ports")
-	f.SetCellStyle(sheetName, cell(col, row), cell(col, row), styleCategory)
-	f.SetCellValue(sheetName, cell(col+1, row), "tcp:")
-	f.SetCellStyle(sheetName, cell(col+1, row), cell(col+1, row), styleRightAligned)
-	f.SetCellValue(sheetName, cell(col+2, row), handler.TCPPort)
-	f.SetCellValue(sheetName, cell(col+3, row), "tcps:")
-	f.SetCellStyle(sheetName, cell(col+3, row), cell(col+3, row), styleRightAligned)
-	f.SetCellValue(sheetName, cell(col+4, row), handler.TCPSPort)
-	f.SetCellValue(sheetName, cell(col+5, row), "http:")
-	f.SetCellStyle(sheetName, cell(col+5, row), cell(col+5, row), styleRightAligned)
-	f.SetCellValue(sheetName, cell(col+6, row), handler.HTTPPort)
-	f.SetCellValue(sheetName, cell(col+7, row), "https:")
-	f.SetCellStyle(sheetName, cell(col+7, row), cell(col+7, row), styleRightAligned)
-	f.SetCellValue(sheetName, cell(col+8, row), handler.HTTPSPort)
-	row++
-
-	f.SetCellValue(sheetName, cell(col, row), "Version")
-	f.SetCellStyle(sheetName, cell(col, row), cell(col, row), styleCategory)
-	f.SetCellValue(sheetName, cell(col+1, row), ss.ServiceVersion)
 	row++
 
 	row++
@@ -393,46 +394,9 @@ func sheetAddTab(f *excelize.File, sheetName string, siid string, ss serviceSumm
 	row++
 
 	// Fatals stats
-	if len(stats[0].Fatals) > 0 {
-
-		f.SetCellValue(sheetName, cell(col, row), "Fatals")
-		f.SetCellStyle(sheetName, cell(col, row), cell(col, row), styleCategory)
-		timeHeader(f, sheetName, col+1, row, bucketMins, buckets)
-		row++
-
-		km := map[string]bool{}
-		for _, stat := range stats {
-			for k := range stat.Fatals {
-				km[k] = true
-			}
-		}
-		keys := make([]string, 0, len(km))
-		for k := range km {
-			keys = append(keys, k)
-		}
-		sort.Strings(keys)
-		for _, k := range keys {
-			f.SetCellValue(sheetName, cell(col, row), k)
-			f.SetCellStyle(sheetName, cell(col, row), cell(col, row), styleSubcategory)
-			for i, stat := range stats {
-				f.SetCellValue(sheetName, cell(col+1+i, row), stat.Fatals[k])
-			}
-			row++
-
-		}
-
-		row++
-
-	}
-
-	// Cache stats
-	f.SetCellValue(sheetName, cell(col, row), "Caches")
-	f.SetCellStyle(sheetName, cell(col, row), cell(col, row), styleCategory)
-	row++
-
 	km := map[string]bool{}
 	for _, stat := range stats {
-		for k := range stat.Caches {
+		for k := range stat.Fatals {
 			km[k] = true
 		}
 	}
@@ -441,6 +405,43 @@ func sheetAddTab(f *excelize.File, sheetName string, siid string, ss serviceSumm
 		keys = append(keys, k)
 	}
 	sort.Strings(keys)
+
+	if len(keys) > 0 {
+		f.SetCellValue(sheetName, cell(col, row), "Fatals")
+		f.SetCellStyle(sheetName, cell(col, row), cell(col, row), styleCategory)
+		timeHeader(f, sheetName, col+1, row, bucketMins, buckets)
+		row++
+	}
+	for _, k := range keys {
+		f.SetCellValue(sheetName, cell(col, row), k)
+		f.SetCellStyle(sheetName, cell(col, row), cell(col, row), styleSubcategory)
+		for i, stat := range stats {
+			f.SetCellValue(sheetName, cell(col+1+i, row), stat.Fatals[k])
+		}
+		row++
+	}
+	if len(keys) > 0 {
+		row++
+	}
+
+	// Cache stats
+	km = map[string]bool{}
+	for _, stat := range stats {
+		for k := range stat.Caches {
+			km[k] = true
+		}
+	}
+	keys = make([]string, 0, len(km))
+	for k := range km {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+
+	if len(keys) > 0 {
+		f.SetCellValue(sheetName, cell(col, row), "Caches")
+		f.SetCellStyle(sheetName, cell(col, row), cell(col, row), styleCategory)
+		row++
+	}
 	for _, k := range keys {
 		row++
 
@@ -471,14 +472,51 @@ func sheetAddTab(f *excelize.File, sheetName string, siid string, ss serviceSumm
 		row++
 
 	}
+	if len(keys) > 0 {
+		row++
+	}
 
-	row++
+	// API stats
+	km = map[string]bool{}
+	for _, stat := range stats {
+		for k := range stat.API {
+			km[k] = true
+		}
+	}
+	keys = make([]string, 0, len(km))
+	for k := range km {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+
+	if len(keys) > 0 {
+		f.SetCellValue(sheetName, cell(col, row), "API")
+		f.SetCellStyle(sheetName, cell(col, row), cell(col, row), styleCategory)
+		row++
+	}
+	for _, k := range keys {
+		row++
+
+		f.SetCellValue(sheetName, cell(col, row), k)
+		f.SetCellStyle(sheetName, cell(col, row), cell(col, row), styleSubcategory)
+		row++
+		f.SetCellValue(sheetName, cell(col, row), "api")
+		f.SetCellStyle(sheetName, cell(col, row), cell(col, row), styleMetric)
+		timeHeader(f, sheetName, col+1, row, bucketMins, buckets)
+		row++
+
+		f.SetCellValue(sheetName, cell(col, row), "calls")
+		f.SetCellStyle(sheetName, cell(col, row), cell(col, row), styleMetric)
+		for i, stat := range stats {
+			f.SetCellValue(sheetName, cell(col+1+i, row), stat.API[k])
+		}
+
+	}
+	if len(keys) > 0 {
+		row++
+	}
 
 	// Database stats (display the ones beginning with "app" at the end)
-	f.SetCellValue(sheetName, cell(col, row), "Databases")
-	f.SetCellStyle(sheetName, cell(col, row), cell(col, row), styleCategory)
-	row++
-
 	kmApps := map[string]bool{}
 	kmNonApps := map[string]bool{}
 	for _, stat := range stats {
@@ -501,6 +539,12 @@ func sheetAddTab(f *excelize.File, sheetName string, siid string, ss serviceSumm
 	}
 	sort.Strings(nonapps)
 	keys = append(nonapps, apps...)
+
+	if len(keys) > 0 {
+		f.SetCellValue(sheetName, cell(col, row), "Databases")
+		f.SetCellStyle(sheetName, cell(col, row), cell(col, row), styleCategory)
+		row++
+	}
 	for _, k := range keys {
 		row++
 
@@ -541,48 +585,8 @@ func sheetAddTab(f *excelize.File, sheetName string, siid string, ss serviceSumm
 		row++
 
 	}
-
-	row++
-
-	// API stats
-	if len(stats[0].API) > 0 {
-
-		f.SetCellValue(sheetName, cell(col, row), "API")
-		f.SetCellStyle(sheetName, cell(col, row), cell(col, row), styleCategory)
+	if len(keys) > 0 {
 		row++
-
-		km := map[string]bool{}
-		for _, stat := range stats {
-			for k := range stat.API {
-				km[k] = true
-			}
-		}
-		keys := make([]string, 0, len(km))
-		for k := range km {
-			keys = append(keys, k)
-		}
-		sort.Strings(keys)
-		for _, k := range keys {
-			row++
-
-			f.SetCellValue(sheetName, cell(col, row), k)
-			f.SetCellStyle(sheetName, cell(col, row), cell(col, row), styleSubcategory)
-			row++
-			f.SetCellValue(sheetName, cell(col, row), "api")
-			f.SetCellStyle(sheetName, cell(col, row), cell(col, row), styleMetric)
-			timeHeader(f, sheetName, col+1, row, bucketMins, buckets)
-			row++
-
-			f.SetCellValue(sheetName, cell(col, row), "calls")
-			f.SetCellStyle(sheetName, cell(col, row), cell(col, row), styleMetric)
-			for i, stat := range stats {
-				f.SetCellValue(sheetName, cell(col+1+i, row), stat.API[k])
-			}
-
-		}
-
-		row++
-
 	}
 
 	// Done
