@@ -201,7 +201,7 @@ func sheetAddTab(f *excelize.File, sheetName string, siid string, ss serviceSumm
 	row := 1
 	col := 1
 	colname, _ := excelize.ColumnNumberToName(col)
-	f.SetColWidth(sheetName, colname, colname, 13)
+	f.SetColWidth(sheetName, colname, colname, 15)
 
 	// Freeze panes
 	f.SetPanes(sheetName, `{"freeze":true,"x_split":1,"y_split":2,"top_left_cell":"B3","active_pane":"bottomRight","panes":[{"pane":"topLeft"},{"pane":"topRight"},{"pane":"bottomLeft"},{"active_cell":"B3", "sqref":"B3", "pane":"bottomRight"}]}`)
@@ -351,33 +351,33 @@ func sheetAddTab(f *excelize.File, sheetName string, siid string, ss serviceSumm
 	row++
 
 	// Handler stats
-	f.SetCellValue(sheetName, cell(col, row), "Handlers")
+	f.SetCellValue(sheetName, cell(col, row), "Active Handlers")
 	f.SetCellStyle(sheetName, cell(col, row), cell(col, row), styleCategory)
 	timeHeader(f, sheetName, col+1, row, bucketMins, buckets)
 	row++
 
-	f.SetCellValue(sheetName, cell(col, row), "contin")
+	f.SetCellValue(sheetName, cell(col, row), "continuous")
 	f.SetCellStyle(sheetName, cell(col, row), cell(col, row), styleMetric)
 	for i, stat := range stats {
 		f.SetCellValue(sheetName, cell(col+1+i, row), stat.ContinuousHandlersActivated)
 	}
 	row++
 
-	f.SetCellValue(sheetName, cell(col, row), "notif")
+	f.SetCellValue(sheetName, cell(col, row), "notification")
 	f.SetCellStyle(sheetName, cell(col, row), cell(col, row), styleMetric)
 	for i, stat := range stats {
 		f.SetCellValue(sheetName, cell(col+1+i, row), stat.NotificationHandlersActivated)
 	}
 	row++
 
-	f.SetCellValue(sheetName, cell(col, row), "ephem")
+	f.SetCellValue(sheetName, cell(col, row), "ephemeral")
 	f.SetCellStyle(sheetName, cell(col, row), cell(col, row), styleMetric)
 	for i, stat := range stats {
 		f.SetCellValue(sheetName, cell(col+1+i, row), stat.EphemeralHandlersActivated)
 	}
 	row++
 
-	f.SetCellValue(sheetName, cell(col, row), "disco")
+	f.SetCellValue(sheetName, cell(col, row), "discovery")
 	f.SetCellStyle(sheetName, cell(col, row), cell(col, row), styleMetric)
 	for i, stat := range stats {
 		f.SetCellValue(sheetName, cell(col+1+i, row), stat.DiscoveryHandlersActivated)

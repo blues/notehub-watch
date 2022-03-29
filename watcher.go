@@ -438,16 +438,16 @@ func ConvertStatsFromAbsoluteToRelative(stats []StatsStat, bucketSecs int64) (ou
 		}
 		stats[i].OSNetSent -= stats[i+1].OSNetSent
 
-		stats[i].DiscoveryHandlersActivated -= stats[i+1].DiscoveryHandlersActivated
+		stats[i].DiscoveryHandlersActivated -= stats[i].DiscoveryHandlersDeactivated
 		stats[i].DiscoveryHandlersDeactivated = 0
 
-		stats[i].ContinuousHandlersActivated -= stats[i+1].ContinuousHandlersActivated
+		stats[i].ContinuousHandlersActivated -= stats[i].ContinuousHandlersDeactivated
 		stats[i].ContinuousHandlersDeactivated = 0
 
-		stats[i].NotificationHandlersActivated -= stats[i+1].NotificationHandlersActivated
+		stats[i].NotificationHandlersActivated -= stats[i].NotificationHandlersDeactivated
 		stats[i].NotificationHandlersDeactivated = 0
 
-		stats[i].EphemeralHandlersActivated -= stats[i+1].EphemeralHandlersActivated
+		stats[i].EphemeralHandlersActivated -= stats[i].EphemeralHandlersDeactivated
 		stats[i].EphemeralHandlersDeactivated = 0
 
 		stats[i].EventsEnqueued -= stats[i+1].EventsEnqueued
