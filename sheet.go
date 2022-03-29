@@ -185,7 +185,7 @@ func sheetGetHostStats(hostname string, hostaddr string) (response string) {
 func sheetAddTab(f *excelize.File, sheetName string, siid string, ss serviceSummary, handler AppHandler, stats []StatsStat) (errstr string) {
 
 	// Determine if summary sheet, for special treatment
-	isSummarySheet := sheetName == "summary"
+	isSummarySheet := siid == "summary"
 
 	// Generate the sheet
 	f.NewSheet(sheetName)
