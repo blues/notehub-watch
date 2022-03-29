@@ -5,13 +5,21 @@
 package main
 
 import (
+	"bufio"
+	"bytes"
+	"compress/zlib"
 	"encoding/json"
 	"fmt"
+	"io"
 	"io/ioutil"
+	"os"
 	"sort"
 	"sync"
 	"time"
 )
+
+// Standard or zip file
+const fileType = ".zip"
 
 // AggregatedStat is a structure used to aggregate stats across service instances
 type AggregatedStat struct {
@@ -100,7 +108,7 @@ func statsMaintainer() {
 
 // Get the stats filename for a given UTC date
 func statsFilename(host string, serviceVersion string, filetime int64) (filename string) {
-	return host + "-" + serviceVersion + "-" + time.Unix(filetime, 0).Format("20060102") + ".json"
+	return host + "-" + serviceVersion + "-" + time.Unix(filetime, 0).Format("20060102") + fileType
 }
 
 // Get the stats filename's full path
@@ -195,9 +203,8 @@ func statsAdd(hostname string, hostaddr string, s map[string][]StatsStat) (added
 // Add stats to the in-memory vector of stats.
 func uStatsAdd(hostname string, hostaddr string, s map[string][]StatsStat) (added int, addedStats map[string][]StatsStat) {
 
-	// Exit if no map
+	// Exit if no map (this is to be expected in initialization cases)
 	if s == nil {
-		fmt.Printf("uStatsAdd: %s: *** no stats to add ***\n", hostname)
 		return
 	}
 
@@ -596,9 +603,33 @@ func statsUpdateHost(hostname string, hostaddr string) (ss serviceSummary, handl
 // Read a file locally
 func readFileLocally(hostname string, serviceVersion string, beginTime int64) (hs HostStats, err error) {
 	var contents []byte
-	contents, err = ioutil.ReadFile(statsFilepath(hostname, serviceVersion, beginTime))
-	if err != nil {
-		return
+	filepath := statsFilepath(hostname, serviceVersion, beginTime)
+	if fileType == ".json" {
+		contents, err = ioutil.ReadFile(filepath)
+		if err != nil {
+			return
+		}
+	}
+	if fileType == ".zip" {
+		src, err2 := os.Open(filepath)
+		if err2 != nil {
+			err = err2
+			return
+		}
+		defer src.Close()
+		zsrc, err2 := zlib.NewReader(src)
+		if err2 != nil {
+			err = err2
+			return
+		}
+		defer zsrc.Close()
+		var contentsBuffered bytes.Buffer
+		bufferedWriter := bufio.NewWriter(&contentsBuffered)
+		_, err = io.Copy(bufferedWriter, zsrc)
+		if err != nil {
+			return
+		}
+		contents = contentsBuffered.Bytes()
 	}
 	err = json.Unmarshal(contents, &hs)
 	if err != nil {
@@ -614,9 +645,27 @@ func writeFileLocally(hostname string, serviceVersion string, beginTime int64, d
 	if err != nil {
 		return
 	}
-	err = ioutil.WriteFile(statsFilepath(hostname, serviceVersion, beginTime), contents, 0644)
-	if err != nil {
-		return
+	filepath := statsFilepath(hostname, serviceVersion, beginTime)
+	if fileType == ".json" {
+		err = ioutil.WriteFile(filepath, contents, 0644)
+		if err != nil {
+			return
+		}
+	}
+	if fileType == ".zip" {
+		src := bytes.NewReader(contents)
+		dest, err2 := os.Create(filepath)
+		if err2 != nil {
+			err = err2
+			return
+		}
+		defer dest.Close()
+		zdest := zlib.NewWriter(dest)
+		defer zdest.Close()
+		_, err = io.Copy(zdest, src)
+		if err != nil {
+			return
+		}
 	}
 	return
 }
