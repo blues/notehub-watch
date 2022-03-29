@@ -6,11 +6,9 @@ package main
 
 import (
 	"archive/zip"
-	"bufio"
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"io"
 	"io/ioutil"
 	"sort"
 	"sync"
@@ -659,20 +657,22 @@ func writeFileLocally(hostname string, serviceVersion string, beginTime int64, d
 	// If desired, convert the bytes to zip format
 	if currentType == zipType {
 		lenBefore := len(contents)
-		src := bytes.NewReader(contents)
-		var contentsZipped bytes.Buffer
-		dst := bufio.NewWriter(&contentsZipped)
-		zdst := zip.NewWriter(dst)
-		zfdst, err2 := zdst.Create(statsFilename(hostname, serviceVersion, beginTime, jsonType))
+		buf := new(bytes.Buffer)
+		zipWriter := zip.NewWriter(buf)
+		zipFile, err2 := zipWriter.Create(statsFilename(hostname, serviceVersion, beginTime, jsonType))
 		if err2 != nil {
 			err = err2
 			return
 		}
-		_, err = io.Copy(zfdst, src)
+		_, err = zipFile.Write(contents)
 		if err != nil {
 			return
 		}
-		contents = contentsZipped.Bytes()
+		err = zipWriter.Close()
+		if err != nil {
+			return
+		}
+		contents = buf.Bytes()
 		fmt.Printf("writeFile: zipped %d to %d\n", lenBefore, len(contents))
 	}
 
