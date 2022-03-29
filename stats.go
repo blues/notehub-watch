@@ -328,12 +328,8 @@ func uStatsAdd(hostname string, hostaddr string, s map[string][]StatsStat) (adde
 				fmt.Printf("*** error: out of bounds %d, %d\n", i, len(hs.Stats[siid]))
 				return
 			}
-			if hs.Stats[siid][i].OSMemTotal != 0 {
-				if snew.OSMemTotal != 0 {
-					fmt.Printf("overwriting %s non-blank entry with non-blank entry %d\n", siid, i)
-				} else {
-					fmt.Printf("overwriting %s non-blank entry with blank entry %d\n", siid, i)
-				}
+			if hs.Stats[siid][i].OSMemTotal != 0 && snew.OSMemTotal == 0 {
+				fmt.Printf("overwriting %s non-blank entry with blank entry %d\n", siid, i)
 				statsAnalyze("EXISTING", hs.Stats[siid])
 				statsAnalyze("ADDING", s[siid])
 				return
