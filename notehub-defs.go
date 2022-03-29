@@ -28,20 +28,20 @@ type PingBody struct {
 
 // PingRequest is the structure returned to the caller
 type PingRequest struct {
-	Protocol        string        `json:"protocol,omitempty"`
-	ClientIP        string        `json:"client,omitempty"`
-	ServerIP        string        `json:"server,omitempty"`
-	InstanceID      string        `json:"instance,omitempty"`
-	Time            string        `json:"time,omitempty"`
-	Started         int64         `json:"started,omitempty"`
-	HeapSize        uint64        `json:"heap_size,omitempty"`
-	HeapFree        uint64        `json:"heap_free,omitempty"`
-	HeapUsed        uint64        `json:"heap_used,omitempty"`
-	HeapCount       uint64        `json:"heap_count,omitempty"`
-	GoroutineStatus string        `json:"status_goroutine,omitempty"`
-	HeapStatus      string        `json:"status_heap,omitempty"`
-	LBStatus        *[]AppLBStat  `json:"status_lb,omitempty"`
-	AppHandlers     *[]AppHandler `json:"handlers,omitempty"`
+	ServiceVersion       string                  `json:"service_version,omitempty"`
+	LegacyServiceVersion int64                   `json:"started,omitempty"`
+	NodeStarted          string                  `json:"node_started,omitempty"`
+	NodeID               string                  `json:"node_id,omitempty"`
+	Time                 string                  `json:"time,omitempty"`
+	HeapSize             uint64                  `json:"heap_size,omitempty"`
+	HeapFree             uint64                  `json:"heap_free,omitempty"`
+	HeapUsed             uint64                  `json:"heap_used,omitempty"`
+	HeapCount            uint64                  `json:"heap_count,omitempty"`
+	GoroutineStatus      string                  `json:"status_goroutine,omitempty"`
+	HeapStatus           string                  `json:"status_heap,omitempty"`
+	LBStatus             *[]StatsStat            `json:"status_lb,omitempty"`
+	AppHandlers          *[]AppHandler           `json:"handlers,omitempty"`
+	Body                 *map[string]interface{} `json:"received_body,omitempty"`
 }
 
 //
@@ -51,6 +51,7 @@ type PingRequest struct {
 type AppHandler struct {
 	NodeID         string   `json:"node_id,omitempty"`
 	NodeTags       []string `json:"node_tags,omitempty"`
+	NodeStarted    int64    `json:"node_started,omitempty"`
 	DataCenter     string   `json:"datacenter,omitempty"`
 	Ipv4           string   `json:"ipv4,omitempty"`
 	TCPPort        int      `json:"tcp_port,omitempty"`
@@ -68,7 +69,7 @@ type AppHandler struct {
 //
 
 // A handler statistic
-type AppLBHandler struct {
+type StatsHandler struct {
 	DeviceUID      string `json:"device,omitempty"`
 	AppUID         string `json:"app,omitempty"`
 	Discovery      bool   `json:"discovery,omitempty"`
@@ -80,7 +81,7 @@ type AppLBHandler struct {
 }
 
 // A database statistic
-type AppLBDatabase struct {
+type StatsDatabase struct {
 	Reads      int64 `json:"reads,omitempty"`
 	ReadMs     int64 `json:"read_ms,omitempty"`
 	ReadMsMax  int64 `json:"read_ms_max,omitempty"`
@@ -90,17 +91,22 @@ type AppLBDatabase struct {
 }
 
 // A cache statistic
-type AppLBCache struct {
+type StatsCache struct {
 	Invalidations int64 `json:"invalidations,omitempty"`
 	Entries       int64 `json:"entries,omitempty"`
 	EntriesHWM    int64 `json:"hwm,omitempty"`
 }
 
-// AppLBStat is the data structure of a single running statistics batch
-type AppLBStat struct {
-	Started                         int64                    `json:"started,omitempty"`
-	NodeStarted                     int64                    `json:"started_node,omitempty"`
-	BucketMins                      int64                    `json:"minutes,omitempty"`
+// StatsStat is the data structure of a single running statistics batch
+type StatsStat struct {
+
+	// These fields are present only in the first 'live' stat, NOT inside every single stat
+	ServiceVersion       string `json:"service_version,omitempty"`
+	LegacyServiceVersion int64  `json:"started,omitempty"`
+	NodeStarted          int64  `json:"node_started,omitempty"`
+	BucketMins           int64  `json:"minutes,omitempty"`
+
+	// These are in the first stat and every stat
 	SnapshotTaken                   int64                    `json:"when,omitempty"`
 	OSMemTotal                      uint64                   `json:"mem_total,omitempty"`
 	OSMemFree                       uint64                   `json:"mem_free,omitempty"`
@@ -119,9 +125,9 @@ type AppLBStat struct {
 	EventsEnqueued                  int64                    `json:"events_enqueued,omitempty"`
 	EventsDequeued                  int64                    `json:"events_dequeued,omitempty"`
 	EventsRouted                    int64                    `json:"events_routed,omitempty"`
-	Handlers                        map[string]AppLBHandler  `json:"handlers,omitempty"`
-	Databases                       map[string]AppLBDatabase `json:"databases,omitempty"`
-	Caches                          map[string]AppLBCache    `json:"caches,omitempty"`
+	Handlers                        map[string]StatsHandler  `json:"handlers,omitempty"`
+	Databases                       map[string]StatsDatabase `json:"databases,omitempty"`
+	Caches                          map[string]StatsCache    `json:"caches,omitempty"`
 	API                             map[string]int64         `json:"api,omitempty"`
 	Fatals                          map[string]int64         `json:"fatals,omitempty"`
 }

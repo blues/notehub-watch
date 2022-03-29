@@ -25,11 +25,11 @@ func (list statOccurrence) Less(i, j int) bool {
 }
 
 // Write new stats to DataDog
-func datadogUploadStats(hostname string, addedStats map[string][]AppLBStat) (err error) {
+func datadogUploadStats(hostname string, bucketSecs int64, addedStats map[string][]StatsStat) (err error) {
 
 	// Generate the list of aggregated stats
-	bucketSecs, aggregatedStats := statsAggregate(addedStats)
-	if bucketSecs == 0 || len(aggregatedStats) == 0 {
+	aggregatedStats := statsAggregate(addedStats, bucketSecs)
+	if len(aggregatedStats) == 0 {
 		return
 	}
 

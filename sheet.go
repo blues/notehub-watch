@@ -46,14 +46,14 @@ func inboundWebSheetHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 // Add all the tabs for this service type
-func sheetAddTabs(serviceType string, hs *HostStats, handlers map[string]AppHandler, f *excelize.File) (response string) {
+func sheetAddTabs(serviceType string, hs *HostStats, ss serviceSummary, handlers map[string]AppHandler, f *excelize.File) (response string) {
 	var sn int
 
 	if sheetTrace {
 		fmt.Printf("sheetAddTabs: %s\n", serviceType)
 	}
 
-	sheetAddTab(f, "Summary", "summary", AppHandler{}, statsAggregateAsLBStat(hs.Stats))
+	sheetAddTab(f, "Summary", "summary", ss, AppHandler{}, statsAggregateAsLBStat(hs.Stats, hs.BucketMins*60))
 
 	keys := make([]string, 0, len(hs.Stats))
 	for key := range hs.Stats {
@@ -91,7 +91,7 @@ func sheetAddTabs(serviceType string, hs *HostStats, handlers map[string]AppHand
 		}
 
 		// Generate the sheet for this service instance
-		response = sheetAddTab(f, sheetName, siid, handlers[siid], hs.Stats[siid])
+		response = sheetAddTab(f, sheetName, siid, ss, handlers[siid], hs.Stats[siid])
 		if response != "" {
 			break
 		}
@@ -104,16 +104,13 @@ func sheetAddTabs(serviceType string, hs *HostStats, handlers map[string]AppHand
 // Generate a sheet for this host
 func sheetGetHostStats(hostname string, hostaddr string) (response string) {
 
-	// Get the most recent stats, ignoring errors
+	// Update with the most recent stats, ignoring errors
 	if sheetTrace {
 		fmt.Printf("sheetGetHostStats: get stats for %s\n", hostname)
 	}
-	ss, stats1h, handlers, err := watcherGetStats(hostaddr)
-	if err == nil {
-		if sheetTrace {
-			fmt.Printf("sheetGetHostStats: update stats in memory\n")
-		}
-		statsAdd(hostname, hostaddr, stats1h)
+	ss, handlers, err := statsUpdateHost(hostname, hostaddr)
+	if err != nil {
+		fmt.Printf("sheetGetHostStats: error updating %s: %s\n", hostname, err)
 	}
 
 	// Get the entire set of stats available in-memory
@@ -130,16 +127,16 @@ func sheetGetHostStats(hostname string, hostaddr string) (response string) {
 
 	// Generate a page within the sheet for each service instance
 	if response == "" {
-		response = sheetAddTabs(DcServiceNameNotehandlerTCP, &hs, handlers, f)
+		response = sheetAddTabs(DcServiceNameNotehandlerTCP, &hs, ss, handlers, f)
 	}
 	if response == "" {
-		response = sheetAddTabs(DcServiceNameNoteDiscovery, &hs, handlers, f)
+		response = sheetAddTabs(DcServiceNameNoteDiscovery, &hs, ss, handlers, f)
 	}
 	if response == "" {
-		response = sheetAddTabs(DcServiceNameNoteboard, &hs, handlers, f)
+		response = sheetAddTabs(DcServiceNameNoteboard, &hs, ss, handlers, f)
 	}
 	if response == "" {
-		response = sheetAddTabs("", &hs, handlers, f)
+		response = sheetAddTabs("", &hs, ss, handlers, f)
 	}
 	if response != "" {
 		return
@@ -166,14 +163,9 @@ func sheetGetHostStats(hostname string, hostaddr string) (response string) {
 	}
 
 	// Generate response
-	stime := time.Unix(ss.Started, 0).UTC()
-	est, _ := time.LoadLocation("EST")
-	estFmt := stime.In(est).Format("Mon Jan 02 15:04PM MST")
-	utcFmt := stime.Format("2006-01-02T15:04:05Z")
 	response += "```"
 	response += fmt.Sprintf("      host: %s\n", hostCleaned)
-	response += fmt.Sprintf("   started: %s (%s)\n", estFmt, utcFmt)
-	response += fmt.Sprintf("    uptime: %s\n", uptimeStr(ss.Started, time.Now().UTC().Unix()))
+	response += fmt.Sprintf("   version: %s)\n", ss.ServiceVersion)
 	response += fmt.Sprintf("     nodes: %d\n", len(ss.ServiceInstanceIDs))
 	response += fmt.Sprintf("  handlers: %d (continuous:%d notification:%d ephemeral:%d discovery:%d)\n",
 		ss.ContinuousHandlers+ss.NotificationHandlers+ss.EphemeralHandlers+ss.DiscoveryHandlers,
@@ -190,7 +182,7 @@ func sheetGetHostStats(hostname string, hostaddr string) (response string) {
 }
 
 // Add the stats for a service instance as a tabbed sheet within the xlsx
-func sheetAddTab(f *excelize.File, sheetName string, siid string, handler AppHandler, stats []AppLBStat) (errstr string) {
+func sheetAddTab(f *excelize.File, sheetName string, siid string, ss serviceSummary, handler AppHandler, stats []StatsStat) (errstr string) {
 
 	// Generate the sheet
 	f.NewSheet(sheetName)
@@ -230,6 +222,42 @@ func sheetAddTab(f *excelize.File, sheetName string, siid string, handler AppHan
 	f.SetCellValue(sheetName, cell(col+1, row), s)
 	row++
 
+	f.SetCellValue(sheetName, cell(col, row), "Started")
+	f.SetCellStyle(sheetName, cell(col, row), cell(col, row), styleCategory)
+	f.SetCellValue(sheetName, cell(col+1, row), time.Unix(handler.NodeStarted, 0).Format("01-02 15:04:05"))
+	row++
+
+	f.SetCellValue(sheetName, cell(col, row), "IPv4")
+	f.SetCellStyle(sheetName, cell(col, row), cell(col, row), styleCategory)
+	f.SetCellValue(sheetName, cell(col+1, row), handler.Ipv4)
+	row++
+
+	f.SetCellValue(sheetName, cell(col, row), "Public IPv4")
+	f.SetCellStyle(sheetName, cell(col, row), cell(col, row), styleCategory)
+	f.SetCellValue(sheetName, cell(col+1, row), handler.PublicIpv4)
+	row++
+
+	f.SetCellValue(sheetName, cell(col, row), "Ports")
+	f.SetCellStyle(sheetName, cell(col, row), cell(col, row), styleCategory)
+	f.SetCellValue(sheetName, cell(col+1, row), "tcp:")
+	f.SetCellStyle(sheetName, cell(col+1, row), cell(col+1, row), styleRightAligned)
+	f.SetCellValue(sheetName, cell(col+2, row), handler.TCPPort)
+	f.SetCellValue(sheetName, cell(col+3, row), "tcps:")
+	f.SetCellStyle(sheetName, cell(col+3, row), cell(col+3, row), styleRightAligned)
+	f.SetCellValue(sheetName, cell(col+4, row), handler.TCPSPort)
+	f.SetCellValue(sheetName, cell(col+5, row), "http:")
+	f.SetCellStyle(sheetName, cell(col+5, row), cell(col+5, row), styleRightAligned)
+	f.SetCellValue(sheetName, cell(col+6, row), handler.HTTPPort)
+	f.SetCellValue(sheetName, cell(col+7, row), "https:")
+	f.SetCellStyle(sheetName, cell(col+7, row), cell(col+7, row), styleRightAligned)
+	f.SetCellValue(sheetName, cell(col+8, row), handler.HTTPSPort)
+	row++
+
+	f.SetCellValue(sheetName, cell(col, row), "Version")
+	f.SetCellStyle(sheetName, cell(col, row), cell(col, row), styleCategory)
+	f.SetCellValue(sheetName, cell(col+1, row), ss.ServiceVersion)
+	row++
+
 	row++
 
 	// Exit if no stats
@@ -239,7 +267,7 @@ func sheetAddTab(f *excelize.File, sheetName string, siid string, handler AppHan
 
 	// Bucket parameters are assumed to be uniform
 	buckets := len(stats)
-	bucketMins := int(stats[0].BucketMins)
+	bucketMins := int(ss.BucketSecs / 60)
 
 	// OS stats
 	f.SetCellValue(sheetName, cell(col, row), "OS (MiB)")
@@ -258,42 +286,19 @@ func sheetAddTab(f *excelize.File, sheetName string, siid string, handler AppHan
 	}
 	row++
 
-	f.SetCellValue(sheetName, cell(col, row), "boot EST")
+	f.SetCellValue(sheetName, cell(col, row), "malloc mb")
 	f.SetCellStyle(sheetName, cell(col, row), cell(col, row), styleMetric)
 	for i, stat := range stats {
-		if stat.Started != 0 {
-			stime := time.Unix(stat.Started, 0).UTC()
-			est, _ := time.LoadLocation("EST")
-			estFmt := stime.In(est).Format("Mon Jan 02")
-			f.SetCellValue(sheetName, cell(col+1+i, row), estFmt)
-			f.SetCellStyle(sheetName, cell(col+1+i, row), cell(col+1+i, row), styleRightAligned)
-		}
-	}
-	row++
-
-	f.SetCellValue(sheetName, cell(col, row), "uptime")
-	f.SetCellStyle(sheetName, cell(col, row), cell(col, row), styleMetric)
-	for i, stat := range stats {
-		if stat.Started != 0 {
-			f.SetCellValue(sheetName, cell(col+1+i, row), uptimeStr(stat.Started, stat.SnapshotTaken))
-		}
-		f.SetCellStyle(sheetName, cell(col+1+i, row), cell(col+1+i, row), styleRightAligned)
-	}
-	row++
-
-	f.SetCellValue(sheetName, cell(col, row), "malloc")
-	f.SetCellStyle(sheetName, cell(col, row), cell(col, row), styleMetric)
-	for i, stat := range stats {
-		if stat.Started != 0 {
+		if stat.OSMemTotal != 0 {
 			f.SetCellValue(sheetName, cell(col+1+i, row), (stat.OSMemTotal-stat.OSMemFree)/(1024*1024))
 		}
 	}
 	row++
 
-	f.SetCellValue(sheetName, cell(col, row), "mtotal")
+	f.SetCellValue(sheetName, cell(col, row), "mtotal mb")
 	f.SetCellStyle(sheetName, cell(col, row), cell(col, row), styleMetric)
 	for i, stat := range stats {
-		if stat.Started != 0 {
+		if stat.OSMemTotal != 0 {
 			f.SetCellValue(sheetName, cell(col+1+i, row), stat.OSMemTotal/(1024*1024))
 		}
 	}
@@ -302,36 +307,28 @@ func sheetAddTab(f *excelize.File, sheetName string, siid string, handler AppHan
 	f.SetCellValue(sheetName, cell(col, row), "diskrd")
 	f.SetCellStyle(sheetName, cell(col, row), cell(col, row), styleMetric)
 	for i, stat := range stats {
-		if stat.Started != 0 {
-			f.SetCellValue(sheetName, cell(col+1+i, row), stat.OSDiskRead/(1024*1024))
-		}
+		f.SetCellValue(sheetName, cell(col+1+i, row), stat.OSDiskRead/(1024*1024))
 	}
 	row++
 
 	f.SetCellValue(sheetName, cell(col, row), "diskwr")
 	f.SetCellStyle(sheetName, cell(col, row), cell(col, row), styleMetric)
 	for i, stat := range stats {
-		if stat.Started != 0 {
-			f.SetCellValue(sheetName, cell(col+1+i, row), stat.OSDiskWrite/(1024*1024))
-		}
+		f.SetCellValue(sheetName, cell(col+1+i, row), stat.OSDiskWrite/(1024*1024))
 	}
 	row++
 
-	f.SetCellValue(sheetName, cell(col, row), "netrcv")
+	f.SetCellValue(sheetName, cell(col, row), "netrcv mb")
 	f.SetCellStyle(sheetName, cell(col, row), cell(col, row), styleMetric)
 	for i, stat := range stats {
-		if stat.Started != 0 {
-			f.SetCellValue(sheetName, cell(col+1+i, row), stat.OSNetReceived/(1024*1024))
-		}
+		f.SetCellValue(sheetName, cell(col+1+i, row), stat.OSNetReceived/(1024*1024))
 	}
 	row++
 
-	f.SetCellValue(sheetName, cell(col, row), "netsnd")
+	f.SetCellValue(sheetName, cell(col, row), "netsnd mb")
 	f.SetCellStyle(sheetName, cell(col, row), cell(col, row), styleMetric)
 	for i, stat := range stats {
-		if stat.Started != 0 {
-			f.SetCellValue(sheetName, cell(col+1+i, row), stat.OSNetSent/(1024*1024))
-		}
+		f.SetCellValue(sheetName, cell(col+1+i, row), stat.OSNetSent/(1024*1024))
 	}
 	row++
 

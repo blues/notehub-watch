@@ -9,7 +9,9 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"sort"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -21,7 +23,8 @@ const asyncSheetRequest = true
 
 // Current "live" info
 type serviceSummary struct {
-	Started              int64
+	ServiceVersion       string
+	BucketSecs           int64
 	ContinuousHandlers   int64
 	NotificationHandlers int64
 	EphemeralHandlers    int64
@@ -29,6 +32,11 @@ type serviceSummary struct {
 	ServiceInstanceIDs   []string
 	ServiceInstanceAddrs []string
 }
+
+// Service instances the last time we looked
+var serviceLock sync.Mutex
+var lastServiceVersions map[string]string
+var lastServiceHandlers map[string][]AppHandler
 
 // Watcher show command
 func watcherShow(hostname string, showWhat string) (result string) {
@@ -80,7 +88,7 @@ func watcherShowHost(hostname string, hostaddr string, showWhat string) (respons
 	}
 
 	// Get the list of handlers on the host
-	serviceInstanceIDs, serviceInstanceAddrs, _, err := watcherGetServiceInstances(hostaddr)
+	_, _, serviceInstanceIDs, serviceInstanceAddrs, _, err := watcherGetServiceInstances(hostname, hostaddr)
 	if err != nil {
 		return err.Error()
 	}
@@ -101,8 +109,113 @@ func watcherShowHost(hostname string, hostaddr string, showWhat string) (respons
 	return response
 }
 
+// This is the central method to get the list of handlers, diff'ing them against the prior versions returned, and
+// sending a message to the service if we've detected that the list has changed.
+func watcherGetServiceInstances(hostname string, hostaddr string) (serviceVersionChanged bool, serviceVersion string, serviceInstanceIDs []string, serviceInstanceAddrs []string, handlers map[string]AppHandler, err error) {
+
+	// Only one task in here at a time
+	serviceLock.Lock()
+
+	// Initialize
+	refreshCache := false
+	if lastServiceVersions == nil {
+		lastServiceVersions = map[string]string{}
+		refreshCache = true
+	}
+	if lastServiceHandlers == nil {
+		lastServiceHandlers = map[string][]AppHandler{}
+		refreshCache = true
+	}
+
+	// Get the latest service instances, and exit if error
+	serviceVersion, serviceInstanceIDs, serviceInstanceAddrs, handlers, err = getServiceInstances(hostaddr)
+
+	// Substitute very common errors
+	if err != nil {
+		if strings.Contains(err.Error(), "unexpected end of JSON input") {
+			err = fmt.Errorf("server not responding")
+		}
+	}
+	if err != nil {
+		err = fmt.Errorf("%s: error pinging host: %s", hostname, err)
+	}
+
+	// Check to see if the service version is the same
+	if err == nil && lastServiceVersions[hostname] != serviceVersion {
+		if lastServiceVersions[hostname] != "" {
+			err = fmt.Errorf("@channel: %s restarted from %s to %s", hostname, lastServiceVersions[hostname], serviceVersion)
+			serviceVersionChanged = true
+		}
+		refreshCache = true
+	}
+
+	// Check to see if the handlers are the same
+	lastHandlers, exists := lastServiceHandlers[hostname]
+	if !exists {
+		refreshCache = true
+	} else if err == nil {
+
+		// Generate a list of differences
+		addedHandlers := map[string]AppHandler{}
+		sameHandlers := map[string]AppHandler{}
+		removedHandlers := map[string]AppHandler{}
+		for _, v := range lastHandlers {
+			_, exists := handlers[v.NodeID]
+			if !exists {
+				removedHandlers[v.NodeID] = v
+			} else {
+				sameHandlers[v.NodeID] = v
+			}
+		}
+		for k, v := range handlers {
+			_, exists := sameHandlers[k]
+			if !exists {
+				addedHandlers[k] = v
+			}
+		}
+		if len(addedHandlers) > 0 || len(removedHandlers) > 0 {
+			s := "@channel: %s handlers changed:\n"
+			if len(addedHandlers) > 0 {
+				s += "  BORN:\n"
+				for k := range addedHandlers {
+					s += "    " + k + "\n"
+				}
+			}
+			if len(removedHandlers) > 0 {
+				s += "  DIED:\n"
+				for k := range removedHandlers {
+					s += "    " + k + "\n"
+				}
+			}
+			err = fmt.Errorf("%s", s)
+			refreshCache = true
+		}
+	}
+
+	// If an error, post it
+	if err != nil {
+		slackSendMessage(err.Error())
+	}
+
+	// If we need to re-cache service info, do it.  If this was successful, it means that no error actually occurred
+	if refreshCache {
+		err = nil
+		lastServiceVersions[hostname] = serviceVersion
+		newHandlers := []AppHandler{}
+		for _, v := range handlers {
+			newHandlers = append(newHandlers, v)
+		}
+		lastServiceHandlers[hostname] = newHandlers
+	}
+
+	// Done
+	serviceLock.Unlock()
+	return
+
+}
+
 // Get the list of handlers
-func watcherGetServiceInstances(hostaddr string) (serviceInstanceIDs []string, serviceInstanceAddrs []string, handlers map[string]AppHandler, err error) {
+func getServiceInstances(hostaddr string) (serviceVersion string, serviceInstanceIDs []string, serviceInstanceAddrs []string, handlers map[string]AppHandler, err error) {
 
 	url := "https://" + hostaddr + "/ping?show=\"handlers\""
 	req, err2 := http.NewRequest("GET", url, nil)
@@ -136,18 +249,28 @@ func watcherGetServiceInstances(hostaddr string) (serviceInstanceIDs []string, s
 		err = fmt.Errorf("no handlers in " + string(rspJSON))
 		return
 	}
+
+	serviceVersion = pb.Body.ServiceVersion
+	if serviceVersion == "" && pb.Body.LegacyServiceVersion != 0 {
+		serviceVersion = time.Unix(pb.Body.LegacyServiceVersion, 0).Format("20060102-150405")
+	}
+
 	handlers = map[string]AppHandler{}
 	for _, h := range *pb.Body.AppHandlers {
 		// Create the SIID out of the NodeID combined with the primary service.  This technique is mimicked
 		// within the actual http-ping.go handling in notehub, and is required for unique addressing of
 		// a service instance simply because on Local Dev we have a single NodeID that hosts all of the
-		// different services that collect stats within their own process address spaces.
-		siid := h.NodeID + ":" + h.PrimaryService
-		serviceInstanceIDs = append(serviceInstanceIDs, siid)
+		// different services that collect stats within their own process address spaces.  Note that
+		// we replace the NodeID in the structure so that the caller can make that assumption.
+		h.NodeID = h.NodeID + ":" + h.PrimaryService
+		serviceInstanceIDs = append(serviceInstanceIDs, h.NodeID)
 		addr := fmt.Sprintf("http://%s", hostaddr)
 		serviceInstanceAddrs = append(serviceInstanceAddrs, addr)
-		handlers[siid] = h
+		handlers[h.NodeID] = h
 	}
+
+	// Always return them in a deterministic order to make it easier to look at the spreadsheet
+	sort.Strings(serviceInstanceIDs)
 
 	return
 
@@ -256,18 +379,18 @@ func watcherShowServiceInstance(addr string, siid string, showWhat string) (resp
 
 // Convert N absolute buckets to N-1 relative buckets by subtracting values
 // from the next bucket from the value in each bucket.
-func ConvertStatsFromAbsoluteToRelative(startTime int64, bucketMins int64, stats []AppLBStat) (out []AppLBStat) {
+func ConvertStatsFromAbsoluteToRelative(stats []StatsStat, bucketSecs int64) (out []StatsStat) {
 
 	// Do prep work to make the code below flow more naturally without
 	// getting access violations because of uninitialized maps
 	if len(stats) == 0 {
-		stats = append(stats, AppLBStat{})
+		stats = append(stats, StatsStat{})
 	}
 	if stats[0].Databases == nil {
-		stats[0].Databases = make(map[string]AppLBDatabase)
+		stats[0].Databases = make(map[string]StatsDatabase)
 	}
 	if stats[0].Caches == nil {
-		stats[0].Caches = make(map[string]AppLBCache)
+		stats[0].Caches = make(map[string]StatsCache)
 	}
 	if stats[0].API == nil {
 		stats[0].API = make(map[string]int64)
@@ -275,6 +398,7 @@ func ConvertStatsFromAbsoluteToRelative(startTime int64, bucketMins int64, stats
 	if stats[0].Fatals == nil {
 		stats[0].Fatals = make(map[string]int64)
 	}
+	stats[0].SnapshotTaken = (stats[0].SnapshotTaken / bucketSecs) * bucketSecs
 
 	// Special-case returning a single stat just after server reboot
 	if len(stats) == 1 {
@@ -294,8 +418,8 @@ func ConvertStatsFromAbsoluteToRelative(startTime int64, bucketMins int64, stats
 	// to numbers that are bucket-scoped relative to the prior bucket
 	for i := 0; i < len(stats)-1; i++ {
 
-		stats[i].Started = startTime
-		stats[i].BucketMins = bucketMins
+		stats[i].SnapshotTaken = (stats[i].SnapshotTaken / bucketSecs) * bucketSecs
+		stats[i].BucketMins = 0
 
 		stats[i].OSDiskRead -= stats[i+1].OSDiskRead
 		stats[i].OSDiskWrite -= stats[i+1].OSDiskWrite
@@ -321,7 +445,7 @@ func ConvertStatsFromAbsoluteToRelative(startTime int64, bucketMins int64, stats
 		stats[i].EventsRouted -= stats[i+1].EventsRouted
 
 		if stats[i+1].Databases == nil {
-			stats[i+1].Databases = make(map[string]AppLBDatabase)
+			stats[i+1].Databases = make(map[string]StatsDatabase)
 		}
 		for k, vcur := range stats[i].Databases {
 			vprev, present := stats[i+1].Databases[k]
@@ -341,7 +465,7 @@ func ConvertStatsFromAbsoluteToRelative(startTime int64, bucketMins int64, stats
 		}
 
 		if stats[i+1].Caches == nil {
-			stats[i+1].Caches = make(map[string]AppLBCache)
+			stats[i+1].Caches = make(map[string]StatsCache)
 		}
 		for k, vcur := range stats[i].Caches {
 			vprev, present := stats[i+1].Caches[k]
@@ -380,7 +504,7 @@ func ConvertStatsFromAbsoluteToRelative(startTime int64, bucketMins int64, stats
 }
 
 // Retrieve a sample of data from the specified host, returning a vector of available stats indexed by SIID
-func watcherGetStats(hostaddr string) (ss serviceSummary, stats map[string][]AppLBStat, handlers map[string]AppHandler, err error) {
+func watcherGetStats(hostname string, hostaddr string) (serviceVersionChanged bool, ss serviceSummary, handlers map[string]AppHandler, stats map[string][]StatsStat, err error) {
 
 	if watcherTrace {
 		fmt.Printf("watcherGetStats: fetching stats for %s\n", hostaddr)
@@ -388,10 +512,10 @@ func watcherGetStats(hostaddr string) (ss serviceSummary, stats map[string][]App
 	}
 
 	// Instantiate the stats map
-	stats = map[string][]AppLBStat{}
+	stats = map[string][]StatsStat{}
 
 	// Get the list of service instances on the host
-	ss.ServiceInstanceIDs, ss.ServiceInstanceAddrs, handlers, err = watcherGetServiceInstances(hostaddr)
+	serviceVersionChanged, ss.ServiceVersion, ss.ServiceInstanceIDs, ss.ServiceInstanceAddrs, handlers, err = watcherGetServiceInstances(hostname, hostaddr)
 	if err != nil {
 		return
 	}
@@ -406,31 +530,39 @@ func watcherGetStats(hostaddr string) (ss serviceSummary, stats map[string][]App
 			return
 		}
 
-		// Update service summary
-		if len(*pb.Body.LBStatus) > 0 {
-			ss.Started = (*pb.Body.LBStatus)[0].Started
-			ss.ContinuousHandlers += (*pb.Body.LBStatus)[0].ContinuousHandlersActivated -
-				(*pb.Body.LBStatus)[0].ContinuousHandlersDeactivated
-			ss.NotificationHandlers += (*pb.Body.LBStatus)[0].NotificationHandlersActivated -
-				(*pb.Body.LBStatus)[0].NotificationHandlersDeactivated
-			ss.EphemeralHandlers += (*pb.Body.LBStatus)[0].EphemeralHandlersActivated -
-				(*pb.Body.LBStatus)[0].EphemeralHandlersDeactivated
-			ss.DiscoveryHandlers += (*pb.Body.LBStatus)[0].DiscoveryHandlersActivated -
-				(*pb.Body.LBStatus)[0].DiscoveryHandlersDeactivated
+		// Update the handler with info only contained in the ping body
+		h := handlers[siid]
+		started, _ := time.Parse("2006-01-02T15:04:05Z", pb.Body.NodeStarted)
+		h.NodeStarted = started.Unix()
+		handlers[siid] = h
+
+		// Sanity check for format of stats
+		if pb.Body.LBStatus == nil || len(*pb.Body.LBStatus) == 0 {
+			// No 'live' stats - should never happen
+			continue
 		}
+		sistats := *pb.Body.LBStatus
+		if sistats[0].ServiceVersion != ss.ServiceVersion {
+			err = fmt.Errorf("%s: node service version is incorrect: %s", siid, sistats[i].ServiceVersion)
+			return
+		}
+
+		// Update service summary
+		ss.BucketSecs = sistats[0].BucketMins * 60
+		ss.ContinuousHandlers += sistats[0].ContinuousHandlersActivated - sistats[0].ContinuousHandlersDeactivated
+		ss.NotificationHandlers += sistats[0].NotificationHandlersActivated - sistats[0].NotificationHandlersDeactivated
+		ss.EphemeralHandlers += sistats[0].EphemeralHandlersActivated - sistats[0].EphemeralHandlersDeactivated
+		ss.DiscoveryHandlers += sistats[0].DiscoveryHandlersActivated - sistats[0].DiscoveryHandlersDeactivated
 
 		// If the server hasn't been up long enough to have stats.  Note that [0] is the
 		// current stats, and we need at least two more to compute relative stats.
-		if len(*pb.Body.LBStatus) < 3 {
+		if len(sistats) < 3 {
 			err = fmt.Errorf("server hasn't been up long enough to have useful stats")
 			return
 		}
 
 		// Extract all available stats, and convert them from absolute to per-bucket relative.
-		stats[siid] = ConvertStatsFromAbsoluteToRelative(
-			(*pb.Body.LBStatus)[0].Started,
-			(*pb.Body.LBStatus)[0].BucketMins,
-			(*pb.Body.LBStatus)[1:])
+		stats[siid] = ConvertStatsFromAbsoluteToRelative(sistats[1:], ss.BucketSecs)
 
 	}
 

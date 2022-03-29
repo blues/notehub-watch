@@ -28,9 +28,6 @@ func main() {
 	// Spawn the stats maintenance task
 	go statsMaintainer()
 
-	// Spawn the stats pruning task
-	go statsPruner()
-
 	// Spawn the availability task
 	go pingWatcher()
 
