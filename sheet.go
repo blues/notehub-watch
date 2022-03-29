@@ -110,7 +110,8 @@ func sheetGetHostStats(hostname string, hostaddr string) (response string) {
 	}
 	ss, handlers, err := statsUpdateHost(hostname, hostaddr)
 	if err != nil {
-		fmt.Printf("sheetGetHostStats: error updating %s: %s\n", hostname, err)
+		response = fmt.Sprintf("sheetGetHostStats: error updating %s: %s\n", hostname, err)
+		return
 	}
 
 	// Get the entire set of stats available in-memory
@@ -120,6 +121,7 @@ func sheetGetHostStats(hostname string, hostaddr string) (response string) {
 	hs, exists := statsExtract(hostname, 0, 0)
 	if !exists {
 		response = fmt.Sprintf("unknown host: %s", hostname)
+		return
 	}
 
 	// Create a new spreadsheet
