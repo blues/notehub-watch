@@ -239,7 +239,8 @@ func sheetAddTab(f *excelize.File, sheetName string, siid string, ss serviceSumm
 		if handler.NodeStarted == 0 {
 			f.SetCellValue(sheetName, cell(col+1, row), "unknown")
 		} else {
-			f.SetCellValue(sheetName, cell(col+1, row), time.Unix(handler.NodeStarted, 0).Format("01-02 15:04:05"))
+			f.SetCellValue(sheetName, cell(col+1, row), handler.NodeStarted)
+			//OZZIE			f.SetCellValue(sheetName, cell(col+1, row), time.Unix(handler.NodeStarted, 0).Format("01-02 15:04:05"))
 		}
 	}
 	row++
