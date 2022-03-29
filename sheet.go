@@ -184,6 +184,9 @@ func sheetGetHostStats(hostname string, hostaddr string) (response string) {
 // Add the stats for a service instance as a tabbed sheet within the xlsx
 func sheetAddTab(f *excelize.File, sheetName string, siid string, ss serviceSummary, handler AppHandler, stats []StatsStat) (errstr string) {
 
+	// Determine if summary sheet, for special treatment
+	isSummarySheet := sheetName == "summary"
+
 	// Generate the sheet
 	f.NewSheet(sheetName)
 
@@ -214,49 +217,57 @@ func sheetAddTab(f *excelize.File, sheetName string, siid string, ss serviceSumm
 	f.SetCellValue(sheetName, cell(col+1, row), ss.ServiceVersion)
 	row++
 
-	f.SetCellValue(sheetName, cell(col, row), "Node Tags")
-	f.SetCellStyle(sheetName, cell(col, row), cell(col, row), styleCategory)
-	s := ""
-	for _, t := range handler.NodeTags {
-		if !strings.Contains(t, "/") {
-			if s != "" {
-				s += ", "
+	if !isSummarySheet {
+		f.SetCellValue(sheetName, cell(col, row), "Node Tags")
+		f.SetCellStyle(sheetName, cell(col, row), cell(col, row), styleCategory)
+		s := ""
+		for _, t := range handler.NodeTags {
+			if !strings.Contains(t, "/") {
+				if s != "" {
+					s += ", "
+				}
+				s += t
 			}
-			s += t
 		}
+		f.SetCellValue(sheetName, cell(col+1, row), s)
 	}
-	f.SetCellValue(sheetName, cell(col+1, row), s)
 	row++
 
-	f.SetCellValue(sheetName, cell(col, row), "Started")
-	f.SetCellStyle(sheetName, cell(col, row), cell(col, row), styleCategory)
-	f.SetCellValue(sheetName, cell(col+1, row), time.Unix(handler.NodeStarted, 0).Format("01-02 15:04:05"))
+	if !isSummarySheet {
+		f.SetCellValue(sheetName, cell(col, row), "Started")
+		f.SetCellStyle(sheetName, cell(col, row), cell(col, row), styleCategory)
+		f.SetCellValue(sheetName, cell(col+1, row), time.Unix(handler.NodeStarted, 0).Format("01-02 15:04:05"))
+	}
 	row++
 
-	f.SetCellValue(sheetName, cell(col, row), "IPv4")
-	f.SetCellStyle(sheetName, cell(col, row), cell(col, row), styleCategory)
-	f.SetCellValue(sheetName, cell(col+1, row), handler.Ipv4)
-	f.SetCellValue(sheetName, cell(col+2, row), "tcp:")
-	f.SetCellStyle(sheetName, cell(col+2, row), cell(col+2, row), styleRightAligned)
-	f.SetCellValue(sheetName, cell(col+3, row), handler.TCPPort)
-	f.SetCellStyle(sheetName, cell(col+3, row), cell(col+3, row), styleLeftAligned)
-	f.SetCellValue(sheetName, cell(col+4, row), "tcps:")
-	f.SetCellStyle(sheetName, cell(col+4, row), cell(col+4, row), styleRightAligned)
-	f.SetCellValue(sheetName, cell(col+5, row), handler.TCPSPort)
-	f.SetCellStyle(sheetName, cell(col+5, row), cell(col+5, row), styleLeftAligned)
-	f.SetCellValue(sheetName, cell(col+6, row), "http:")
-	f.SetCellStyle(sheetName, cell(col+6, row), cell(col+6, row), styleRightAligned)
-	f.SetCellValue(sheetName, cell(col+7, row), handler.HTTPPort)
-	f.SetCellStyle(sheetName, cell(col+7, row), cell(col+7, row), styleLeftAligned)
-	f.SetCellValue(sheetName, cell(col+8, row), "https:")
-	f.SetCellStyle(sheetName, cell(col+8, row), cell(col+8, row), styleRightAligned)
-	f.SetCellValue(sheetName, cell(col+9, row), handler.HTTPSPort)
-	f.SetCellStyle(sheetName, cell(col+9, row), cell(col+9, row), styleLeftAligned)
+	if !isSummarySheet {
+		f.SetCellValue(sheetName, cell(col, row), "IPv4")
+		f.SetCellStyle(sheetName, cell(col, row), cell(col, row), styleCategory)
+		f.SetCellValue(sheetName, cell(col+1, row), handler.Ipv4)
+		f.SetCellValue(sheetName, cell(col+2, row), "tcp:")
+		f.SetCellStyle(sheetName, cell(col+2, row), cell(col+2, row), styleRightAligned)
+		f.SetCellValue(sheetName, cell(col+3, row), handler.TCPPort)
+		f.SetCellStyle(sheetName, cell(col+3, row), cell(col+3, row), styleLeftAligned)
+		f.SetCellValue(sheetName, cell(col+4, row), "tcps:")
+		f.SetCellStyle(sheetName, cell(col+4, row), cell(col+4, row), styleRightAligned)
+		f.SetCellValue(sheetName, cell(col+5, row), handler.TCPSPort)
+		f.SetCellStyle(sheetName, cell(col+5, row), cell(col+5, row), styleLeftAligned)
+		f.SetCellValue(sheetName, cell(col+6, row), "http:")
+		f.SetCellStyle(sheetName, cell(col+6, row), cell(col+6, row), styleRightAligned)
+		f.SetCellValue(sheetName, cell(col+7, row), handler.HTTPPort)
+		f.SetCellStyle(sheetName, cell(col+7, row), cell(col+7, row), styleLeftAligned)
+		f.SetCellValue(sheetName, cell(col+8, row), "https:")
+		f.SetCellStyle(sheetName, cell(col+8, row), cell(col+8, row), styleRightAligned)
+		f.SetCellValue(sheetName, cell(col+9, row), handler.HTTPSPort)
+		f.SetCellStyle(sheetName, cell(col+9, row), cell(col+9, row), styleLeftAligned)
+	}
 	row++
 
-	f.SetCellValue(sheetName, cell(col, row), "Public IPv4")
-	f.SetCellStyle(sheetName, cell(col, row), cell(col, row), styleCategory)
-	f.SetCellValue(sheetName, cell(col+1, row), handler.PublicIpv4)
+	if !isSummarySheet {
+		f.SetCellValue(sheetName, cell(col, row), "Public IPv4")
+		f.SetCellStyle(sheetName, cell(col, row), cell(col, row), styleCategory)
+		f.SetCellValue(sheetName, cell(col+1, row), handler.PublicIpv4)
+	}
 	row++
 
 	row++
