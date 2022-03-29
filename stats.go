@@ -118,14 +118,18 @@ func uLoadStats(hostname string, hostaddr string, serviceVersion string, bucketS
 	// Load the files
 	var hs HostStats
 	hs, err = readFileLocally(hostname, serviceVersion, todayTime())
-	if err == nil {
+	if err != nil {
+		err = nil
+	} else {
 		added, _ := uStatsAdd(hostname, hs.Addr, hs.Stats)
 		if added > 0 {
 			fmt.Printf("stats: loaded %d stats for %s from today\n", added, hostname)
 		}
 	}
 	hs, err = readFileLocally(hostname, serviceVersion, yesterdayTime())
-	if err == nil {
+	if err != nil {
+		err = nil
+	} else {
 		added, _ := uStatsAdd(hostname, hs.Addr, hs.Stats)
 		if added > 0 {
 			fmt.Printf("stats: loaded %d stats for %s from yesterday\n", added, hostname)
