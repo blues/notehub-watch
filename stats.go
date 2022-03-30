@@ -203,6 +203,68 @@ func statsAdd(hostname string, hostaddr string, s map[string][]StatsStat) (added
 
 }
 
+// Validate the continuity of the specified stats array, to correct any possible corruption
+func validateStats(s map[string][]StatsStat, normalizedTime int64, bucketSecs64 int64) {
+	bucketSecs := int(bucketSecs64)
+
+	// Get the maximum length of any entry, which will determine what we're normalizing to.  Also,
+	// if normalizedTime wasn't specified, pull it out of the first entry.
+	normalizedLength := 0
+	maxTime := int64(0)
+	for _, sis := range s {
+		if len(sis) > 0 && sis[0].SnapshotTaken > maxTime {
+			maxTime = sis[0].SnapshotTaken
+		}
+		if len(sis) > normalizedLength {
+			normalizedLength = len(sis)
+		}
+	}
+	if normalizedTime == 0 {
+		normalizedTime = maxTime
+	}
+
+	// Iterate over each stats array, normalizing to normalizedTime and normalizedLength
+	for siid, sis := range s {
+
+		// Do a pre-check to see if the entire array is fine
+		bad := false
+		for i := 0; i < normalizedLength; i++ {
+			if sis[i].SnapshotTaken != normalizedTime-int64(i*bucketSecs) {
+				bad = true
+				break
+			}
+		}
+
+		// Don't do the fixup if it's fine
+		if !bad {
+			continue
+		}
+
+		// Do the fixup, which is a slow process
+		newStats := make([]StatsStat, normalizedLength)
+		for i := 0; i < normalizedLength; i++ {
+			newStats[i].SnapshotTaken = normalizedTime - int64(bucketSecs*i)
+		}
+		for _, stat := range sis {
+			i := int(normalizedTime-stat.SnapshotTaken) / bucketSecs
+			if i < 0 || i > normalizedLength {
+				fmt.Printf("can't place stat %d during fixup\n", i)
+			}
+			if newStats[i].SnapshotTaken != stat.SnapshotTaken {
+				fmt.Printf("huh?")
+			} else {
+				newStats[i] = stat
+			}
+		}
+
+		// Done
+		fmt.Printf("*** %s FIXED UP to be of length %d instead of %d ***\n", siid, len(newStats), len(s[siid]))
+		s[siid] = newStats
+
+	}
+
+}
+
 // Add stats to the in-memory vector of stats.
 func uStatsAdd(hostname string, hostaddr string, s map[string][]StatsStat) (added int, addedStats map[string][]StatsStat) {
 
@@ -226,6 +288,14 @@ func uStatsAdd(hostname string, hostaddr string, s map[string][]StatsStat) (adde
 	if hs.BucketMins == 0 {
 		fmt.Printf("uStatsAdd: %s: *** invalid host stats ***\n", hostname)
 		return
+	}
+
+	// Validate both existing stats arrays and the ones being added, just as a sanity check
+	if len(s) > 0 {
+		validateStats(s, 0, bucketSecs)
+	}
+	if len(hs.Stats) > 0 {
+		validateStats(hs.Stats, hs.Time, bucketSecs)
 	}
 
 	// Make sure there are map entries for all the service instances we're adding, and
