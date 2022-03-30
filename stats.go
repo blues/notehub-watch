@@ -299,6 +299,10 @@ func uStatsAdd(hostname string, hostaddr string, s map[string][]StatsStat) (adde
 		}
 	}
 
+	// Checkpoint the stats here so that if an error happens below, our stat arrays
+	// will at least all be the correct length
+	stats[hostname] = hs
+
 	// As purely a sanity check to validate the performance of the above, validate
 	// the core assumptions that all siids are uniform, and that all siids encompass
 	// the window of the stats being inserted
@@ -306,10 +310,12 @@ func uStatsAdd(hostname string, hostaddr string, s map[string][]StatsStat) (adde
 	for _, sis := range hs.Stats {
 		if hs.Time != sis[0].SnapshotTaken {
 			fmt.Printf("*** error: unexpected %d != snapshot taken %d\n", hs.Time, sis[0].SnapshotTaken)
+			statsAnalyze("", sis, bucketSecs)
 			return
 		}
 		if hs.Time < mostRecentTime {
 			fmt.Printf("*** error: unexpected %d < most recent time %d\n", hs.Time, mostRecentTime)
+			statsAnalyze("", sis, bucketSecs)
 			return
 		}
 		if hsBuckets == 0 {
@@ -317,11 +323,13 @@ func uStatsAdd(hostname string, hostaddr string, s map[string][]StatsStat) (adde
 			hsLeastRecentTime := hs.Time - (bucketSecs * int64(hsBuckets))
 			if hsLeastRecentTime > leastRecentTime {
 				fmt.Printf("*** error: hs truncated %d > %d\n", hsLeastRecentTime, leastRecentTime)
+				statsAnalyze("", sis, bucketSecs)
 				return
 			}
 		}
 		if len(sis) != hsBuckets {
 			fmt.Printf("*** error: nonuniform numBuckets %d != %d\n", hsBuckets, len(sis))
+			statsAnalyze("", sis, bucketSecs)
 			return
 		}
 	}
@@ -333,23 +341,15 @@ func uStatsAdd(hostname string, hostaddr string, s map[string][]StatsStat) (adde
 			i := (mostRecentTime - snew.SnapshotTaken) / bucketSecs
 			if i < 0 || i > int64(len(hs.Stats[siid])) {
 				fmt.Printf("*** error: out of bounds %d, %d\n", i, len(hs.Stats[siid]))
-				return
-			}
-			if hs.Stats[siid][i].OSMemTotal != 0 && snew.OSMemTotal == 0 {
-				fmt.Printf("overwriting %s non-blank entry with blank entry %d\n", siid, i)
-				statsAnalyze("EXISTING", hs.Stats[siid])
-				statsAnalyze("ADDING", s[siid])
-				return
 			}
 			if snew.OSMemTotal == 0 {
-				fmt.Printf("adding %s blank entry %d\n", siid, i)
-				statsAnalyze("EXISTING", hs.Stats[siid])
-				statsAnalyze("ADDING", s[siid])
-				return
+				fmt.Printf("ignored attempt to add %s blank entry %d\n", siid, i)
+				statsAnalyze("ADDING ", s[siid], bucketSecs)
+			} else {
+				hs.Stats[siid][i] = snew
+				newStats = append(newStats, snew)
+				added++
 			}
-			hs.Stats[siid][i] = snew
-			newStats = append(newStats, snew)
-			added++
 		}
 		if len(newStats) > 0 {
 			addedStats[siid] = newStats
@@ -377,45 +377,49 @@ func statsAnalyzeHost(hostname string) {
 	hs := stats[hostname]
 	for siid, sis := range hs.Stats {
 		fmt.Printf("    %s\n", siid)
-		statsAnalyze("        ", sis)
+		statsAnalyze("        ", sis, hs.BucketMins*60)
 	}
 
 }
 
 // Analyze stats
-func statsAnalyze(prefix string, stats []StatsStat) {
-	var highest, lowest, prev, bucketMins int64
+func statsAnalyze(prefix string, stats []StatsStat, bucketSecs int64) {
+	var highest, lowest, prev int64
 	count := 0
-	blank := 0
 	for i, s := range stats {
-		if s.SnapshotTaken == 0 {
-			blank++
-			continue
+		blank := ""
+		if s.OSMemTotal == 0 {
+			blank = "blank"
 		}
 		count++
-		bucketMins = s.BucketMins
-		if blank != 0 {
-			fmt.Printf("%s*** blank before nonblank entry\n", prefix)
-		}
 		if highest == 0 {
 			highest = s.SnapshotTaken
 		}
 		lowest = s.SnapshotTaken
-		if prev != 0 {
+		if prev == 0 {
+			t2 := time.Unix(lowest, 0).UTC()
+			t2s := t2.Format("01-02 15:04:05")
+			fmt.Printf("%s*** %d ok this:%s %s\n", prefix, i, t2s, blank)
+		} else {
 			if lowest >= prev {
 				t1 := time.Unix(prev, 0).UTC()
 				t1s := t1.Format("01-02 15:04:05")
 				t2 := time.Unix(lowest, 0).UTC()
 				t2s := t2.Format("01-02 15:04:05")
-				fmt.Printf("%s*** %d prev:%s this:%s\n", prefix, i, t1s, t2s)
-			}
-			shouldBe := prev + (bucketMins * 60)
-			if shouldBe != lowest {
-				t1 := time.Unix(lowest, 0).UTC()
-				t1s := t1.Format("01-02 15:04:05")
-				t2 := time.Unix(shouldBe, 0).UTC()
-				t2s := t2.Format("01-02 15:04:05")
-				fmt.Printf("%s*** %d this:%s shouldBe:%s\n", prefix, i, t1s, t2s)
+				fmt.Printf("%s*** not descending %d prev:%s this:%s %s\n", prefix, i, t1s, t2s, blank)
+			} else {
+				shouldBe := prev - bucketSecs
+				if shouldBe != lowest {
+					t1 := time.Unix(lowest, 0).UTC()
+					t1s := t1.Format("01-02 15:04:05")
+					t2 := time.Unix(shouldBe, 0).UTC()
+					t2s := t2.Format("01-02 15:04:05")
+					fmt.Printf("%s*** not exact %d this:%s shouldBe:%s %s\n", prefix, i, t1s, t2s, blank)
+				} else {
+					t2 := time.Unix(lowest, 0).UTC()
+					t2s := t2.Format("01-02 15:04:05")
+					fmt.Printf("%s*** %d ok this:%s %s\n", prefix, i, t2s, blank)
+				}
 			}
 		}
 		prev = lowest
@@ -424,9 +428,7 @@ func statsAnalyze(prefix string, stats []StatsStat) {
 	t1s := t1.Format("01-02 15:04:05")
 	t2 := time.Unix(lowest, 0).UTC()
 	t2s := t2.Format("01-02 15:04:05")
-	t3 := time.Unix(lowest-(int64(blank)*bucketMins*60), 0).UTC()
-	t3s := t3.Format("01-02 15:04:05")
-	fmt.Printf("%s%s - %s (%d entries) [%d blank %s]\n", prefix, t1s, t2s, count, blank, t3s)
+	fmt.Printf("%s%s - %s (%d entries)\n", prefix, t1s, t2s, count)
 }
 
 // Extract stats for the given host for a time range

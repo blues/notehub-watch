@@ -353,7 +353,7 @@ func sheetAddTab(f *excelize.File, sheetName string, siid string, ss serviceSumm
 	row++
 
 	// Handler stats
-	f.SetCellValue(sheetName, cell(col, row), "Handlers Active Now")
+	f.SetCellValue(sheetName, cell(col, row), "Total Handlers Active")
 	f.SetCellStyle(sheetName, cell(col, row), cell(col, row), styleCategory)
 	timeHeader(f, sheetName, col+1, row, bucketMins, buckets)
 	row++
@@ -389,7 +389,7 @@ func sheetAddTab(f *excelize.File, sheetName string, siid string, ss serviceSumm
 	row++
 
 	// Handler stats
-	f.SetCellValue(sheetName, cell(col, row), "Activated in Period")
+	f.SetCellValue(sheetName, cell(col, row), "Handlers Activated in Period")
 	f.SetCellStyle(sheetName, cell(col, row), cell(col, row), styleCategory)
 	timeHeader(f, sheetName, col+1, row, bucketMins, buckets)
 	row++
