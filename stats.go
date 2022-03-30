@@ -249,11 +249,12 @@ func validateStats(s map[string][]StatsStat, normalizedTime int64, bucketSecs64 
 			i := int(normalizedTime-stat.SnapshotTaken) / bucketSecs
 			if i < 0 || i > normalizedLength {
 				fmt.Printf("can't place stat %d during fixup\n", i)
-			}
-			if newStats[i].SnapshotTaken != stat.SnapshotTaken {
-				fmt.Printf("huh?")
 			} else {
-				newStats[i] = stat
+				if newStats[i].SnapshotTaken != stat.SnapshotTaken {
+					fmt.Printf("huh?")
+				} else {
+					newStats[i] = stat
+				}
 			}
 		}
 
@@ -415,7 +416,6 @@ func uStatsAdd(hostname string, hostaddr string, s map[string][]StatsStat) (adde
 			}
 			if snew.OSMemTotal == 0 {
 				fmt.Printf("ignored attempt to add %s blank entry %d\n", siid, i)
-				statsAnalyze("ADDING ", s[siid], bucketSecs)
 			} else {
 				hs.Stats[siid][i] = snew
 				newStats = append(newStats, snew)
