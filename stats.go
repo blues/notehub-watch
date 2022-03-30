@@ -374,8 +374,10 @@ func statsAnalyzeHost(hostname string) {
 	}
 
 	// Perform the analysis
-	fmt.Printf("Stats for host: %s\n", hostname)
 	hs := stats[hostname]
+	t := time.Unix(hs.Time, 0).UTC()
+	ts := t.Format("01-02 15:04:05")
+	fmt.Printf("Stats for host %s (%s)\n", hostname, ts)
 	for siid, sis := range hs.Stats {
 		fmt.Printf("    %s\n", siid)
 		statsAnalyze("        ", sis, hs.BucketMins*60)
