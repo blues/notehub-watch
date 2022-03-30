@@ -250,7 +250,7 @@ func validateStats(s map[string][]StatsStat, normalizedTime int64, bucketSecs64 
 		}
 		for _, stat := range sis {
 			i := int(normalizedTime-stat.SnapshotTaken) / bucketSecs
-			if i < 0 || i > normalizedLength {
+			if i < 0 || i >= normalizedLength {
 				fmt.Printf("can't place stat %d during fixup\n", i)
 			} else {
 				if newStats[i].SnapshotTaken != stat.SnapshotTaken {
