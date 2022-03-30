@@ -204,7 +204,7 @@ func statsAdd(hostname string, hostaddr string, s map[string][]StatsStat) (added
 }
 
 // Validate the continuity of the specified stats array, to correct any possible corruption
-func validateStats(s map[string][]StatsStat, normalizedTime int64, bucketSecs64 int64) {
+func validateStats(s map[string][]StatsStat, normalizedTime int64, bucketSecs64 int64) (blankEntries int) {
 	bucketSecs := int(bucketSecs64)
 
 	// Get the maximum length of any entry, which will determine what we're normalizing to.  Also,
@@ -227,11 +227,13 @@ func validateStats(s map[string][]StatsStat, normalizedTime int64, bucketSecs64 
 	for siid, sis := range s {
 
 		// Do a pre-check to see if the entire array is fine
-		bad := false
+		bad := len(sis) != normalizedLength
 		for i := 0; i < normalizedLength; i++ {
 			if sis[i].SnapshotTaken != normalizedTime-int64(i*bucketSecs) {
 				bad = true
-				break
+			}
+			if sis[i].OSMemTotal == 0 {
+				blankEntries++
 			}
 		}
 
@@ -264,6 +266,9 @@ func validateStats(s map[string][]StatsStat, normalizedTime int64, bucketSecs64 
 
 	}
 
+	// Done
+	return
+
 }
 
 // Add stats to the in-memory vector of stats.
@@ -293,7 +298,10 @@ func uStatsAdd(hostname string, hostaddr string, s map[string][]StatsStat) (adde
 
 	// Validate both existing stats arrays and the ones being added, just as a sanity check
 	if len(s) > 0 {
-		validateStats(s, 0, bucketSecs)
+		blankEntries := validateStats(s, 0, bucketSecs)
+		if blankEntries > 0 {
+			fmt.Printf("uStatsAdd: adding %d blank entries to %s\n", blankEntries, hostname)
+		}
 	}
 	if len(hs.Stats) > 0 {
 		validateStats(hs.Stats, hs.Time, bucketSecs)
@@ -414,9 +422,7 @@ func uStatsAdd(hostname string, hostaddr string, s map[string][]StatsStat) (adde
 				fmt.Printf("*** error: out of bounds %d, %d\n", i, len(hs.Stats[siid]))
 				continue
 			}
-			if snew.OSMemTotal == 0 {
-				fmt.Printf("ignored attempt to add %s blank entry %d\n", siid, i)
-			} else {
+			if snew.OSMemTotal != 0 {
 				hs.Stats[siid][i] = snew
 				newStats = append(newStats, snew)
 				added++
