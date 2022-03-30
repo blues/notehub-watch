@@ -22,25 +22,29 @@ const currentType = zipType
 
 // AggregatedStat is a structure used to aggregate stats across service instances
 type AggregatedStat struct {
-	Started              int64                    `json:"started,omitempty"`
-	Time                 int64                    `json:"time,omitempty"`
-	DiskReads            uint64                   `json:"disk_read,omitempty"`
-	DiskWrites           uint64                   `json:"disk_write,omitempty"`
-	NetReceived          uint64                   `json:"net_received,omitempty"`
-	NetSent              uint64                   `json:"net_sent,omitempty"`
-	HandlersEphemeral    int64                    `json:"handlers_ephemeral,omitempty"`
-	HandlersDiscovery    int64                    `json:"handlers_discovery,omitempty"`
-	HandlersContinuous   int64                    `json:"handlers_continuous,omitempty"`
-	HandlersNotification int64                    `json:"handlers_notification,omitempty"`
-	EventsReceived       int64                    `json:"events_received,omitempty"`
-	EventsRouted         int64                    `json:"events_routed,omitempty"`
-	DatabaseReads        int64                    `json:"database_reads,omitempty"`
-	DatabaseWrites       int64                    `json:"database_writes,omitempty"`
-	APITotal             int64                    `json:"api_total,omitempty"`
-	Databases            map[string]StatsDatabase `json:"databases,omitempty"`
-	Caches               map[string]StatsCache    `json:"caches,omitempty"`
-	API                  map[string]int64         `json:"api,omitempty"`
-	Fatals               map[string]int64         `json:"fatals,omitempty"`
+	Started                 int64                    `json:"started,omitempty"`
+	Time                    int64                    `json:"time,omitempty"`
+	DiskReads               uint64                   `json:"disk_read,omitempty"`
+	DiskWrites              uint64                   `json:"disk_write,omitempty"`
+	NetReceived             uint64                   `json:"net_received,omitempty"`
+	NetSent                 uint64                   `json:"net_sent,omitempty"`
+	HandlersEphemeral       int64                    `json:"handlers_ephemeral,omitempty"`
+	HandlersDiscovery       int64                    `json:"handlers_discovery,omitempty"`
+	HandlersContinuous      int64                    `json:"handlers_continuous,omitempty"`
+	HandlersNotification    int64                    `json:"handlers_notification,omitempty"`
+	NewHandlersEphemeral    int64                    `json:"handlers_ephemeral_new,omitempty"`
+	NewHandlersDiscovery    int64                    `json:"handlers_discovery_new,omitempty"`
+	NewHandlersContinuous   int64                    `json:"handlers_continuous_new,omitempty"`
+	NewHandlersNotification int64                    `json:"handlers_notification_new,omitempty"`
+	EventsReceived          int64                    `json:"events_received,omitempty"`
+	EventsRouted            int64                    `json:"events_routed,omitempty"`
+	DatabaseReads           int64                    `json:"database_reads,omitempty"`
+	DatabaseWrites          int64                    `json:"database_writes,omitempty"`
+	APITotal                int64                    `json:"api_total,omitempty"`
+	Databases               map[string]StatsDatabase `json:"databases,omitempty"`
+	Caches                  map[string]StatsCache    `json:"caches,omitempty"`
+	API                     map[string]int64         `json:"api,omitempty"`
+	Fatals                  map[string]int64         `json:"fatals,omitempty"`
 }
 
 // Periodic stats publisher.  The stats publisher maintains, in the local system's data directory,
@@ -710,10 +714,14 @@ func statsAggregateAsLBStat(allStats map[string][]StatsStat, bucketSecs int64) (
 		lbs.OSDiskWrite = s.DiskWrites
 		lbs.OSNetReceived = s.NetReceived
 		lbs.OSNetSent = s.NetSent
-		lbs.DiscoveryHandlersActivated = s.HandlersDiscovery
-		lbs.EphemeralHandlersActivated = s.HandlersEphemeral
-		lbs.ContinuousHandlersActivated = s.HandlersContinuous
-		lbs.NotificationHandlersActivated = s.HandlersNotification
+		lbs.DiscoveryHandlersActivated = s.NewHandlersDiscovery
+		lbs.EphemeralHandlersActivated = s.NewHandlersEphemeral
+		lbs.ContinuousHandlersActivated = s.NewHandlersContinuous
+		lbs.NotificationHandlersActivated = s.NewHandlersNotification
+		lbs.DiscoveryHandlersDeactivated = s.HandlersDiscovery
+		lbs.EphemeralHandlersDeactivated = s.HandlersEphemeral
+		lbs.ContinuousHandlersDeactivated = s.HandlersContinuous
+		lbs.NotificationHandlersDeactivated = s.HandlersNotification
 		lbs.EventsEnqueued = s.EventsReceived
 		lbs.EventsRouted = s.EventsRouted
 		lbs.Databases = s.Databases
@@ -750,10 +758,14 @@ func statsAggregate(allStats map[string][]StatsStat, bucketSecs int64) (aggregat
 			as.NetSent += s.OSNetSent
 
 			// Aggregate handlers.
-			as.HandlersEphemeral += s.EphemeralHandlersActivated
-			as.HandlersContinuous += s.ContinuousHandlersActivated
-			as.HandlersDiscovery += s.DiscoveryHandlersActivated
-			as.HandlersNotification += s.NotificationHandlersActivated
+			as.NewHandlersEphemeral += s.EphemeralHandlersActivated
+			as.NewHandlersContinuous += s.ContinuousHandlersActivated
+			as.NewHandlersDiscovery += s.DiscoveryHandlersActivated
+			as.NewHandlersNotification += s.NotificationHandlersActivated
+			as.HandlersEphemeral += s.EphemeralHandlersDeactivated
+			as.HandlersContinuous += s.ContinuousHandlersDeactivated
+			as.HandlersDiscovery += s.DiscoveryHandlersDeactivated
+			as.HandlersNotification += s.NotificationHandlersDeactivated
 
 			// Events
 			as.EventsReceived += s.EventsEnqueued
