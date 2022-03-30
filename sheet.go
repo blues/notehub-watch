@@ -567,6 +567,7 @@ func sheetAddTab(f *excelize.File, sheetName string, siid string, ss serviceSumm
 	}
 	if len(keys) > 0 {
 		row++
+		row++
 	}
 
 	// Database stats (display the ones beginning with "app" at the end)
