@@ -204,7 +204,7 @@ func statsAdd(hostname string, hostaddr string, s map[string][]StatsStat) (added
 }
 
 // Validate the continuity of the specified stats array, to correct any possible corruption
-func validateStats(s map[string][]StatsStat, normalizedTime int64, bucketSecs64 int64) (blankEntries int) {
+func validateStats(s map[string][]StatsStat, normalizedTime int64, bucketSecs64 int64) (totalEntries int, blankEntries int) {
 	bucketSecs := int(bucketSecs64)
 
 	// Get the maximum length of any entry, which will determine what we're normalizing to.  Also,
@@ -235,6 +235,7 @@ func validateStats(s map[string][]StatsStat, normalizedTime int64, bucketSecs64 
 			if sis[i].OSMemTotal == 0 {
 				blankEntries++
 			}
+			totalEntries++
 		}
 
 		// Don't do the fixup if it's fine
@@ -298,9 +299,9 @@ func uStatsAdd(hostname string, hostaddr string, s map[string][]StatsStat) (adde
 
 	// Validate both existing stats arrays and the ones being added, just as a sanity check
 	if len(s) > 0 {
-		blankEntries := validateStats(s, 0, bucketSecs)
+		totalEntries, blankEntries := validateStats(s, 0, bucketSecs)
 		if blankEntries > 0 {
-			fmt.Printf("uStatsAdd: adding %d blank entries to %s\n", blankEntries, hostname)
+			fmt.Printf("uStatsAdd: adding %d blank entries (of %d total) to %s\n", blankEntries, totalEntries, hostname)
 		}
 	}
 	if len(hs.Stats) > 0 {
