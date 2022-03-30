@@ -583,12 +583,12 @@ func sheetAddTab(f *excelize.File, sheetName string, siid string, ss serviceSumm
 	}
 	apps := make([]string, 0, len(kmApps))
 	for k := range kmApps {
-		keys = append(keys, k)
+		apps = append(apps, k)
 	}
 	sort.Strings(apps)
 	nonapps := make([]string, 0, len(kmNonApps))
 	for k := range kmNonApps {
-		keys = append(keys, k)
+		nonapps = append(nonapps, k)
 	}
 	sort.Strings(nonapps)
 	keys = append(nonapps, apps...)
