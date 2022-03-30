@@ -341,6 +341,7 @@ func uStatsAdd(hostname string, hostaddr string, s map[string][]StatsStat) (adde
 			i := (mostRecentTime - snew.SnapshotTaken) / bucketSecs
 			if i < 0 || i > int64(len(hs.Stats[siid])) {
 				fmt.Printf("*** error: out of bounds %d, %d\n", i, len(hs.Stats[siid]))
+				continue
 			}
 			if snew.OSMemTotal == 0 {
 				fmt.Printf("ignored attempt to add %s blank entry %d\n", siid, i)
