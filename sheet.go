@@ -108,7 +108,7 @@ func sheetGetHostStats(hostname string, hostaddr string) (response string) {
 	if sheetTrace {
 		fmt.Printf("sheetGetHostStats: get stats for %s\n", hostname)
 	}
-	ss, handlers, err := statsUpdateHost(hostname, hostaddr)
+	ss, handlers, err := statsUpdateHost(hostname, hostaddr, false)
 	if err != nil {
 		response = fmt.Sprintf("sheetGetHostStats: error updating %s: %s\n", hostname, err)
 		return

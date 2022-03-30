@@ -90,6 +90,7 @@ func statsMaintainer() {
 
 	// Wait for a signal to update them, or a timeout
 	for {
+		lastUpdatedDay := todayTime()
 
 		// Proceed if signalled, else do this several times per hour
 		// because stats are only maintained by services for an hour.
@@ -98,13 +99,12 @@ func statsMaintainer() {
 		// Maintain for every enabled host
 		for _, host := range Config.MonitoredHosts {
 			if !host.Disabled {
-				_, _, err = statsUpdateHost(host.Name, host.Addr)
+				_, _, err = statsUpdateHost(host.Name, host.Addr, lastUpdatedDay != todayTime())
 				if err != nil {
 					fmt.Printf("%s: error updating stats: %s\n", host.Name, err)
 				}
 			}
 		}
-
 	}
 
 }
@@ -617,7 +617,7 @@ func uStatsLoaded(hostname string) bool {
 }
 
 // Update the host's data structures both in-memory and on-disk
-func statsUpdateHost(hostname string, hostaddr string) (ss serviceSummary, handlers map[string]AppHandler, err error) {
+func statsUpdateHost(hostname string, hostaddr string, reload bool) (ss serviceSummary, handlers map[string]AppHandler, err error) {
 
 	// Only one in here at a time
 	statsUpdateLock.Lock()
@@ -644,7 +644,7 @@ func statsUpdateHost(hostname string, hostaddr string) (ss serviceSummary, handl
 	// If the service version changed, make sure that we write and re-load the stats
 	// using the new service version.  We do this because when the service version
 	// changes, all the node IDs change and thus spreadsheets would be unusable.
-	if serviceVersionChanged {
+	if reload || serviceVersionChanged {
 		fmt.Printf("stats: %s service version changed\n", hostname)
 		err = uSaveStats(hostname, ss.ServiceVersion)
 		if err != nil {
