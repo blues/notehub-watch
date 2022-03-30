@@ -353,9 +353,6 @@ func uStatsAdd(hostname string, hostaddr string, s map[string][]StatsStat) (adde
 		}
 		for siid := range hs.Stats {
 			hs.Stats[siid] = append(z, hs.Stats[siid]...)
-			if addStatsTrace {
-				fmt.Printf("%s now %d entries\n", siid, len(hs.Stats[siid]))
-			}
 		}
 		hs.Time = mostRecentTime
 	}
@@ -373,9 +370,6 @@ func uStatsAdd(hostname string, hostaddr string, s map[string][]StatsStat) (adde
 				z[i].SnapshotTaken = hsLeastRecentTime - (bucketSecs * i)
 			}
 			hs.Stats[siid] = append(hs.Stats[siid], z...)
-			if addStatsTrace {
-				fmt.Printf("%s now %d entries\n", siid, len(hs.Stats[siid]))
-			}
 		}
 	}
 
