@@ -586,7 +586,7 @@ func yesterdayTime() int64 {
 // Update the files with the data currently in-memory
 func uSaveStats(hostname string, serviceVersion string) (err error) {
 
-	// Update the stats for yesterday and today into the file system
+	// Update today's stats into the file system and S3
 	contents, err := writeFileLocally(hostname, serviceVersion, todayTime(), secs1Day)
 	if err != nil {
 		fmt.Printf("stats: error writing %s: %s\n", statsFilename(hostname, serviceVersion, todayTime(), currentType), err)
@@ -594,17 +594,6 @@ func uSaveStats(hostname string, serviceVersion string) (err error) {
 		err = s3UploadStats(statsFilename(hostname, serviceVersion, todayTime(), currentType), contents)
 		if err != nil {
 			fmt.Printf("stats: error uploading %s to S3: %s\n", statsFilename(hostname, serviceVersion, todayTime(), currentType), err)
-		}
-	}
-	if err == nil {
-		contents, err = writeFileLocally(hostname, serviceVersion, yesterdayTime(), secs1Day)
-		if err != nil {
-			fmt.Printf("stats: error writing %s: %s\n", statsFilename(hostname, serviceVersion, yesterdayTime(), currentType), err)
-		} else {
-			err = s3UploadStats(statsFilename(hostname, serviceVersion, yesterdayTime(), currentType), contents)
-			if err != nil {
-				fmt.Printf("stats: error uploading %s to S3: %s\n", statsFilename(hostname, serviceVersion, yesterdayTime(), currentType), err)
-			}
 		}
 	}
 	return
@@ -778,7 +767,7 @@ func (list statRecency) Less(i, j int) bool {
 }
 
 // Aggregate a notehub stats structure across service instances back into an StatsStat structure
-func statsAggregateAsLBStat(allStats map[string][]StatsStat, bucketSecs int64) (aggregatedStats []StatsStat) {
+func statsAggregateAsStatsStat(allStats map[string][]StatsStat, bucketSecs int64) (aggregatedStats []StatsStat) {
 
 	as := statsAggregate(allStats, bucketSecs)
 
@@ -875,7 +864,9 @@ func statsAggregate(allStats map[string][]StatsStat, bucketSecs int64) (aggregat
 			if s.Caches != nil {
 				for key, cache := range s.Caches {
 					v := as.Caches[key]
-					v.Invalidations += cache.Invalidations
+					if cache.Invalidations > v.Invalidations {
+						v.Invalidations = cache.Invalidations
+					}
 					if cache.EntriesHWM > v.EntriesHWM {
 						v.EntriesHWM = cache.EntriesHWM
 					}
