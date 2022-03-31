@@ -434,7 +434,9 @@ func uStatsAdd(hostname string, hostaddr string, s map[string][]StatsStat) (adde
 func statsAnalyzeHost(hostname string) {
 
 	// Lock and exit if no stats loaded yet
+	fmt.Printf("OZZIE statsAnalyzeHost lock\n")
 	statsLock.Lock()
+	defer fmt.Printf("OZZIE statsAnalyzeHost unlock\n")
 	defer statsLock.Unlock()
 	if !uStatsLoaded(hostname) {
 		return
@@ -505,7 +507,9 @@ func statsAnalyze(prefix string, stats []StatsStat, bucketSecs int64) {
 func statsExtract(hostname string, beginTime int64, duration int64) (hsret HostStats, exists bool) {
 
 	// Lock and exit if no stats loaded yet
+	fmt.Printf("OZZIE statsExtract lock\n")
 	statsLock.Lock()
+	defer fmt.Printf("OZZIE statsExtract unlock\n")
 	defer statsLock.Unlock()
 	if !uStatsLoaded(hostname) {
 		exists = false
@@ -605,7 +609,9 @@ func uStatsLoaded(hostname string) bool {
 func statsUpdateHost(hostname string, hostaddr string, reload bool) (ss serviceSummary, handlers map[string]AppHandler, err error) {
 
 	// Only one in here at a time
+	fmt.Printf("OZZIE statsUpdateHost lock\n")
 	statsLock.Lock()
+	defer fmt.Printf("OZZIE statsUpdateHost unlock\n")
 	defer statsLock.Unlock()
 
 	// Get the stats
