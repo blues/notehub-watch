@@ -321,8 +321,11 @@ func uStatsAdd(hostname string, hostaddr string, s map[string][]StatsStat) (adde
 
 	// Exit if no map (this is to be expected in initialization cases)
 	if s == nil {
+		fmt.Printf("uStatsAdd: nil stats\n")
 		return
 	}
+
+	fmt.Printf("uStatsAdd: adding stats from %d handlers of %s\n", len(s), hostname)
 
 	// Initialize output map
 	addedStats = make(map[string][]StatsStat)
@@ -747,6 +750,8 @@ func statsUpdateHost(hostname string, hostaddr string, reload bool) (ss serviceS
 
 // Read a file locally
 func readFileLocally(hostname string, serviceVersion string, beginTime int64) (hs HostStats, err error) {
+
+	fmt.Printf("reading %s\n", statsFilename(hostname, serviceVersion, beginTime, currentType))
 
 	// Read the contents
 	var contents []byte
