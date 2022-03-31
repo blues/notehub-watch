@@ -246,7 +246,9 @@ func uValidateStats(s map[string][]StatsStat, normalizedTime int64, bucketSecs64
 				if newStats[i].SnapshotTaken != stat.SnapshotTaken {
 					fmt.Printf("huh?")
 				} else {
-					fmt.Printf("fixup: placed %d in %d\n", sn, i)
+					if sn != i {
+						fmt.Printf("fixup: placed %d in %d\n", sn, i)
+					}
 					newStats[i] = stat
 				}
 			}
@@ -408,7 +410,9 @@ func uStatsAdd(hostname string, hostaddr string, s map[string][]StatsStat) (adde
 				fmt.Printf("*** error: out of bounds %d, %d\n", i, len(hs.Stats[siid]))
 				continue
 			}
-			fmt.Printf("adding input stat %d as new stat %d\n", i, sn)
+			if i != sn {
+				fmt.Printf("adding input stat %d as new stat %d\n", i, sn)
+			}
 			if hs.Stats[siid][i].SnapshotTaken != snew.SnapshotTaken {
 				fmt.Printf("out of place?  %d != %d\n", hs.Stats[siid][i].SnapshotTaken, snew.SnapshotTaken)
 			}
