@@ -114,12 +114,15 @@ func sheetGetHostStats(hostname string, hostaddr string) (response string) {
 
 	// Get the entire set of stats available in-memory
 	if sheetTrace {
-		fmt.Printf("sheetGetHostStats: extract stats\n")
+		fmt.Printf("sheetGetHostStats: extract stats (%d handlers)\n", len(handlers))
 	}
 	hs, exists := statsExtract(hostname, 0, 0)
 	if !exists {
 		response = fmt.Sprintf("unknown host: %s", hostname)
 		return
+	}
+	if sheetTrace {
+		fmt.Printf("sheetGetHostStats: %d handlers\n", len(hs.Stats))
 	}
 
 	// Create a new spreadsheet

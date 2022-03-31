@@ -337,7 +337,8 @@ func uStatsAdd(hostname string, hostaddr string, s map[string][]StatsStat) (adde
 
 	// Exit if hoststats is invalid
 	if hs.BucketMins == 0 {
-		fmt.Printf("uStatsAdd: %s: *** invalid host stats ***\n", hostname)
+		err = fmt.Errorf("uStatsAdd: %s: *** invalid host stats ***", hostname)
+		fmt.Printf("%s\n", err)
 		return
 	}
 
