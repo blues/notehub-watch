@@ -184,7 +184,7 @@ func uStatsVerify(hostname string, hostaddr string, serviceVersion string, bucke
 }
 
 // Validate the continuity of the specified stats array, to correct any possible corruption
-func uValidateStats(s map[string][]StatsStat, normalizedTime int64, bucketSecs64 int64) (totalEntries int, blankEntries int) {
+func uValidateStats(fixupType string, s map[string][]StatsStat, normalizedTime int64, bucketSecs64 int64) (totalEntries int, blankEntries int) {
 	bucketSecs := int(bucketSecs64)
 
 	// Get the maximum length of any entry, which will determine what we're normalizing to.  Also,
@@ -219,7 +219,7 @@ func uValidateStats(s map[string][]StatsStat, normalizedTime int64, bucketSecs64
 				t1s := t1.Format("01-02 15:04:05")
 				t2 := time.Unix(normalizedTime-int64(i*bucketSecs), 0).UTC()
 				t2s := t2.Format("01-02 15:04:05")
-				fmt.Printf("fixup: len:%d entry %d's time %s != expected time %s\n", normalizedLength, i, t1s, t2s)
+				fmt.Printf("fixup %s: len:%d entry %d's time %s != expected time %s\n", fixupType, normalizedLength, i, t1s, t2s)
 			}
 			if sis[i].OSMemTotal == 0 {
 				blankEntries++
@@ -231,7 +231,7 @@ func uValidateStats(s map[string][]StatsStat, normalizedTime int64, bucketSecs64
 		if !bad {
 			continue
 		}
-		fmt.Printf("fixup: doing fixup: length:%d total:%d blank:%d\n", normalizedLength, totalEntries, blankEntries)
+		fmt.Printf("fixup %s: doing fixup: length:%d total:%d blank:%d\n", fixupType, normalizedLength, totalEntries, blankEntries)
 
 		// Do the fixup, which is a slow process
 		newStats := make([]StatsStat, normalizedLength)
@@ -255,7 +255,7 @@ func uValidateStats(s map[string][]StatsStat, normalizedTime int64, bucketSecs64
 		}
 
 		// Done
-		fmt.Printf("*** %s FIXED UP to be of length %d instead of %d ***\n", siid, len(newStats), len(s[siid]))
+		fmt.Printf("fixup %s: %s FIXED UP to be of length %d instead of %d\n", fixupType, siid, len(newStats), len(s[siid]))
 		s[siid] = newStats
 
 	}
@@ -292,13 +292,13 @@ func uStatsAdd(hostname string, hostaddr string, s map[string][]StatsStat) (adde
 
 	// Validate both existing stats arrays and the ones being added, just as a sanity check
 	if len(s) > 0 {
-		totalEntries, blankEntries := uValidateStats(s, 0, bucketSecs)
+		totalEntries, blankEntries := uValidateStats("new", s, 0, bucketSecs)
 		if blankEntries > 0 {
 			fmt.Printf("uStatsAdd: adding %d blank entries (of %d total) to %s\n", blankEntries, totalEntries, hostname)
 		}
 	}
 	if len(hs.Stats) > 0 {
-		uValidateStats(hs.Stats, hs.Time, bucketSecs)
+		uValidateStats("existing", hs.Stats, hs.Time, bucketSecs)
 	}
 
 	// Make sure there are map entries for all the service instances we're adding, and
