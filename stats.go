@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"sort"
+	"strings"
 	"sync"
 	"time"
 )
@@ -181,6 +182,36 @@ func uStatsVerify(hostname string, hostaddr string, serviceVersion string, bucke
 		fmt.Printf("stats: reset stats for %s\n", hostname)
 	}
 
+}
+
+// See if stats are uniform across the instances.  For timing reasons it could be that we don't fetch them at exactly the right time
+func statsAreUniform(s map[string][]StatsStat) (uniform bool, err error) {
+	maxTime := int64(0)
+	uniform = true
+	for _, sis := range s {
+		if len(sis) == 0 {
+			uniform = false
+			err = fmt.Errorf("stats unavailable")
+			return
+		}
+		if maxTime > sis[0].SnapshotTaken {
+			maxTime = sis[0].SnapshotTaken
+		}
+		if sis[0].SnapshotTaken != maxTime {
+			uniform = false
+		}
+	}
+	if uniform {
+		return
+	}
+	staleHandlers := []string{}
+	for siid, sis := range s {
+		if maxTime != sis[0].SnapshotTaken {
+			staleHandlers = append(staleHandlers, siid)
+		}
+	}
+	err = fmt.Errorf("stale stats results from %s", strings.Join(staleHandlers, ","))
+	return
 }
 
 // Validate the continuity of the specified stats array, to correct any possible corruption
@@ -442,9 +473,7 @@ func uStatsAdd(hostname string, hostaddr string, s map[string][]StatsStat) (adde
 func statsAnalyzeHost(hostname string) {
 
 	// Lock and exit if no stats loaded yet
-	fmt.Printf("OZZIE statsAnalyzeHost lock\n")
 	statsLock.Lock()
-	defer fmt.Printf("OZZIE statsAnalyzeHost unlock\n")
 	defer statsLock.Unlock()
 	if !uStatsLoaded(hostname) {
 		return
@@ -515,9 +544,7 @@ func statsAnalyze(prefix string, stats []StatsStat, bucketSecs int64) {
 func statsExtract(hostname string, beginTime int64, duration int64) (hsret HostStats, exists bool) {
 
 	// Lock and exit if no stats loaded yet
-	fmt.Printf("OZZIE statsExtract lock\n")
 	statsLock.Lock()
-	defer fmt.Printf("OZZIE statsExtract unlock\n")
 	defer statsLock.Unlock()
 	if !uStatsLoaded(hostname) {
 		exists = false
@@ -617,17 +644,27 @@ func uStatsLoaded(hostname string) bool {
 func statsUpdateHost(hostname string, hostaddr string, reload bool) (ss serviceSummary, handlers map[string]AppHandler, err error) {
 
 	// Only one in here at a time
-	fmt.Printf("OZZIE statsUpdateHost lock\n")
 	statsLock.Lock()
-	defer fmt.Printf("OZZIE statsUpdateHost unlock\n")
 	defer statsLock.Unlock()
 
-	// Get the stats
+	// Get a set of uniform stats across the devices.  If we ping at the wrong time we may get inconsisten stats
+	// across the instances, so just retry
 	var serviceVersionChanged bool
 	var statsLastHour map[string][]StatsStat
-	serviceVersionChanged, ss, handlers, statsLastHour, err = watcherGetStats(hostname, hostaddr)
-	if err != nil {
-		return
+	for retries := 0; ; retries++ {
+		serviceVersionChanged, ss, handlers, statsLastHour, err = watcherGetStats(hostname, hostaddr)
+		if err != nil {
+			return
+		}
+		var uniform bool
+		uniform, err = statsAreUniform(statsLastHour)
+		if uniform {
+			break
+		}
+		if retries > 10 {
+			return
+		}
+		time.Sleep(10 * time.Second)
 	}
 
 	// If the stats for that service version were never yet loaded, load them
