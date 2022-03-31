@@ -719,7 +719,7 @@ func readFileLocally(hostname string, serviceVersion string, beginTime int64) (h
 func writeFileLocally(hostname string, serviceVersion string, beginTime int64, duration int64) (contents []byte, err error) {
 
 	// Marshal the stats into a bytes buffer
-	hs, _ := statsExtract(hostname, beginTime, duration)
+	hs, _ := uStatsExtract(hostname, beginTime, duration)
 	contents, err = json.Marshal(hs)
 	if err != nil {
 		return
