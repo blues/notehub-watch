@@ -132,7 +132,10 @@ func uLoadStats(hostname string, hostaddr string, serviceVersion string, bucketS
 	if err != nil {
 		err = nil
 	} else {
-		added, _ := uStatsAdd(hostname, hs.Addr, hs.Stats)
+		added, _, err := uStatsAdd(hostname, hs.Addr, hs.Stats)
+		if err != nil {
+			fmt.Printf("stats: %s\n", err)
+		}
 		if added > 0 {
 			fmt.Printf("stats: loaded %d stats for %s from today\n", added, hostname)
 		}
@@ -141,7 +144,10 @@ func uLoadStats(hostname string, hostaddr string, serviceVersion string, bucketS
 	if err != nil {
 		err = nil
 	} else {
-		added, _ := uStatsAdd(hostname, hs.Addr, hs.Stats)
+		added, _, err := uStatsAdd(hostname, hs.Addr, hs.Stats)
+		if err != nil {
+			fmt.Printf("stats: %s\n", err)
+		}
 		if added > 0 {
 			fmt.Printf("stats: loaded %d stats for %s from yesterday\n", added, hostname)
 		}
@@ -217,7 +223,7 @@ func statsAreUniform(s map[string][]StatsStat) (uniform bool, err error) {
 }
 
 // Validate the continuity of the specified stats array, to correct any possible corruption
-func uValidateStats(fixupType string, s map[string][]StatsStat, normalizedTime int64, bucketSecs64 int64) (totalEntries int, blankEntries int) {
+func uValidateStats(fixupType string, s map[string][]StatsStat, normalizedTime int64, bucketSecs64 int64) (totalEntries int, blankEntries int, err error) {
 	bucketSecs := int(bucketSecs64)
 
 	// Get the maximum length of any entry, which will determine what we're normalizing to.  Also,
@@ -228,8 +234,12 @@ func uValidateStats(fixupType string, s map[string][]StatsStat, normalizedTime i
 		if len(sis) > 0 && sis[0].SnapshotTaken > maxTime {
 			maxTime = sis[0].SnapshotTaken
 		}
-		if len(sis) > normalizedLength {
+		if normalizedLength == 0 {
 			normalizedLength = len(sis)
+		}
+		if len(sis) != normalizedLength {
+			err = fmt.Errorf("stat must be of equal length on all service instances: %d != %d", normalizedLength, len(sis))
+			return
 		}
 		if sis[0].SnapshotTaken != maxTime {
 			fmt.Printf("NONUNIFORM buckets (maxTime: %d)\n", maxTime)
@@ -307,7 +317,7 @@ func uValidateStats(fixupType string, s map[string][]StatsStat, normalizedTime i
 }
 
 // Add stats to the in-memory vector of stats.
-func uStatsAdd(hostname string, hostaddr string, s map[string][]StatsStat) (added int, addedStats map[string][]StatsStat) {
+func uStatsAdd(hostname string, hostaddr string, s map[string][]StatsStat) (added int, addedStats map[string][]StatsStat, err error) {
 
 	// Exit if no map (this is to be expected in initialization cases)
 	if s == nil {
@@ -333,13 +343,20 @@ func uStatsAdd(hostname string, hostaddr string, s map[string][]StatsStat) (adde
 
 	// Validate both existing stats arrays and the ones being added, just as a sanity check
 	if len(s) > 0 {
-		totalEntries, blankEntries := uValidateStats("new", s, 0, bucketSecs)
+		var totalEntries, blankEntries int
+		totalEntries, blankEntries, err = uValidateStats("new", s, 0, bucketSecs)
+		if err != nil {
+			return
+		}
 		if blankEntries > 0 {
 			fmt.Printf("uStatsAdd: adding %d blank entries (of %d total) to %s\n", blankEntries, totalEntries, hostname)
 		}
 	}
 	if len(hs.Stats) > 0 {
-		uValidateStats("existing", hs.Stats, hs.Time, bucketSecs)
+		_, _, err = uValidateStats("existing", hs.Stats, hs.Time, bucketSecs)
+		if err != nil {
+			return
+		}
 	}
 
 	// Make sure there are map entries for all the service instances we're adding, and
@@ -358,7 +375,8 @@ func uStatsAdd(hostname string, hostaddr string, s map[string][]StatsStat) (adde
 			leastRecentTime = mostRecentTime - (buckets * bucketSecs)
 		}
 		if int64(len(sis)) != buckets || buckets == 0 {
-			fmt.Printf("uStatsAdd: %s: *** non-uniform stats len (%d != %d) ***\n", hostname, len(sis), buckets)
+			err = fmt.Errorf("uStatsAdd: %s: *** non-uniform stats len (%d != %d) ***", hostname, len(sis), buckets)
+			fmt.Printf("%s\n", err)
 			return
 		}
 		if mostRecentTime != sis[0].SnapshotTaken || mostRecentTime == 0 {
@@ -417,12 +435,14 @@ func uStatsAdd(hostname string, hostaddr string, s map[string][]StatsStat) (adde
 	hsBuckets := 0
 	for _, sis := range hs.Stats {
 		if hs.Time != sis[0].SnapshotTaken {
-			fmt.Printf("*** error: unexpected %d != snapshot taken %d\n", hs.Time, sis[0].SnapshotTaken)
+			err = fmt.Errorf("*** error: unexpected %d != snapshot taken %d", hs.Time, sis[0].SnapshotTaken)
+			fmt.Printf("%s\n", err)
 			statsAnalyze("", sis, int64(bucketSecs))
 			return
 		}
 		if hs.Time < mostRecentTime {
-			fmt.Printf("*** error: unexpected %d < most recent time %d\n", hs.Time, mostRecentTime)
+			err = fmt.Errorf("*** error: unexpected %d < most recent time %d", hs.Time, mostRecentTime)
+			fmt.Printf("%s\n", err)
 			statsAnalyze("", sis, bucketSecs)
 			return
 		}
@@ -430,13 +450,15 @@ func uStatsAdd(hostname string, hostaddr string, s map[string][]StatsStat) (adde
 			hsBuckets = len(sis)
 			hsLeastRecentTime := hs.Time - (bucketSecs * int64(hsBuckets))
 			if hsLeastRecentTime > leastRecentTime {
-				fmt.Printf("*** error: hs truncated %d > %d\n", hsLeastRecentTime, leastRecentTime)
+				err = fmt.Errorf("*** error: hs truncated %d > %d", hsLeastRecentTime, leastRecentTime)
+				fmt.Printf("%s\n", err)
 				statsAnalyze("", sis, bucketSecs)
 				return
 			}
 		}
 		if len(sis) != hsBuckets {
-			fmt.Printf("*** error: nonuniform numBuckets %d != %d\n", hsBuckets, len(sis))
+			err = fmt.Errorf("*** error: nonuniform numBuckets %d != %d", hsBuckets, len(sis))
+			fmt.Printf("%s\n", err)
 			statsAnalyze("", sis, bucketSecs)
 			return
 		}
@@ -699,7 +721,10 @@ func statsUpdateHost(hostname string, hostaddr string, reload bool) (ss serviceS
 	uStatsVerify(hostname, hostaddr, ss.ServiceVersion, ss.BucketSecs)
 
 	// Update the stats in-memory
-	added, addedStats := uStatsAdd(hostname, hostaddr, statsLastHour)
+	added, addedStats, _ := uStatsAdd(hostname, hostaddr, statsLastHour)
+	if err != nil {
+		fmt.Printf("stats: error adding stats: %s\n", err)
+	}
 	if added > 0 {
 		fmt.Printf("stats: added %d new stats for %s\n", added, hostname)
 	}
