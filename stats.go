@@ -410,7 +410,7 @@ func uStatsAdd(hostname string, hostaddr string, s map[string][]StatsStat) (adde
 				fmt.Printf("*** error: out of bounds %d, %d\n", i, len(hs.Stats[siid]))
 				continue
 			}
-			if i != sn {
+			if i != int64(sn) {
 				fmt.Printf("adding input stat %d as new stat %d\n", i, sn)
 			}
 			if hs.Stats[siid][i].SnapshotTaken != snew.SnapshotTaken {
