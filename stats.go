@@ -205,8 +205,10 @@ func statsAreUniform(s map[string][]StatsStat) (uniform bool, err error) {
 		return
 	}
 	staleHandlers := []string{}
+	fmt.Printf("STALE HANDLER STATS\n")
 	for siid, sis := range s {
 		if maxTime != sis[0].SnapshotTaken {
+			fmt.Printf("  %d != %d %s\n", maxTime, sis[0].SnapshotTaken, siid)
 			staleHandlers = append(staleHandlers, siid)
 		}
 	}
@@ -664,6 +666,7 @@ func statsUpdateHost(hostname string, hostaddr string, reload bool) (ss serviceS
 		if retries > 10 {
 			return
 		}
+		fmt.Printf("retrying: %s\n", err)
 		time.Sleep(10 * time.Second)
 	}
 
