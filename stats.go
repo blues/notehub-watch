@@ -198,6 +198,13 @@ func uValidateStats(fixupType string, s map[string][]StatsStat, normalizedTime i
 		if len(sis) > normalizedLength {
 			normalizedLength = len(sis)
 		}
+		if sis[0].SnapshotTaken != maxTime {
+			fmt.Printf("NONUNIFORM buckets (maxTime: %d)\n", maxTime)
+			for siid, sis2 := range s {
+				fmt.Printf("%s %d\n", siid, sis2[0].SnapshotTaken)
+			}
+			break
+		}
 	}
 	if normalizedTime == 0 {
 		normalizedTime = maxTime
@@ -232,6 +239,7 @@ func uValidateStats(fixupType string, s map[string][]StatsStat, normalizedTime i
 			continue
 		}
 		fmt.Printf("fixup %s: doing fixup: length:%d total:%d blank:%d\n", fixupType, normalizedLength, totalEntries, blankEntries)
+		statsAnalyze("BAD DATA: ", sis, int64(bucketSecs))
 
 		// Do the fixup, which is a slow process
 		newStats := make([]StatsStat, normalizedLength)
@@ -377,7 +385,7 @@ func uStatsAdd(hostname string, hostaddr string, s map[string][]StatsStat) (adde
 	for _, sis := range hs.Stats {
 		if hs.Time != sis[0].SnapshotTaken {
 			fmt.Printf("*** error: unexpected %d != snapshot taken %d\n", hs.Time, sis[0].SnapshotTaken)
-			statsAnalyze("", sis, bucketSecs)
+			statsAnalyze("", sis, int64(bucketSecs))
 			return
 		}
 		if hs.Time < mostRecentTime {

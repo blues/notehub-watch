@@ -53,8 +53,6 @@ func sheetAddTabs(serviceType string, hs *HostStats, ss serviceSummary, handlers
 		fmt.Printf("sheetAddTabs: %s\n", serviceType)
 	}
 
-	sheetAddTab(f, "Summary", "summary", ss, AppHandler{}, statsAggregateAsStatsStat(hs.Stats, hs.BucketMins*60))
-
 	keys := make([]string, 0, len(hs.Stats))
 	for key := range hs.Stats {
 		keys = append(keys, key)
@@ -126,6 +124,9 @@ func sheetGetHostStats(hostname string, hostaddr string) (response string) {
 
 	// Create a new spreadsheet
 	f := excelize.NewFile()
+
+	// Generate the summary tab
+	sheetAddTab(f, "Summary", "summary", ss, AppHandler{}, statsAggregateAsStatsStat(hs.Stats, hs.BucketMins*60))
 
 	// Generate a page within the sheet for each service instance
 	if response == "" {
