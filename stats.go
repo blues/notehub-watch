@@ -410,6 +410,7 @@ func uStatsAdd(hostname string, hostaddr string, s map[string][]StatsStat) (adde
 	}
 
 	// For each new stat coming in, set the array contents
+	OZZIEMessageCount := 0
 	for siid, sis := range s {
 		var newStats []StatsStat
 		for sn, snew := range sis {
@@ -421,7 +422,6 @@ func uStatsAdd(hostname string, hostaddr string, s map[string][]StatsStat) (adde
 			if i != int64(sn) {
 				fmt.Printf("adding input stat %d as new stat %d\n", i, sn)
 			}
-			OZZIEMessageCount := 0
 			if hs.Stats[siid][i].SnapshotTaken != snew.SnapshotTaken {
 				OZZIEMessageCount++
 				if OZZIEMessageCount < 10 {
