@@ -570,7 +570,7 @@ func watcherGetStats(hostname string, hostaddr string) (serviceVersionChanged bo
 		// If the server hasn't been up long enough to have stats.  Note that [0] is the
 		// current stats, and we need at least two more to compute relative stats.
 		if len(sistats) < 3 {
-			fmt.Printf("node %s hasn't been up long enough to have useful stats", siid)
+			fmt.Printf("node %s hasn't been up long enough to have useful stats\n", siid)
 			continue
 		}
 

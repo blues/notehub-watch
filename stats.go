@@ -11,7 +11,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"sort"
-	"strings"
 	"sync"
 	"time"
 )
@@ -211,15 +210,13 @@ func statsAreUniform(s map[string][]StatsStat) (uniform bool, err error) {
 	if uniform {
 		return
 	}
-	staleHandlers := []string{}
 	fmt.Printf("STALE HANDLER STATS\n")
 	for siid, sis := range s {
 		if maxTime != sis[0].SnapshotTaken {
 			fmt.Printf("  %d != %d %s\n", maxTime, sis[0].SnapshotTaken, siid)
-			staleHandlers = append(staleHandlers, siid)
 		}
 	}
-	err = fmt.Errorf("stale stats results from %s", strings.Join(staleHandlers, ","))
+	err = fmt.Errorf("stale stats results")
 	return
 }
 
