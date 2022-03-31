@@ -190,7 +190,8 @@ func uStatsVerify(hostname string, hostaddr string, serviceVersion string, bucke
 
 }
 
-// See if stats are uniform across the instances.  For timing reasons it could be that we don't fetch them at exactly the right time
+// See if stats are uniform across the instances.  For timing reasons it could be
+// that we don't fetch them at exactly the right time
 func statsAreUniform(s map[string][]StatsStat) (uniform bool, err error) {
 	maxTime := int64(0)
 	uniform = true
@@ -223,47 +224,27 @@ func statsAreUniform(s map[string][]StatsStat) (uniform bool, err error) {
 }
 
 // Validate the continuity of the specified stats array, to correct any possible corruption
+// Note that they must have the same start time but they can be of varying lengths, because
+// handlers start at different times.
 func uValidateStats(fixupType string, s map[string][]StatsStat, normalizedTime int64, bucketSecs64 int64) (totalEntries int, blankEntries int, err error) {
 	bucketSecs := int(bucketSecs64)
 
-	// Get the maximum length of any entry, which will determine what we're normalizing to.  Also,
-	// if normalizedTime wasn't specified, pull it out of the first entry.
-	normalizedLength := 0
-	maxTime := int64(0)
-	for _, sis := range s {
-		if len(sis) > 0 && sis[0].SnapshotTaken > maxTime {
-			maxTime = sis[0].SnapshotTaken
-		}
-		if normalizedLength == 0 {
-			normalizedLength = len(sis)
-		}
-		if len(sis) < normalizedLength {
-			normalizedLength = len(sis)
-		}
-		if sis[0].SnapshotTaken != maxTime {
-			fmt.Printf("NONUNIFORM buckets (maxTime: %d)\n", maxTime)
-			for siid, sis2 := range s {
-				fmt.Printf("%s %d\n", siid, sis2[0].SnapshotTaken)
-			}
-			break
-		}
-	}
 	if normalizedTime == 0 {
-		normalizedTime = maxTime
-	}
-
-	// Exit if nothing to do
-	if normalizedLength == 0 {
-		err = fmt.Errorf("one of the handlers hasn't yet been up long enough to generate stats")
-		return
-	}
-
-	// Iterate over the source, reducing the length of the service instance data to the normalized length
-	// which is the minimum available.  (This commonly happens if a new instance is started after hours.)
-	for siid, sis := range s {
-		if len(s) < normalizedLength {
-			fmt.Printf("handler %s stats truncted from %d to %d\n", siid, len(s), normalizedLength)
-			s[siid] = sis[0:normalizedLength]
+		for _, sis := range s {
+			if len(sis) > 0 && sis[0].SnapshotTaken > normalizedTime {
+				normalizedTime = sis[0].SnapshotTaken
+			}
+			if sis[0].SnapshotTaken != normalizedTime {
+				fmt.Printf("NONUNIFORM buckets (normalizedTime: %d)\n", normalizedTime)
+				for siid, sis2 := range s {
+					fmt.Printf("%s %d\n", siid, sis2[0].SnapshotTaken)
+				}
+				break
+			}
+		}
+		if normalizedTime == 0 {
+			err = fmt.Errorf("no stats")
+			return
 		}
 	}
 
@@ -272,18 +253,14 @@ func uValidateStats(fixupType string, s map[string][]StatsStat, normalizedTime i
 
 		// Do a pre-check to see if the entire array is fine
 		bad := false
-		if normalizedLength != len(sis) {
-			bad = true
-			fmt.Printf("fixup: length %d != %d\n", normalizedLength, len(sis))
-		}
-		for i := 0; i < normalizedLength; i++ {
+		for i := 0; i < len(sis); i++ {
 			if sis[i].SnapshotTaken != normalizedTime-int64(i*bucketSecs) {
 				bad = true
 				t1 := time.Unix(sis[i].SnapshotTaken, 0).UTC()
 				t1s := t1.Format("01-02 15:04:05")
 				t2 := time.Unix(normalizedTime-int64(i*bucketSecs), 0).UTC()
 				t2s := t2.Format("01-02 15:04:05")
-				fmt.Printf("fixup %s: len:%d entry %d's time %s != expected time %s\n", fixupType, normalizedLength, i, t1s, t2s)
+				fmt.Printf("fixup %s: len:%d entry %d's time %s != expected time %s\n", fixupType, len(sis), i, t1s, t2s)
 			}
 			if sis[i].OSMemTotal == 0 {
 				blankEntries++
@@ -295,17 +272,17 @@ func uValidateStats(fixupType string, s map[string][]StatsStat, normalizedTime i
 		if !bad {
 			continue
 		}
-		fmt.Printf("fixup %s: doing fixup: length:%d total:%d blank:%d\n", fixupType, normalizedLength, totalEntries, blankEntries)
+		fmt.Printf("fixup %s: doing fixup: length:%d total:%d blank:%d\n", fixupType, len(sis), totalEntries, blankEntries)
 		statsAnalyze("BAD DATA: ", sis, int64(bucketSecs))
 
 		// Do the fixup, which is a slow process
-		newStats := make([]StatsStat, normalizedLength)
-		for i := 0; i < normalizedLength; i++ {
+		newStats := make([]StatsStat, len(sis))
+		for i := 0; i < len(sis); i++ {
 			newStats[i].SnapshotTaken = normalizedTime - int64(bucketSecs*i)
 		}
 		for sn, stat := range sis {
 			i := int(normalizedTime-stat.SnapshotTaken) / bucketSecs
-			if i < 0 || i >= normalizedLength {
+			if i < 0 || i >= len(sis) {
 				fmt.Printf("can't place stat %d during fixup\n", i)
 			} else {
 				if newStats[i].SnapshotTaken != stat.SnapshotTaken {
