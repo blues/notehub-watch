@@ -414,7 +414,7 @@ func uStatsAdd(hostname string, hostaddr string, s map[string][]StatsStat) (adde
 	for siid, sis := range s {
 		var newStats []StatsStat
 		for sn, snew := range sis {
-			i := (mostRecentTime - snew.SnapshotTaken) / bucketSecs
+			i := (hs.Time - snew.SnapshotTaken) / bucketSecs
 			if i < 0 || i > int64(len(hs.Stats[siid])) {
 				fmt.Printf("*** error: out of bounds %d, %d\n", i, len(hs.Stats[siid]))
 				continue
