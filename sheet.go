@@ -122,7 +122,7 @@ func sheetGetHostStats(hostname string, hostaddr string) (response string) {
 		return
 	}
 	if sheetTrace {
-		fmt.Printf("sheetGetHostStats: %d handlers\n", len(hs.Stats))
+		fmt.Printf("sheetGetHostStats: extracted and retrieved stats from %d handlers\n", len(hs.Stats))
 	}
 
 	// Create a new spreadsheet

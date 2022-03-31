@@ -572,6 +572,7 @@ func statsExtract(hostname string, beginTime int64, duration int64) (hsret HostS
 	statsLock.Lock()
 	defer statsLock.Unlock()
 	if !uStatsLoaded(hostname) {
+		fmt.Printf("%s not loaded\n", hostname)
 		exists = false
 		return
 	}
