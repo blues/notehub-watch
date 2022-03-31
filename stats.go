@@ -136,8 +136,6 @@ func uLoadStats(hostname string, hostaddr string, serviceVersion string, bucketS
 			fmt.Printf("stats: loaded %d stats for %s from today\n", added, hostname)
 		}
 	}
-	fmt.Printf("OZZIE: PAUSE AFTER LOADING TODAY\n")
-	time.Sleep(10 * time.Second) // OZZIE
 	hs, err = readFileLocally(hostname, serviceVersion, yesterdayTime())
 	if err != nil {
 		err = nil
@@ -147,8 +145,6 @@ func uLoadStats(hostname string, hostaddr string, serviceVersion string, bucketS
 			fmt.Printf("stats: loaded %d stats for %s from yesterday\n", added, hostname)
 		}
 	}
-	fmt.Printf("OZZIE: PAUSE AFTER LOADING YESTERDAY\n")
-	time.Sleep(10 * time.Second) // OZZIE
 
 	// Done
 	return
@@ -301,13 +297,9 @@ func uStatsAdd(hostname string, hostaddr string, s map[string][]StatsStat) (adde
 			fmt.Printf("uStatsAdd: adding %d blank entries (of %d total) to %s\n", blankEntries, totalEntries, hostname)
 		}
 	}
-	fmt.Printf("OZZIE: PAUSE AFTER NEW STATS VALIDATED\n")
-	time.Sleep(10 * time.Second) // OZZIE
 	if len(hs.Stats) > 0 {
 		uValidateStats("existing", hs.Stats, hs.Time, bucketSecs)
 	}
-	fmt.Printf("OZZIE: PAUSE AFTER EXISTING STATS VALIDATED\n")
-	time.Sleep(10 * time.Second) // OZZIE
 
 	// Make sure there are map entries for all the service instances we're adding, and
 	// that we can always feel safe in referencing the [0] entry of a stats array.
@@ -410,7 +402,6 @@ func uStatsAdd(hostname string, hostaddr string, s map[string][]StatsStat) (adde
 	}
 
 	// For each new stat coming in, set the array contents
-	OZZIEMessageCount := 0
 	for siid, sis := range s {
 		var newStats []StatsStat
 		for sn, snew := range sis {
@@ -420,13 +411,7 @@ func uStatsAdd(hostname string, hostaddr string, s map[string][]StatsStat) (adde
 				continue
 			}
 			if hs.Stats[siid][i].SnapshotTaken != snew.SnapshotTaken {
-				OZZIEMessageCount++
-				if OZZIEMessageCount < 10 {
-					fmt.Printf("target-currentIndex:%d source-NewIndex:%d out of place?  %d != %d\n", i, sn, hs.Stats[siid][i].SnapshotTaken, snew.SnapshotTaken)
-				}
-				statsAnalyze("BEING ADDED ", sis, bucketSecs)
-				statsAnalyze("CURRENT ", hs.Stats[siid], bucketSecs)
-				time.Sleep(60 * time.Second)
+				fmt.Printf("target-currentIndex:%d source-NewIndex:%d out of place?  %d != %d\n", i, sn, hs.Stats[siid][i].SnapshotTaken, snew.SnapshotTaken)
 			}
 			if snew.OSMemTotal != 0 {
 				hs.Stats[siid][i] = snew
@@ -441,8 +426,6 @@ func uStatsAdd(hostname string, hostaddr string, s map[string][]StatsStat) (adde
 
 	// Update the main stats
 	stats[hostname] = hs
-	fmt.Printf("OZZIE: PAUSE AFTER STATS ADDED\n")
-	time.Sleep(10 * time.Second) // OZZIE
 	return
 
 }

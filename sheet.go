@@ -189,6 +189,9 @@ func sheetAddTab(f *excelize.File, sheetName string, siid string, ss serviceSumm
 	// Determine if summary sheet, for special treatment
 	isSummarySheet := siid == "summary"
 
+	// Debug
+	fmt.Printf("sheet: adding '%s'\n", sheetName)
+
 	// Generate the sheet
 	f.NewSheet(sheetName)
 
