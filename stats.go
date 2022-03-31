@@ -237,9 +237,8 @@ func uValidateStats(fixupType string, s map[string][]StatsStat, normalizedTime i
 		if normalizedLength == 0 {
 			normalizedLength = len(sis)
 		}
-		if len(sis) != normalizedLength {
-			err = fmt.Errorf("stat must be of equal length on all service instances: %d != %d", normalizedLength, len(sis))
-			return
+		if len(sis) < normalizedLength {
+			normalizedLength = len(sis)
 		}
 		if sis[0].SnapshotTaken != maxTime {
 			fmt.Printf("NONUNIFORM buckets (maxTime: %d)\n", maxTime)
@@ -251,6 +250,21 @@ func uValidateStats(fixupType string, s map[string][]StatsStat, normalizedTime i
 	}
 	if normalizedTime == 0 {
 		normalizedTime = maxTime
+	}
+
+	// Exit if nothing to do
+	if normalizedLength == 0 {
+		err = fmt.Errorf("one of the handlers hasn't yet been up long enough to generate stats")
+		return
+	}
+
+	// Iterate over the source, reducing the length of the service instance data to the normalized length
+	// which is the minimum available.  (This commonly happens if a new instance is started after hours.)
+	for siid, sis := range s {
+		if len(s) < normalizedLength {
+			fmt.Printf("handler %s stats truncted from %d to %d\n", siid, len(s), normalizedLength)
+			s[siid] = sis[0:normalizedLength]
+		}
 	}
 
 	// Iterate over each stats array, normalizing to normalizedTime and normalizedLength
