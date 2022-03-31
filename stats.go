@@ -227,10 +227,19 @@ func validateStats(s map[string][]StatsStat, normalizedTime int64, bucketSecs64 
 	for siid, sis := range s {
 
 		// Do a pre-check to see if the entire array is fine
-		bad := len(sis) != normalizedLength
+		bad := false
+		if normalizedLength != len(sis) {
+			bad = true
+			fmt.Printf("fixup: length %d != %d\n", normalizedLength, len(sis))
+		}
 		for i := 0; i < normalizedLength; i++ {
 			if sis[i].SnapshotTaken != normalizedTime-int64(i*bucketSecs) {
 				bad = true
+				t1 := time.Unix(sis[i].SnapshotTaken, 0).UTC()
+				t1s := t1.Format("01-02 15:04:05")
+				t2 := time.Unix(normalizedTime-int64(i*bucketSecs), 0).UTC()
+				t2s := t2.Format("01-02 15:04:05")
+				fmt.Printf("fixup: len:%d entry %d's time %s != expected time %s\n", normalizedLength, i, t1s, t2s)
 			}
 			if sis[i].OSMemTotal == 0 {
 				blankEntries++
@@ -242,13 +251,14 @@ func validateStats(s map[string][]StatsStat, normalizedTime int64, bucketSecs64 
 		if !bad {
 			continue
 		}
+		fmt.Printf("fixup: doing fixup: length:%d total:%d blank:%d\n", normalizedLength, totalEntries, blankEntries)
 
 		// Do the fixup, which is a slow process
 		newStats := make([]StatsStat, normalizedLength)
 		for i := 0; i < normalizedLength; i++ {
 			newStats[i].SnapshotTaken = normalizedTime - int64(bucketSecs*i)
 		}
-		for _, stat := range sis {
+		for sn, stat := range sis {
 			i := int(normalizedTime-stat.SnapshotTaken) / bucketSecs
 			if i < 0 || i >= normalizedLength {
 				fmt.Printf("can't place stat %d during fixup\n", i)
@@ -256,6 +266,7 @@ func validateStats(s map[string][]StatsStat, normalizedTime int64, bucketSecs64 
 				if newStats[i].SnapshotTaken != stat.SnapshotTaken {
 					fmt.Printf("huh?")
 				} else {
+					fmt.Printf("fixup: placed %d in %d\n", sn, i)
 					newStats[i] = stat
 				}
 			}
@@ -411,11 +422,15 @@ func uStatsAdd(hostname string, hostaddr string, s map[string][]StatsStat) (adde
 	// For each new stat coming in, set the array contents
 	for siid, sis := range s {
 		var newStats []StatsStat
-		for _, snew := range sis {
+		for sn, snew := range sis {
 			i := (mostRecentTime - snew.SnapshotTaken) / bucketSecs
 			if i < 0 || i > int64(len(hs.Stats[siid])) {
 				fmt.Printf("*** error: out of bounds %d, %d\n", i, len(hs.Stats[siid]))
 				continue
+			}
+			fmt.Printf("added input stat %d as new stat %d\n", i, sn)
+			if hs.Stats[siid][i].SnapshotTaken != snew.SnapshotTaken {
+				fmt.Printf("out of place?  %d != %d\n", hs.Stats[siid][i].SnapshotTaken, snew.SnapshotTaken)
 			}
 			if snew.OSMemTotal != 0 {
 				hs.Stats[siid][i] = snew
