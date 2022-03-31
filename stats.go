@@ -356,30 +356,26 @@ func uStatsAdd(hostname string, hostaddr string, s map[string][]StatsStat) (adde
 
 	// Make sure there are map entries for all the service instances we're adding, and
 	// that we can always feel safe in referencing the [0] entry of a stats array.
-	// Also, as a side-effect, ensure that there is uniformity in the length of
-	// the stats array in each and all of the stats across all service instances.
-	buckets := int64(0)
+	// Also, compute the least recent time so we can extend all arrays to that point
 	var mostRecentTime, leastRecentTime int64
 	for siid, sis := range s {
 		if hs.Stats[siid] == nil {
 			hs.Stats[siid] = []StatsStat{}
 		}
-		if buckets == 0 {
-			buckets = int64(len(sis))
+		if mostRecentTime == 0 {
 			mostRecentTime = sis[0].SnapshotTaken
-			leastRecentTime = mostRecentTime - (buckets * bucketSecs)
-		}
-		if int64(len(sis)) != buckets || buckets == 0 {
-			err = fmt.Errorf("uStatsAdd: %s: *** non-uniform stats len (%d != %d) ***", hostname, len(sis), buckets)
-			fmt.Printf("%s\n", err)
-			return
 		}
 		if mostRecentTime != sis[0].SnapshotTaken || mostRecentTime == 0 {
-			fmt.Printf("uStatsAdd: %s: *** non-uniform stats time (%d != %d) ***\n", hostname, sis[0].SnapshotTaken, mostRecentTime)
+			err = fmt.Errorf("uStatsAdd: %s: *** non-uniform stats time (%d != %d) ***", hostname, sis[0].SnapshotTaken, mostRecentTime)
+			return
+		}
+		lrt := mostRecentTime - (int64(len(sis)) * bucketSecs)
+		if lrt < leastRecentTime {
+			leastRecentTime = lrt
 		}
 	}
 	if addStatsTrace {
-		fmt.Printf("uStatsAdd: %s: buckets:%d recent:%d least:%d\n", hostname, buckets, mostRecentTime, leastRecentTime)
+		fmt.Printf("uStatsAdd: %s: recent:%d least:%d\n", hostname, mostRecentTime, leastRecentTime)
 	}
 
 	// If the base time needs to be updated, do so
@@ -425,9 +421,7 @@ func uStatsAdd(hostname string, hostaddr string, s map[string][]StatsStat) (adde
 	stats[hostname] = hs
 
 	// As purely a sanity check to validate the performance of the above, validate
-	// the core assumptions that all siids are uniform, and that all siids encompass
-	// the window of the stats being inserted
-	hsBuckets := 0
+	// the core assumptions that all siids encompass the window of the stats being inserted
 	for _, sis := range hs.Stats {
 		if hs.Time != sis[0].SnapshotTaken {
 			err = fmt.Errorf("*** error: unexpected %d != snapshot taken %d", hs.Time, sis[0].SnapshotTaken)
@@ -437,22 +431,6 @@ func uStatsAdd(hostname string, hostaddr string, s map[string][]StatsStat) (adde
 		}
 		if hs.Time < mostRecentTime {
 			err = fmt.Errorf("*** error: unexpected %d < most recent time %d", hs.Time, mostRecentTime)
-			fmt.Printf("%s\n", err)
-			statsAnalyze("", sis, bucketSecs)
-			return
-		}
-		if hsBuckets == 0 {
-			hsBuckets = len(sis)
-			hsLeastRecentTime := hs.Time - (bucketSecs * int64(hsBuckets))
-			if hsLeastRecentTime > leastRecentTime {
-				err = fmt.Errorf("*** error: hs truncated %d > %d", hsLeastRecentTime, leastRecentTime)
-				fmt.Printf("%s\n", err)
-				statsAnalyze("", sis, bucketSecs)
-				return
-			}
-		}
-		if len(sis) != hsBuckets {
-			err = fmt.Errorf("*** error: nonuniform numBuckets %d != %d", hsBuckets, len(sis))
 			fmt.Printf("%s\n", err)
 			statsAnalyze("", sis, bucketSecs)
 			return
