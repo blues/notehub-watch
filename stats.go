@@ -370,7 +370,7 @@ func uStatsAdd(hostname string, hostaddr string, s map[string][]StatsStat) (adde
 			return
 		}
 		lrt := mostRecentTime - (int64(len(sis)) * bucketSecs)
-		if lrt < leastRecentTime {
+		if leastRecentTime == 0 || lrt < leastRecentTime {
 			leastRecentTime = lrt
 		}
 	}
