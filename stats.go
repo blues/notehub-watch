@@ -726,7 +726,7 @@ func statsUpdateHost(hostname string, hostaddr string, reload bool) (ss serviceS
 	uStatsVerify(hostname, hostaddr, ss.ServiceVersion, ss.BucketSecs)
 
 	// Update the stats in-memory
-	added, addedStats, _ := uStatsAdd(hostname, hostaddr, statsLastHour)
+	added, addedStats, err := uStatsAdd(hostname, hostaddr, statsLastHour)
 	if err != nil {
 		fmt.Printf("stats: error adding stats: %s\n", err)
 	}
