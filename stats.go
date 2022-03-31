@@ -136,6 +136,8 @@ func uLoadStats(hostname string, hostaddr string, serviceVersion string, bucketS
 			fmt.Printf("stats: loaded %d stats for %s from today\n", added, hostname)
 		}
 	}
+	fmt.Printf("OZZIE: PAUSE\n")
+	time.Sleep(10 * time.Second) // OZZIE
 	hs, err = readFileLocally(hostname, serviceVersion, yesterdayTime())
 	if err != nil {
 		err = nil
@@ -145,6 +147,8 @@ func uLoadStats(hostname string, hostaddr string, serviceVersion string, bucketS
 			fmt.Printf("stats: loaded %d stats for %s from yesterday\n", added, hostname)
 		}
 	}
+	fmt.Printf("OZZIE: PAUSE\n")
+	time.Sleep(10 * time.Second) // OZZIE
 
 	// Done
 	return
@@ -297,9 +301,13 @@ func uStatsAdd(hostname string, hostaddr string, s map[string][]StatsStat) (adde
 			fmt.Printf("uStatsAdd: adding %d blank entries (of %d total) to %s\n", blankEntries, totalEntries, hostname)
 		}
 	}
+	fmt.Printf("OZZIE: NEW STATS VALIDATED\n")
+	time.Sleep(10 * time.Second) // OZZIE
 	if len(hs.Stats) > 0 {
 		uValidateStats("existing", hs.Stats, hs.Time, bucketSecs)
 	}
+	fmt.Printf("OZZIE: EXISTING STATS VALIDATED\n")
+	time.Sleep(10 * time.Second) // OZZIE
 
 	// Make sure there are map entries for all the service instances we're adding, and
 	// that we can always feel safe in referencing the [0] entry of a stats array.
@@ -429,6 +437,8 @@ func uStatsAdd(hostname string, hostaddr string, s map[string][]StatsStat) (adde
 
 	// Update the main stats
 	stats[hostname] = hs
+	fmt.Printf("OZZIE: STATS ADDED\n")
+	time.Sleep(10 * time.Second) // OZZIE
 	return
 
 }
