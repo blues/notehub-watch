@@ -194,7 +194,7 @@ func statsAreUniform(s map[string][]StatsStat) (uniform bool, err error) {
 			err = fmt.Errorf("stats unavailable")
 			return
 		}
-		if maxTime > sis[0].SnapshotTaken {
+		if maxTime < sis[0].SnapshotTaken {
 			maxTime = sis[0].SnapshotTaken
 		}
 		if sis[0].SnapshotTaken != maxTime {
