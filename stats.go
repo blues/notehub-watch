@@ -425,7 +425,7 @@ func uStatsAdd(hostname string, hostaddr string, s map[string][]StatsStat) (adde
 			if hs.Stats[siid][i].SnapshotTaken != snew.SnapshotTaken {
 				OZZIEMessageCount++
 				if OZZIEMessageCount < 10 {
-					fmt.Printf("currentIndex:%d NewIndex:%d out of place?  %d != %d\n", hs.Stats[siid][i].SnapshotTaken, snew.SnapshotTaken)
+					fmt.Printf("target-currentIndex:%d source-NewIndex:%d out of place?  %d != %d\n", i, sn, hs.Stats[siid][i].SnapshotTaken, snew.SnapshotTaken)
 				}
 				statsAnalyze("BEING ADDED ", sis, bucketSecs)
 				statsAnalyze("CURRENT ", hs.Stats[siid], bucketSecs)
