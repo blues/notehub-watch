@@ -425,10 +425,10 @@ func uStatsAdd(hostname string, hostaddr string, s map[string][]StatsStat) (adde
 			if hs.Stats[siid][i].SnapshotTaken != snew.SnapshotTaken {
 				OZZIEMessageCount++
 				if OZZIEMessageCount < 10 {
-					fmt.Printf("out of place?  %d != %d\n", hs.Stats[siid][i].SnapshotTaken, snew.SnapshotTaken)
+					fmt.Printf("currentIndex:%d NewIndex:%d out of place?  %d != %d\n", hs.Stats[siid][i].SnapshotTaken, snew.SnapshotTaken)
 				}
-				statsAnalyze("BEING ADDED", sis, bucketSecs)
-				statsAnalyze("CURRENT", hs.Stats[siid], bucketSecs)
+				statsAnalyze("BEING ADDED ", sis, bucketSecs)
+				statsAnalyze("CURRENT ", hs.Stats[siid], bucketSecs)
 				time.Sleep(60 * time.Second)
 			}
 			if snew.OSMemTotal != 0 {
