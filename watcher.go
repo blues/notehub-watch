@@ -548,7 +548,6 @@ func watcherGetStats(hostname string, hostaddr string) (serviceVersionChanged bo
 			started, _ := time.Parse("2006-01-02T15:04:05Z", pb.Body.NodeStarted)
 			h.NodeStarted = started.Unix()
 		}
-		handlers[siid] = h
 
 		// Sanity check for format of stats
 		if pb.Body.LBStatus == nil || len(*pb.Body.LBStatus) == 0 {
@@ -571,12 +570,15 @@ func watcherGetStats(hostname string, hostaddr string) (serviceVersionChanged bo
 		// If the server hasn't been up long enough to have stats.  Note that [0] is the
 		// current stats, and we need at least two more to compute relative stats.
 		if len(sistats) < 3 {
-			err = fmt.Errorf("server hasn't been up long enough to have useful stats")
-			return
+			fmt.Printf("node %s hasn't been up long enough to have useful stats", siid)
+			continue
 		}
 
 		// Extract all available stats, and convert them from absolute to per-bucket relative.
 		stats[siid] = ConvertStatsFromAbsoluteToRelative(sistats[1:], ss.BucketSecs)
+
+		// Now that we have valid stats, include the handler
+		handlers[siid] = h
 
 	}
 
