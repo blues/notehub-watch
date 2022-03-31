@@ -76,7 +76,6 @@ var statsMaintainNow *Event
 var statsLock sync.Mutex
 var stats map[string]HostStats
 var statsServiceVersions map[string]string
-var statsUpdateLock sync.Mutex
 
 // Trace
 const addStatsTrace = true
@@ -124,7 +123,7 @@ func uLoadStats(hostname string, hostaddr string, serviceVersion string, bucketS
 
 	// Begin by clearing out the host
 	statsServiceVersions[hostname] = ""
-	statsVerify(hostname, hostaddr, serviceVersion, bucketSecs)
+	uStatsVerify(hostname, hostaddr, serviceVersion, bucketSecs)
 
 	// Load the files
 	var hs HostStats
@@ -169,11 +168,7 @@ func statsInit() {
 }
 
 // Verify that the stats buckets are set up properly
-func statsVerify(hostname string, hostaddr string, serviceVersion string, bucketSecs int64) {
-
-	// Lock
-	statsLock.Lock()
-	defer statsLock.Unlock()
+func uStatsVerify(hostname string, hostaddr string, serviceVersion string, bucketSecs int64) {
 
 	// If service version is wrong, initialize
 	if serviceVersion != statsServiceVersions[hostname] {
@@ -188,23 +183,8 @@ func statsVerify(hostname string, hostaddr string, serviceVersion string, bucket
 
 }
 
-// Add stats
-func statsAdd(hostname string, hostaddr string, s map[string][]StatsStat) (added int, addedStats map[string][]StatsStat) {
-
-	// Lock and exit if no stats loaded yet
-	statsLock.Lock()
-	defer statsLock.Unlock()
-	if !uStatsLoaded(hostname) {
-		return
-	}
-
-	// Add the stats in-memory
-	return uStatsAdd(hostname, hostaddr, s)
-
-}
-
 // Validate the continuity of the specified stats array, to correct any possible corruption
-func validateStats(s map[string][]StatsStat, normalizedTime int64, bucketSecs64 int64) (totalEntries int, blankEntries int) {
+func uValidateStats(s map[string][]StatsStat, normalizedTime int64, bucketSecs64 int64) (totalEntries int, blankEntries int) {
 	bucketSecs := int(bucketSecs64)
 
 	// Get the maximum length of any entry, which will determine what we're normalizing to.  Also,
@@ -310,13 +290,13 @@ func uStatsAdd(hostname string, hostaddr string, s map[string][]StatsStat) (adde
 
 	// Validate both existing stats arrays and the ones being added, just as a sanity check
 	if len(s) > 0 {
-		totalEntries, blankEntries := validateStats(s, 0, bucketSecs)
+		totalEntries, blankEntries := uValidateStats(s, 0, bucketSecs)
 		if blankEntries > 0 {
 			fmt.Printf("uStatsAdd: adding %d blank entries (of %d total) to %s\n", blankEntries, totalEntries, hostname)
 		}
 	}
 	if len(hs.Stats) > 0 {
-		validateStats(hs.Stats, hs.Time, bucketSecs)
+		uValidateStats(hs.Stats, hs.Time, bucketSecs)
 	}
 
 	// Make sure there are map entries for all the service instances we're adding, and
@@ -428,7 +408,7 @@ func uStatsAdd(hostname string, hostaddr string, s map[string][]StatsStat) (adde
 				fmt.Printf("*** error: out of bounds %d, %d\n", i, len(hs.Stats[siid]))
 				continue
 			}
-			fmt.Printf("added input stat %d as new stat %d\n", i, sn)
+			fmt.Printf("adding input stat %d as new stat %d\n", i, sn)
 			if hs.Stats[siid][i].SnapshotTaken != snew.SnapshotTaken {
 				fmt.Printf("out of place?  %d != %d\n", hs.Stats[siid][i].SnapshotTaken, snew.SnapshotTaken)
 			}
@@ -624,8 +604,8 @@ func uStatsLoaded(hostname string) bool {
 func statsUpdateHost(hostname string, hostaddr string, reload bool) (ss serviceSummary, handlers map[string]AppHandler, err error) {
 
 	// Only one in here at a time
-	statsUpdateLock.Lock()
-	defer statsUpdateLock.Unlock()
+	statsLock.Lock()
+	defer statsLock.Unlock()
 
 	// Get the stats
 	var serviceVersionChanged bool
@@ -661,10 +641,10 @@ func statsUpdateHost(hostname string, hostaddr string, reload bool) (ss serviceS
 	}
 
 	// Verify that the in-memory stats are set up properly
-	statsVerify(hostname, hostaddr, ss.ServiceVersion, ss.BucketSecs)
+	uStatsVerify(hostname, hostaddr, ss.ServiceVersion, ss.BucketSecs)
 
 	// Update the stats in-memory
-	added, addedStats := statsAdd(hostname, hostaddr, statsLastHour)
+	added, addedStats := uStatsAdd(hostname, hostaddr, statsLastHour)
 	if added > 0 {
 		fmt.Printf("stats: added %d new stats for %s\n", added, hostname)
 	}
