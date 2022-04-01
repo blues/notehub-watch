@@ -174,7 +174,7 @@ func watcherGetServiceInstances(hostname string, hostaddr string) (serviceVersio
 			}
 		}
 		if len(addedHandlers) > 0 || len(removedHandlers) > 0 {
-			s := "@channel: handlers changed:\n"
+			s := "@channel: " + hostname + " handlers changed:\n"
 			if len(addedHandlers) > 0 {
 				s += "  BORN:\n"
 				for k := range addedHandlers {
