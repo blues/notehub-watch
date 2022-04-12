@@ -171,7 +171,7 @@ func sheetGetHostStats(hostname string, hostaddr string) (response string) {
 	// Generate response
 	response += "```"
 	response += fmt.Sprintf("      host: %s\n", hostCleaned)
-	response += fmt.Sprintf("   version: %s)\n", ss.ServiceVersion)
+	response += fmt.Sprintf("   version: %s\n", ss.ServiceVersion)
 	response += fmt.Sprintf("     nodes: %d\n", len(ss.ServiceInstanceIDs))
 	response += fmt.Sprintf("  handlers: %d (continuous:%d notification:%d ephemeral:%d discovery:%d)\n",
 		ss.ContinuousHandlers+ss.NotificationHandlers+ss.EphemeralHandlers+ss.DiscoveryHandlers,
