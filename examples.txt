@@ -1,4 +1,0 @@
-
-get /v1/projects/app:81502812-eabe-4d77-a2a0-850ca3904d5f/devices/dev:5c0272312137/environment_variables
-
-{"req":"hub.env.get","product":"net.ozzie.ray:test","scope":"device","device":"dev:5c0272312137"}
