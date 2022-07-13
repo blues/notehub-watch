@@ -242,7 +242,7 @@ func getServiceInstances(hostaddr string) (serviceVersion string, serviceInstanc
 	var pb PingBody
 	err = json.Unmarshal(rspJSON, &pb)
 	if err != nil {
-		fmt.Printf("getServiceInstance: unmarshal error: %s\n%s\n", err, string(rspJSON))
+		err = fmt.Errorf("%s (%s)", err, string(rspJSON))
 		return
 	}
 	if pb.Body.ServiceVersion == "" && pb.Body.LegacyServiceVersion != 0 {
@@ -316,7 +316,7 @@ func getServiceInstanceInfo(addr string, siid string, showWhat string) (pb PingB
 	// Unmarshal it
 	err = json.Unmarshal(rspJSON, &pb)
 	if err != nil {
-		fmt.Printf("getServiceInstanceInfo: unmarshal error: %s\n%s\n", err, string(rspJSON))
+		err = fmt.Errorf("%s (%s)", err, string(rspJSON))
 		return
 	}
 	if pb.Body.ServiceVersion == "" && pb.Body.LegacyServiceVersion != 0 {
