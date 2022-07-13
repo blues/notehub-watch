@@ -756,6 +756,7 @@ func readFileLocally(hostname string, serviceVersion string, beginTime int64) (h
 	// Unmarshal it
 	err = json.Unmarshal(contents, &hs)
 	if err != nil {
+		fmt.Printf("readFile: unmarshal error (%s): %s\n", statsFilename(hostname, serviceVersion, beginTime, currentType), err)
 		return
 	}
 	return
@@ -768,6 +769,7 @@ func writeFileLocally(hostname string, serviceVersion string, beginTime int64, d
 	hs, _ := uStatsExtract(hostname, beginTime, duration)
 	contents, err = json.Marshal(hs)
 	if err != nil {
+		fmt.Printf("writeFileLocally: marshal error (%s): %s\n", hostname, err)
 		return
 	}
 
