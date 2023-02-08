@@ -17,6 +17,7 @@ func HTTPInboundHandler(port string) {
 	http.HandleFunc("/github", inboundWebGithubHandler)
 	http.HandleFunc("/watcher", inboundWebSlackRequestHandler)
 	http.HandleFunc("/ping", inboundWebPingHandler)
+	http.HandleFunc("/canary", inboundWebCanaryHandler)
 	http.HandleFunc(sheetRoute, inboundWebSheetHandler)
 	http.HandleFunc("/", inboundWebRootHandler)
 
