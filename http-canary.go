@@ -44,17 +44,15 @@ func inboundWebCanaryHandler(httpRsp http.ResponseWriter, httpReq *http.Request)
 	// Determine the various latencies
 	capturedTime := e.When
 	receivedTime := int64(e.Received)
-	routedTime := e.Routed
-	canaryTime := time.Now().UTC().Unix()
+	routedTime := time.Now().UTC().Unix()
 	body := *e.Body
-	seqNo := body["count"]
+	seqNo := body["count"].(int64)
 	sessionID := e.SessionUID
 
 	// Determine the difference between note creation time and the time of receipt
 	fmt.Printf("\ncaptured: %d\n", capturedTime)
 	fmt.Printf("\nreceived: %d\n", receivedTime)
 	fmt.Printf("\nrouted: %d\n", routedTime)
-	fmt.Printf("\nnow: %d\n", canaryTime)
 	fmt.Printf("\nseqno: %d\n", seqNo)
 	fmt.Printf("\nsessionID: %s\n", sessionID)
 
