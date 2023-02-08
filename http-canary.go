@@ -11,6 +11,7 @@ import (
 	"io"
 	"net/http"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/blues/note-go/note"
@@ -24,17 +25,21 @@ type lastEvent struct {
 	capturedTime int64
 	receivedTime int64
 	routedTime   int64
+	warnings     int64
 }
 
+var lastDeviceEventLock sync.Mutex
 var lastDeviceEvent map[string]lastEvent
 
 // Canary handler
 func inboundWebCanaryHandler(httpRsp http.ResponseWriter, httpReq *http.Request) {
 
 	// Instantiate the map
+	lastDeviceEventLock.Lock()
 	if lastDeviceEvent == nil {
 		lastDeviceEvent = map[string]lastEvent{}
 	}
+	lastDeviceEventLock.Unlock()
 
 	// Exit if someone is probing us
 	if httpReq.Method == "GET" {
@@ -56,12 +61,14 @@ func inboundWebCanaryHandler(httpRsp http.ResponseWriter, httpReq *http.Request)
 
 	// Remember info about the last session
 	if e.NotefileID == "_session.qo" {
+		lastDeviceEventLock.Lock()
 		last, present := lastDeviceEvent[e.DeviceUID]
 		if present && e.Body != nil {
 			body := *e.Body
 			last.continuous = strings.Contains(body["why"].(string), "continuous")
 		}
 		lastDeviceEvent[e.DeviceUID] = last
+		lastDeviceEventLock.Unlock()
 		return
 	}
 
@@ -82,6 +89,7 @@ func inboundWebCanaryHandler(httpRsp http.ResponseWriter, httpReq *http.Request)
 	}
 
 	// Alert
+	lastDeviceEventLock.Lock()
 	errstr := ""
 	last, present := lastDeviceEvent[e.DeviceUID]
 	if present {
@@ -98,18 +106,45 @@ func inboundWebCanaryHandler(httpRsp http.ResponseWriter, httpReq *http.Request)
 		}
 	}
 	lastDeviceEvent[e.DeviceUID] = this
+	lastDeviceEventLock.Unlock()
 
 	// Send message
 	if errstr != "" {
-		fmt.Printf("%s\n", errstr)
+		canaryMessage(e.DeviceUID, errstr)
 	}
 
-	// Determine the difference between note creation time and the time of receipt
-	fmt.Printf("captured: %d\n", this.capturedTime)
-	fmt.Printf("received: %d\n", this.receivedTime)
-	fmt.Printf("routed: %d\n", this.routedTime)
-	fmt.Printf("seqno: %d\n", this.seqNo)
-	fmt.Printf("sessionID: %s\n", this.sessionID)
-	fmt.Printf("\n")
+}
 
+// Canary handler
+func canarySweepDevices() {
+
+	// Instantiate the map
+	lastDeviceEventLock.Lock()
+	if lastDeviceEvent == nil {
+		lastDeviceEvent = map[string]lastEvent{}
+	}
+	lastDeviceEventLock.Unlock()
+
+	// Look at the map to see if there's anything due
+
+	lastDeviceEventLock.Lock()
+	now := time.Now().UTC().Unix()
+	for deviceUID, last := range lastDeviceEvent {
+		if now-last.receivedTime >= 6*60 {
+			last.warnings++
+			lastDeviceEvent[deviceUID] = last
+			if last.warnings < 10 {
+				canaryMessage(deviceUID, fmt.Sprintf("no routed events received in %d minutes", (now-last.receivedTime)/60))
+			} else if last.warnings == 10 {
+				canaryMessage(deviceUID, "LAST WARNING before silence!")
+			}
+		}
+	}
+	lastDeviceEventLock.Unlock()
+
+}
+
+// Output a canary message
+func canaryMessage(deviceUID string, message string) {
+	fmt.Printf("canary: %s %s\n", deviceUID, message)
 }

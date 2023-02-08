@@ -40,6 +40,7 @@ func main() {
 	// Housekeeping
 	for {
 		time.Sleep(1 * time.Minute)
+		canarySweepDevices()
 	}
 
 }
