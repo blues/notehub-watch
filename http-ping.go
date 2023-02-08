@@ -6,7 +6,7 @@
 package main
 
 import (
-	"io/ioutil"
+	"io"
 	"net/http"
 	"time"
 )
@@ -15,7 +15,7 @@ import (
 func inboundWebPingHandler(httpRsp http.ResponseWriter, httpReq *http.Request) {
 
 	// Get the body if supplied
-	reqJSON, err := ioutil.ReadAll(httpReq.Body)
+	reqJSON, err := io.ReadAll(httpReq.Body)
 	if err != nil {
 		reqJSON = []byte("{}")
 	}

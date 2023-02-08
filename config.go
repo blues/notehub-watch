@@ -7,7 +7,6 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"os"
 )
 
@@ -69,7 +68,7 @@ func ServiceReadConfig() {
 	// Read the file and unmarshall if no error
 	homedir, _ := os.UserHomeDir()
 	path := homedir + ConfigPath
-	contents, err := ioutil.ReadFile(path)
+	contents, err := os.ReadFile(path)
 	if err != nil {
 		fmt.Printf("can't load config from %s: %s\n", path, err)
 		os.Exit(-1)

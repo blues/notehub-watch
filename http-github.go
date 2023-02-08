@@ -8,7 +8,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"os"
 )
@@ -17,7 +17,7 @@ import (
 func inboundWebGithubHandler(rw http.ResponseWriter, req *http.Request) {
 
 	// Unpack the request
-	body, err := ioutil.ReadAll(req.Body)
+	body, err := io.ReadAll(req.Body)
 	if err != nil {
 		fmt.Printf("Github webhook: error reading body: %s", err)
 		return

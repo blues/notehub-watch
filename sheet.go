@@ -8,8 +8,8 @@ import (
 	"bytes"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
+	"os"
 	"sort"
 	"strings"
 	"time"
@@ -29,7 +29,7 @@ func inboundWebSheetHandler(w http.ResponseWriter, r *http.Request) {
 	// Open the file
 	filename := r.RequestURI[len(sheetRoute):]
 	file := configDataDirectory + filename
-	contents, err := ioutil.ReadFile(file)
+	contents, err := os.ReadFile(file)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusNotFound)
 		return

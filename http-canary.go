@@ -8,15 +8,31 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"time"
 
 	"github.com/blues/note-go/note"
 )
 
+// Retained between canary notifications
+type lastEvent struct {
+	sessionID    string
+	seqNo        int64
+	capturedTime int64
+	receivedTime int64
+	routedTime   int64
+}
+
+var lastDeviceEvent map[string]lastEvent
+
 // Canary handler
 func inboundWebCanaryHandler(httpRsp http.ResponseWriter, httpReq *http.Request) {
+
+	// Instantiate the map
+	if lastDeviceEvent == nil {
+		lastDeviceEvent = map[string]lastEvent{}
+	}
 
 	// Exit if someone is probing us
 	if httpReq.Method == "GET" {
@@ -24,7 +40,7 @@ func inboundWebCanaryHandler(httpRsp http.ResponseWriter, httpReq *http.Request)
 	}
 
 	// Get the body if supplied
-	eventJSON, err := ioutil.ReadAll(httpReq.Body)
+	eventJSON, err := io.ReadAll(httpReq.Body)
 	if err != nil {
 		eventJSON = []byte("{}")
 	}
@@ -42,18 +58,43 @@ func inboundWebCanaryHandler(httpRsp http.ResponseWriter, httpReq *http.Request)
 	}
 
 	// Determine the various latencies
-	capturedTime := e.When
-	receivedTime := int64(e.Received)
-	routedTime := time.Now().UTC().Unix()
+	var this lastEvent
+	this.capturedTime = e.When
+	this.receivedTime = int64(e.Received)
+	this.routedTime = time.Now().UTC().Unix()
 	body := *e.Body
-	seqNo := int64(body["count"].(float64))
-	sessionID := e.SessionUID
+	this.seqNo = int64(body["count"].(float64))
+	this.sessionID = e.SessionUID
+
+	// Alert
+	errstr := ""
+	last, present := lastDeviceEvent[e.DeviceUID]
+	if present {
+		if this.sessionID != last.sessionID {
+			errstr = "canary: continuous session dropped and reconnected"
+		} else if this.seqNo != last.seqNo+1 {
+			errstr = fmt.Sprintf("canary: sequence out of order (expected %d but received %d)", last.seqNo+1, this.seqNo)
+		} else if (this.receivedTime - this.capturedTime) > 120 {
+			errstr = fmt.Sprintf("canary: event took %d secs to get from notecard to notehub\n", this.receivedTime-this.capturedTime)
+		} else if (this.routedTime - this.receivedTime) > 15 {
+			errstr = fmt.Sprintf("canary: event took %d secs to be routed once it was received by notehub\n", this.routedTime-this.receivedTime)
+		} else if (this.receivedTime - last.receivedTime) > 5*60 {
+			errstr = fmt.Sprintf("canary: %d minutes between events received by notehub\n", (this.routedTime-this.receivedTime)/60)
+		}
+	}
+	lastDeviceEvent[e.DeviceUID] = this
+
+	// Send message
+	if errstr != "" {
+		fmt.Printf("%s\n", errstr)
+	}
 
 	// Determine the difference between note creation time and the time of receipt
-	fmt.Printf("\ncaptured: %d\n", capturedTime)
-	fmt.Printf("received: %d\n", receivedTime)
-	fmt.Printf("routed: %d\n", routedTime)
-	fmt.Printf("seqno: %d\n", seqNo)
-	fmt.Printf("sessionID: %s\n", sessionID)
+	fmt.Printf("captured: %d\n", this.capturedTime)
+	fmt.Printf("received: %d\n", this.receivedTime)
+	fmt.Printf("routed: %d\n", this.routedTime)
+	fmt.Printf("seqno: %d\n", this.seqNo)
+	fmt.Printf("sessionID: %s\n", this.sessionID)
+	fmt.Printf("\n")
 
 }

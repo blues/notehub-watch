@@ -9,7 +9,8 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
+	"os"
 	"sort"
 	"sync"
 	"time"
@@ -722,7 +723,7 @@ func readFileLocally(hostname string, serviceVersion string, beginTime int64) (h
 	// Read the contents
 	var contents []byte
 	filepath := statsFilepath(hostname, serviceVersion, beginTime, currentType)
-	contents, err = ioutil.ReadFile(filepath)
+	contents, err = os.ReadFile(filepath)
 	if err != nil {
 		return
 	}
@@ -741,7 +742,7 @@ func readFileLocally(hostname string, serviceVersion string, beginTime int64) (h
 				err = err2
 				return
 			}
-			contents, err = ioutil.ReadAll(f)
+			contents, err = io.ReadAll(f)
 			f.Close()
 			if err != nil {
 				return
@@ -796,7 +797,7 @@ func writeFileLocally(hostname string, serviceVersion string, beginTime int64, d
 	}
 
 	// Write the file
-	err = ioutil.WriteFile(statsFilepath(hostname, serviceVersion, beginTime, currentType), contents, 0644)
+	err = os.WriteFile(statsFilepath(hostname, serviceVersion, beginTime, currentType), contents, 0644)
 	if err != nil {
 		return
 	}
