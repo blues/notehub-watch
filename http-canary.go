@@ -146,5 +146,5 @@ func canarySweepDevices() {
 
 // Output a canary message
 func canaryMessage(deviceUID string, message string) {
-	fmt.Printf("canary: %s %s\n", deviceUID, message)
+	slackSendMessage(fmt.Sprintf("canary: %s %s", deviceUID, message))
 }
