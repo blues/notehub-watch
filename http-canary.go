@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/blues/note-go/note"
@@ -17,6 +18,7 @@ import (
 
 // Retained between canary notifications
 type lastEvent struct {
+	continuous   bool
 	sessionID    string
 	seqNo        int64
 	capturedTime int64
@@ -52,6 +54,17 @@ func inboundWebCanaryHandler(httpRsp http.ResponseWriter, httpReq *http.Request)
 		return
 	}
 
+	// Remember info about the last session
+	if e.NotefileID == "_session.qo" {
+		last, present := lastDeviceEvent[e.DeviceUID]
+		if present && e.Body != nil {
+			body := *e.Body
+			last.continuous = strings.Contains(body["why"].(string), "continuous")
+		}
+		lastDeviceEvent[e.DeviceUID] = last
+		return
+	}
+
 	// Ignore non-data events
 	if e.NotefileID != "_temp.qo" {
 		return
@@ -59,18 +72,20 @@ func inboundWebCanaryHandler(httpRsp http.ResponseWriter, httpReq *http.Request)
 
 	// Determine the various latencies
 	var this lastEvent
+	this.sessionID = e.SessionUID
 	this.capturedTime = e.When
 	this.receivedTime = int64(e.Received)
 	this.routedTime = time.Now().UTC().Unix()
-	body := *e.Body
-	this.seqNo = int64(body["count"].(float64))
-	this.sessionID = e.SessionUID
+	if e.Body != nil {
+		body := *e.Body
+		this.seqNo = int64(body["count"].(float64))
+	}
 
 	// Alert
 	errstr := ""
 	last, present := lastDeviceEvent[e.DeviceUID]
 	if present {
-		if this.sessionID != last.sessionID {
+		if this.continuous && this.sessionID != last.sessionID {
 			errstr = "canary: continuous session dropped and reconnected"
 		} else if this.seqNo != last.seqNo+1 {
 			errstr = fmt.Sprintf("canary: sequence out of order (expected %d but received %d)", last.seqNo+1, this.seqNo)
