@@ -94,15 +94,15 @@ func inboundWebCanaryHandler(httpRsp http.ResponseWriter, httpReq *http.Request)
 	last, present := lastDeviceEvent[e.DeviceUID]
 	if present {
 		if this.continuous && this.sessionID != last.sessionID {
-			errstr = "continuous session dropped and reconnected"
+			errstr = "continuous session dropped and reconnected: " + this.sessionID
 		} else if this.seqNo != last.seqNo+1 {
-			errstr = fmt.Sprintf("sequence out of order (expected %d but received %d)", last.seqNo+1, this.seqNo)
+			errstr = fmt.Sprintf("sequence out of order (expected %d but received %d): %s", last.seqNo+1, this.seqNo, e.EventUID)
 		} else if (this.receivedTime - this.capturedTime) > 120 {
-			errstr = fmt.Sprintf("event took %d secs to get from notecard to notehub\n", this.receivedTime-this.capturedTime)
-		} else if (this.routedTime - this.receivedTime) > 15 {
-			errstr = fmt.Sprintf("event took %d secs to be routed once it was received by notehub\n", this.routedTime-this.receivedTime)
+			errstr = fmt.Sprintf("event took %d secs to get from notecard to notehub: %s", this.receivedTime-this.capturedTime, e.EventUID)
+		} else if (this.routedTime - this.receivedTime) > 10 {
+			errstr = fmt.Sprintf("event took %d secs to be routed once it was received by notehub: %s", this.routedTime-this.receivedTime, e.EventUID)
 		} else if (this.receivedTime - last.receivedTime) > 5*60 {
-			errstr = fmt.Sprintf("%d minutes between events received by notehub\n", (this.routedTime-this.receivedTime)/60)
+			errstr = fmt.Sprintf("%d minutes between events received by notehub: %s", (this.routedTime-this.receivedTime)/60, e.EventUID)
 		}
 	}
 	lastDeviceEvent[e.DeviceUID] = this
@@ -134,7 +134,8 @@ func canarySweepDevices() {
 			last.warnings++
 			lastDeviceEvent[deviceUID] = last
 			if last.warnings < 10 {
-				canaryMessage(deviceUID, fmt.Sprintf("no routed events received in %d minutes", (now-last.receivedTime)/60))
+				canaryMessage(deviceUID, fmt.Sprintf("no routed events received in %d minutes (last event received %s)", (now-last.receivedTime)/60,
+					time.Unix(last.receivedTime, 0).UTC().Format("01-02 15:04:05")))
 			} else if last.warnings == 10 {
 				canaryMessage(deviceUID, "LAST WARNING before silence!")
 			}
