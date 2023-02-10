@@ -94,15 +94,15 @@ func inboundWebCanaryHandler(httpRsp http.ResponseWriter, httpReq *http.Request)
 	last, present := lastDeviceEvent[e.DeviceUID]
 	if present {
 		if this.continuous && this.sessionID != last.sessionID {
-			errstr = "canary: continuous session dropped and reconnected"
+			errstr = "continuous session dropped and reconnected"
 		} else if this.seqNo != last.seqNo+1 {
-			errstr = fmt.Sprintf("canary: sequence out of order (expected %d but received %d)", last.seqNo+1, this.seqNo)
+			errstr = fmt.Sprintf("sequence out of order (expected %d but received %d)", last.seqNo+1, this.seqNo)
 		} else if (this.receivedTime - this.capturedTime) > 120 {
-			errstr = fmt.Sprintf("canary: event took %d secs to get from notecard to notehub\n", this.receivedTime-this.capturedTime)
+			errstr = fmt.Sprintf("event took %d secs to get from notecard to notehub\n", this.receivedTime-this.capturedTime)
 		} else if (this.routedTime - this.receivedTime) > 15 {
-			errstr = fmt.Sprintf("canary: event took %d secs to be routed once it was received by notehub\n", this.routedTime-this.receivedTime)
+			errstr = fmt.Sprintf("event took %d secs to be routed once it was received by notehub\n", this.routedTime-this.receivedTime)
 		} else if (this.receivedTime - last.receivedTime) > 5*60 {
-			errstr = fmt.Sprintf("canary: %d minutes between events received by notehub\n", (this.routedTime-this.receivedTime)/60)
+			errstr = fmt.Sprintf("%d minutes between events received by notehub\n", (this.routedTime-this.receivedTime)/60)
 		}
 	}
 	lastDeviceEvent[e.DeviceUID] = this
