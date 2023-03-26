@@ -357,6 +357,20 @@ func sheetAddTab(f *excelize.File, sheetName string, siid string, ss serviceSumm
 	}
 	row++
 
+	f.SetCellValue(sheetName, cell(col, row), "httpcon")
+	f.SetCellStyle(sheetName, cell(col, row), cell(col, row), styleMetric)
+	for i, stat := range stats {
+		f.SetCellValue(sheetName, cell(col+1+i, row), stat.HttpConnTotal)
+	}
+	row++
+
+	f.SetCellValue(sheetName, cell(col, row), "httpconru")
+	f.SetCellStyle(sheetName, cell(col, row), cell(col, row), styleMetric)
+	for i, stat := range stats {
+		f.SetCellValue(sheetName, cell(col+1+i, row), stat.HttpConnReused)
+	}
+	row++
+
 	row++
 
 	// Handler stats

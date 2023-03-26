@@ -114,6 +114,8 @@ type StatsStat struct {
 	OSDiskWrite                     uint64                   `json:"disk_write,omitempty"`
 	OSNetReceived                   uint64                   `json:"net_received,omitempty"`
 	OSNetSent                       uint64                   `json:"net_sent,omitempty"`
+	HttpConnTotal                   uint64                   `json:"http_conn,omitempty"`
+	HttpConnReused                  uint64                   `json:"http_conn_reused,omitempty"`
 	DiscoveryHandlersActivated      int64                    `json:"handlers_discovery_activated,omitempty"`
 	EphemeralHandlersActivated      int64                    `json:"handlers_ephemeral_activated,omitempty"`
 	ContinuousHandlersActivated     int64                    `json:"handlers_continuous_activated,omitempty"`

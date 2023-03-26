@@ -80,6 +80,26 @@ func datadogUploadStats(hostname string, bucketSecs int64, addedStats map[string
 	}
 	seriesArray = append(seriesArray, series)
 
+	series = datadog.Series{Metric: "notehub." + hostname + ".http.conn", Type: datadog.PtrString("gauge")}
+	for _, stat := range aggregatedStats {
+		point := []*float64{
+			datadog.PtrFloat64(float64(stat.Time)),
+			datadog.PtrFloat64(float64(stat.HttpConnTotal)),
+		}
+		series.Points = append(series.Points, point)
+	}
+	seriesArray = append(seriesArray, series)
+
+	series = datadog.Series{Metric: "notehub." + hostname + ".http.connreused", Type: datadog.PtrString("gauge")}
+	for _, stat := range aggregatedStats {
+		point := []*float64{
+			datadog.PtrFloat64(float64(stat.Time)),
+			datadog.PtrFloat64(float64(stat.HttpConnReused)),
+		}
+		series.Points = append(series.Points, point)
+	}
+	seriesArray = append(seriesArray, series)
+
 	series = datadog.Series{Metric: "notehub." + hostname + ".handlers", Type: datadog.PtrString("gauge")}
 	for _, stat := range aggregatedStats {
 		point := []*float64{

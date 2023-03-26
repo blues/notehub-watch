@@ -428,6 +428,8 @@ func ConvertStatsFromAbsoluteToRelative(stats []StatsStat, bucketSecs int64) (ou
 
 		stats[i].OSDiskRead -= stats[i+1].OSDiskRead
 		stats[i].OSDiskWrite -= stats[i+1].OSDiskWrite
+		stats[i].HttpConnTotal -= stats[i+1].HttpConnTotal
+		stats[i].HttpConnReused -= stats[i+1].HttpConnReused
 
 		// Special handling for these two stats, which seem odd because
 		// occasionally the OS will return numbers lower than the previous ones

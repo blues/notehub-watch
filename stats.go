@@ -29,6 +29,8 @@ type AggregatedStat struct {
 	DiskWrites              uint64                   `json:"disk_write,omitempty"`
 	NetReceived             uint64                   `json:"net_received,omitempty"`
 	NetSent                 uint64                   `json:"net_sent,omitempty"`
+	HttpConnTotal           uint64                   `json:"http_conn,omitempty"`
+	HttpConnReused          uint64                   `json:"http_conn_reused,omitempty"`
 	HandlersEphemeral       int64                    `json:"handlers_ephemeral,omitempty"`
 	HandlersDiscovery       int64                    `json:"handlers_discovery,omitempty"`
 	HandlersContinuous      int64                    `json:"handlers_continuous,omitempty"`
@@ -830,6 +832,8 @@ func statsAggregateAsStatsStat(allStats map[string][]StatsStat, bucketSecs int64
 		lbs.OSDiskWrite = s.DiskWrites
 		lbs.OSNetReceived = s.NetReceived
 		lbs.OSNetSent = s.NetSent
+		lbs.HttpConnTotal = s.HttpConnTotal
+		lbs.HttpConnReused = s.HttpConnReused
 		lbs.DiscoveryHandlersActivated = s.NewHandlersDiscovery
 		lbs.EphemeralHandlersActivated = s.NewHandlersEphemeral
 		lbs.ContinuousHandlersActivated = s.NewHandlersContinuous
@@ -872,6 +876,8 @@ func statsAggregate(allStats map[string][]StatsStat, bucketSecs int64) (aggregat
 			as.DiskWrites += s.OSDiskWrite
 			as.NetReceived += s.OSNetReceived
 			as.NetSent += s.OSNetSent
+			as.HttpConnTotal += s.HttpConnTotal
+			as.HttpConnReused += s.HttpConnReused
 
 			// Aggregate handlers.
 			as.NewHandlersEphemeral += s.EphemeralHandlersActivated
