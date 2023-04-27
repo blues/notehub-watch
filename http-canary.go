@@ -19,6 +19,7 @@ import (
 
 // Retained between canary notifications
 type deviceContext struct {
+	sn         string
 	continuous bool
 	warnings   int64
 }
@@ -73,6 +74,7 @@ func inboundWebCanaryHandler(httpRsp http.ResponseWriter, httpReq *http.Request)
 			body := *e.Body
 			d.continuous = strings.Contains(body["why"].(string), "continuous")
 		}
+		d.sn = e.DeviceSN
 		device[e.DeviceUID] = d
 		canaryLock.Unlock()
 		return
@@ -99,6 +101,8 @@ func inboundWebCanaryHandler(httpRsp http.ResponseWriter, httpReq *http.Request)
 	errstr := ""
 	d, present := device[e.DeviceUID]
 	if present {
+		d.sn = e.DeviceSN
+		device[e.DeviceUID] = d
 		l := last[e.DeviceUID]
 		if d.continuous && t.sessionID != l.sessionID {
 			errstr = "continuous session dropped and reconnected: " + t.sessionID
@@ -117,7 +121,7 @@ func inboundWebCanaryHandler(httpRsp http.ResponseWriter, httpReq *http.Request)
 
 	// Send message
 	if errstr != "" {
-		canaryMessage(e.DeviceUID, errstr)
+		canaryMessage(e.DeviceUID, e.DeviceSN, errstr)
 	}
 
 }
@@ -145,10 +149,10 @@ func canarySweepDevices() {
 			d.warnings++
 			device[deviceUID] = d
 			if d.warnings < 10 {
-				canaryMessage(deviceUID, fmt.Sprintf("no routed events received in %d minutes (last event received %s)", (now-l.receivedTime)/60,
+				canaryMessage(deviceUID, d.sn, fmt.Sprintf("no routed events received in %d minutes (last event received %s)", (now-l.receivedTime)/60,
 					time.Unix(l.receivedTime, 0).UTC().Format("01-02 15:04:05")))
 			} else if d.warnings == 10 {
-				canaryMessage(deviceUID, "LAST WARNING before silence!")
+				canaryMessage(deviceUID, d.sn, "LAST WARNING before silence!")
 			}
 		}
 	}
@@ -157,6 +161,6 @@ func canarySweepDevices() {
 }
 
 // Output a canary message
-func canaryMessage(deviceUID string, message string) {
-	slackSendMessage(fmt.Sprintf("canary: %s %s", deviceUID, message))
+func canaryMessage(deviceUID string, sn string, message string) {
+	slackSendMessage(fmt.Sprintf("canary: %s %s %s", sn, deviceUID, message))
 }
