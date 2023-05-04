@@ -137,17 +137,21 @@ func canarySweepDevices() {
 	if device == nil {
 		device = map[string]deviceContext{}
 	}
+	// Make a copy of these structures so we don't hold the mutex for very long
+	deviceCopy := device
+	lastCopy := last
 	canaryLock.Unlock()
 
 	// Look at the map to see if there's anything due
-
-	canaryLock.Lock()
 	now := time.Now().UTC().Unix()
-	for deviceUID, d := range device {
-		l := last[deviceUID]
+	for deviceUID, d := range deviceCopy {
+		l := lastCopy[deviceUID]
 		if now-l.receivedTime >= 6*60 {
 			d.warnings++
+			deviceCopy[deviceUID] = d
+			canaryLock.Lock()
 			device[deviceUID] = d
+			canaryLock.Unlock()
 			if d.warnings < 10 {
 				canaryMessage(deviceUID, d.sn, fmt.Sprintf("no routed events received in %d minutes (last event received %s)", (now-l.receivedTime)/60,
 					time.Unix(l.receivedTime, 0).UTC().Format("01-02 15:04:05")))
@@ -156,7 +160,6 @@ func canarySweepDevices() {
 			}
 		}
 	}
-	canaryLock.Unlock()
 
 }
 
