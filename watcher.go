@@ -590,3 +590,60 @@ func watcherGetStats(hostname string, hostaddr string) (serviceVersionChanged bo
 	return
 
 }
+
+// Show activity about the host
+func watcherActivity(hostname string) (response string) {
+
+	// Map name to address
+	hostaddr := ""
+	validHosts := ""
+	for _, v := range Config.MonitoredHosts {
+		if !v.Disabled {
+			if hostname == v.Name {
+				hostaddr = v.Addr
+				break
+			}
+			if validHosts != "" {
+				validHosts += " or "
+			}
+			validHosts += "'" + v.Name + "'"
+		}
+	}
+	if hostaddr == "" {
+		return "" +
+			"/notehub <host>\n" +
+			"/notehub <host> show <what>\n" +
+			"<host> is " + validHosts + "\n" +
+			"<what> is goroutines, heap, handlers\n"
+	}
+
+	// Get the list of handlers on the host
+	_, _, serviceInstanceIDs, serviceInstanceAddrs, _, err := watcherGetServiceInstances(hostname, hostaddr)
+	if err != nil {
+		return err.Error()
+	}
+
+	// Grab the activity from all the handlers
+	handlersActive := int64(0)
+	eventsPending := int64(0)
+	for i, addr := range serviceInstanceAddrs {
+
+		// Get the info from the service instance
+		pb, err := getServiceInstanceInfo(addr, serviceInstanceIDs[i], "lb")
+		if err != nil {
+			continue
+		}
+		if pb.Body.LBStatus == nil {
+			continue
+		}
+		sistats := *pb.Body.LBStatus
+		handlersActive += sistats[0].ContinuousHandlersActivated - sistats[0].ContinuousHandlersDeactivated
+		handlersActive += sistats[0].NotificationHandlersActivated - sistats[0].NotificationHandlersDeactivated
+		handlersActive += sistats[0].EphemeralHandlersActivated - sistats[0].EphemeralHandlersDeactivated
+		handlersActive += sistats[0].DiscoveryHandlersActivated - sistats[0].DiscoveryHandlersDeactivated
+		eventsPending += sistats[0].EventsEnqueued - sistats[0].EventsDequeued
+	}
+
+	return fmt.Sprintf("%d active handlers & %d pending events\n", handlersActive, eventsPending)
+
+}
