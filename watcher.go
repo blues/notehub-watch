@@ -301,7 +301,6 @@ func getServiceInstanceInfo(addr string, siid string, requestWhat string, showWh
 	} else {
 		Url += fmt.Sprintf("show=\"%s\"&req=\"%s\"", url.QueryEscape(showWhat), url.QueryEscape(requestWhat))
 	}
-	fmt.Printf("OZZIE %s\n", Url)
 
 	req, err2 := http.NewRequest("GET", Url, nil)
 	if err2 != nil {
