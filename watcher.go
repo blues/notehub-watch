@@ -297,11 +297,11 @@ func getServiceInstanceInfo(addr string, siid string, showWhat string) (pb PingB
 		return
 	}
 	httpclient := &http.Client{
-		Timeout: time.Second * time.Duration(30),
+		Timeout: time.Second * time.Duration(60),
 	}
 	rsp, err2 := httpclient.Do(req)
 	if err2 != nil {
-		err = err2
+		err = fmt.Errorf("%s: %s", url, err2)
 		return
 	}
 	defer rsp.Body.Close()
@@ -642,6 +642,6 @@ func watcherActivity(hostname string) (response string) {
 		eventsPending += sistats[0].EventsEnqueued - sistats[0].EventsDequeued
 	}
 
-	return fmt.Sprintf("%d instances, %d active handlers, %d pending events\n", instances, handlersActive, eventsPending)
+	return fmt.Sprintf("%s has %d instances with %d active handlers and %d pending events\n", hostname, instances, handlersActive, eventsPending)
 
 }
