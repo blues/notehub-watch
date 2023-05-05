@@ -596,25 +596,16 @@ func watcherActivity(hostname string) (response string) {
 
 	// Map name to address
 	hostaddr := ""
-	validHosts := ""
 	for _, v := range Config.MonitoredHosts {
 		if !v.Disabled {
 			if hostname == v.Name {
 				hostaddr = v.Addr
 				break
 			}
-			if validHosts != "" {
-				validHosts += " or "
-			}
-			validHosts += "'" + v.Name + "'"
 		}
 	}
 	if hostaddr == "" {
-		return "" +
-			"/notehub <host>\n" +
-			"/notehub <host> show <what>\n" +
-			"<host> is " + validHosts + "\n" +
-			"<what> is goroutines, heap, handlers\n"
+		return "host not found"
 	}
 
 	// Get the list of handlers on the host
@@ -631,9 +622,11 @@ func watcherActivity(hostname string) (response string) {
 		// Get the info from the service instance
 		pb, err := getServiceInstanceInfo(addr, serviceInstanceIDs[i], "lb")
 		if err != nil {
+			fmt.Printf("getServiceInstanceInfo(%s, %s): %s\n", addr, serviceInstanceIDs[i], err)
 			continue
 		}
 		if pb.Body.LBStatus == nil {
+			fmt.Printf("no lb info for (%s, %s)\n", addr, serviceInstanceIDs[i])
 			continue
 		}
 		sistats := *pb.Body.LBStatus
