@@ -280,7 +280,7 @@ func getServiceInstances(hostaddr string) (serviceVersion string, serviceInstanc
 }
 
 // Retrieve the ping info from a handler
-func getServiceInstanceInfo(addr string, siid string, showWhat string) (pb PingBody, err error) {
+func getServiceInstanceInfo(addr string, siid string, requestWhat string, showWhat string) (pb PingBody, err error) {
 
 	// Prefix in case it's missing
 	if !strings.Contains(addr, "://") {
@@ -289,18 +289,17 @@ func getServiceInstanceInfo(addr string, siid string, showWhat string) (pb PingB
 
 	// Get the data
 	Url := ""
-	if strings.HasPrefix(showWhat, "{") {
-		if siid != "" {
-			Url = fmt.Sprintf("%s/ping?node=\"%s\"&req=\"%s\"", addr, siid, url.QueryEscape(showWhat))
-		} else {
-			Url = fmt.Sprintf("%s/ping?req=\"%s\"", addr, url.QueryEscape(showWhat))
-		}
+	if siid != "" {
+		Url = fmt.Sprintf("%s/ping?node=\"%s\"&", addr, siid)
 	} else {
-		if siid != "" {
-			Url = fmt.Sprintf("%s/ping?node=\"%s\"&show=\"%s\"", addr, siid, showWhat)
-		} else {
-			Url = fmt.Sprintf("%s/ping?show=\"%s\"", addr, showWhat)
-		}
+		Url = fmt.Sprintf("%s/ping?", addr)
+	}
+	if showWhat != "" && requestWhat == "" {
+		Url += fmt.Sprintf("show=\"%s\"", url.QueryEscape(showWhat))
+	} else if showWhat == "" && requestWhat != "" {
+		Url += fmt.Sprintf("req=\"%s\"", url.QueryEscape(requestWhat))
+	} else {
+		Url += fmt.Sprintf("show=\"%s\"&req=\"%s\"", url.QueryEscape(showWhat), url.QueryEscape(requestWhat))
 	}
 	fmt.Printf("OZZIE %s\n", Url)
 
@@ -345,7 +344,7 @@ func getServiceInstanceInfo(addr string, siid string, showWhat string) (pb PingB
 func watcherShowServiceInstance(addr string, siid string, showWhat string) (response string, errstr string) {
 
 	// Get the info from the service instance
-	pb, err := getServiceInstanceInfo(addr, siid, showWhat)
+	pb, err := getServiceInstanceInfo(addr, siid, "", showWhat)
 	if err != nil {
 		errstr = err.Error()
 		return
@@ -551,7 +550,7 @@ func watcherGetStats(hostname string, hostaddr string) (serviceVersionChanged bo
 
 		// Get the info
 		var pb PingBody
-		pb, err = getServiceInstanceInfo(ss.ServiceInstanceAddrs[i], siid, "lb")
+		pb, err = getServiceInstanceInfo(ss.ServiceInstanceAddrs[i], siid, "", "lb")
 		if err != nil {
 			return
 		}
@@ -638,7 +637,7 @@ func watcherActivity(hostname string) (response string) {
 	for i, addr := range serviceInstanceAddrs {
 
 		// Get the info from the service instance
-		pb, err := getServiceInstanceInfo(addr, serviceInstanceIDs[i], "lb")
+		pb, err := getServiceInstanceInfo(addr, serviceInstanceIDs[i], "", "lb")
 		if err != nil {
 			fmt.Printf("getServiceInstanceInfo(%s, %s): %s\n", addr, serviceInstanceIDs[i], err)
 			continue
@@ -691,16 +690,6 @@ func watcherSendRequest(hostname string, request string) (response string) {
 		request = s
 	}
 
-	// Process hard-wired requests
-	switch request {
-	case "stop":
-		fallthrough
-	case "pause":
-		request = `{"req":"pause"}`
-	case "resume":
-		request = `{"req":"resume"}`
-	}
-
 	// Map name to address
 	hostaddr := ""
 	for _, v := range Config.MonitoredHosts {
@@ -727,7 +716,7 @@ func watcherSendRequest(hostname string, request string) (response string) {
 	// Grab the activity from all the handlers
 	instances := int64(0)
 	for i, addr := range serviceInstanceAddrs {
-		_, err := getServiceInstanceInfo(addr, serviceInstanceIDs[i], request)
+		_, err := getServiceInstanceInfo(addr, serviceInstanceIDs[i], request, "")
 		if err != nil {
 			fmt.Printf("getServiceInstanceInfo(%s, %s): %s\n", addr, serviceInstanceIDs[i], err)
 			continue
