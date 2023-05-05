@@ -656,9 +656,10 @@ func watcherActivity(hostname string) (response string) {
 		}
 	}
 
+	// Send it as a slack message to all, rather than a response, because it times out for prod
 	message := fmt.Sprintf("%s has %d instances hosting %d active sessions with %d events waiting to be processed\n%s",
 		hostname, instances, sessionsActive, eventsPending, pendingMessage)
-	fmt.Printf("%s", message)
-	return message
+	slackSendMessage(message)
+	return ""
 
 }
