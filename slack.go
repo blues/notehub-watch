@@ -111,7 +111,8 @@ func slackCommandWatcher(s slack.SlashCommand) (response string) {
 		return watcherShow(f.Arg(0), f.Arg(2))
 
 	case "activity":
-		return watcherActivity(f.Arg(0))
+		go watcherActivity(f.Arg(0))
+		return ""
 
 	}
 
