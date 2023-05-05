@@ -20,6 +20,9 @@ type MonitoredHost struct {
 // ServiceConfig is the service configuration file format
 type ServiceConfig struct {
 
+	// Canary disabled/enabled
+	CanaryDisabled bool `json:"canary_disabled,omitempty"`
+
 	// Host URL
 	HostURL string `json:"host_url,omitempty"`
 

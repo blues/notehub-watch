@@ -38,6 +38,11 @@ var device map[string]deviceContext
 // Canary handler
 func inboundWebCanaryHandler(httpRsp http.ResponseWriter, httpReq *http.Request) {
 
+	// Exit
+	if Config.CanaryDisabled {
+		return
+	}
+
 	// Instantiate the map
 	canaryLock.Lock()
 	if last == nil {
@@ -128,6 +133,11 @@ func inboundWebCanaryHandler(httpRsp http.ResponseWriter, httpReq *http.Request)
 
 // Canary handler
 func canarySweepDevices() {
+
+	// Exit if disabled
+	if Config.CanaryDisabled {
+		return
+	}
 
 	// Instantiate the map
 	canaryLock.Lock()
