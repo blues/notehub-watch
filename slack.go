@@ -69,7 +69,7 @@ func inboundWebSlackRequestHandler(w http.ResponseWriter, r *http.Request) {
 
 // True if we're using blocks, which have certain limitations
 func slackUsingBlocksForResponses() bool {
-	return true
+	return false
 }
 
 // Slack /notehub request handler
@@ -91,10 +91,6 @@ func slackCommandWatcher(s slack.SlashCommand) (response string) {
 
 	// Parse flags
 	f.Parse(strings.Split(s.Text, " "))
-	fmt.Printf("Arg0: '%s'\n", f.Arg(0))
-	fmt.Printf("Arg1: '%s'\n", f.Arg(1))
-	fmt.Printf("Arg2: '%s'\n", f.Arg(2))
-	fmt.Printf("Arg3: '%s'\n", f.Arg(3))
 
 	// Server arg is required
 	if f.Arg(0) == "" {
