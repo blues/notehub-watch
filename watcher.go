@@ -642,6 +642,9 @@ func watcherActivity(hostname string) (response string) {
 		eventsPending += sistats[0].EventsEnqueued - sistats[0].EventsDequeued
 	}
 
-	return fmt.Sprintf("%s has %d instances with %d active handlers and %d pending events\n", hostname, instances, handlersActive, eventsPending)
+	message := fmt.Sprintf("%s currently has %d instances with %d active handlers and %d pending events\n",
+		hostname, instances, handlersActive, eventsPending)
+	fmt.Printf("%s", message)
+	return message
 
 }
