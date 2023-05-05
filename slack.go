@@ -114,6 +114,9 @@ func slackCommandWatcher(s slack.SlashCommand) (response string) {
 		go watcherActivity(f.Arg(0))
 		return ""
 
+	case "request":
+		return watcherSendRequest(f.Arg(0), f.Arg(2))
+
 	}
 
 	return fmt.Sprintf("request '%s' not recognized\n"+errOutput.String(), f.Arg(0))

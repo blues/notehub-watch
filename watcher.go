@@ -9,7 +9,9 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"sort"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -286,12 +288,22 @@ func getServiceInstanceInfo(addr string, siid string, showWhat string) (pb PingB
 	}
 
 	// Get the data
-	url := fmt.Sprintf("%s/ping?show=\"%s\"", addr, showWhat)
-	if siid != "" {
-		url = fmt.Sprintf("%s/ping?node=\"%s\"&show=\"%s\"", addr, siid, showWhat)
+	Url := ""
+	if strings.HasPrefix(showWhat, "{") {
+		if siid != "" {
+			Url = fmt.Sprintf("%s/ping?node=\"%s\"&req=\"%s\"", addr, siid, url.QueryEscape(showWhat))
+		} else {
+			Url = fmt.Sprintf("%s/ping?req=\"%s\"", addr, url.QueryEscape(showWhat))
+		}
+	} else {
+		if siid != "" {
+			Url = fmt.Sprintf("%s/ping?node=\"%s\"&show=\"%s\"", addr, siid, showWhat)
+		} else {
+			Url = fmt.Sprintf("%s/ping?show=\"%s\"", addr, showWhat)
+		}
 	}
 
-	req, err2 := http.NewRequest("GET", url, nil)
+	req, err2 := http.NewRequest("GET", Url, nil)
 	if err2 != nil {
 		err = err2
 		return
@@ -301,7 +313,7 @@ func getServiceInstanceInfo(addr string, siid string, showWhat string) (pb PingB
 	}
 	rsp, err2 := httpclient.Do(req)
 	if err2 != nil {
-		err = fmt.Errorf("%s: %s", url, err2)
+		err = fmt.Errorf("%s: %s", Url, err2)
 		return
 	}
 	defer rsp.Body.Close()
@@ -666,5 +678,62 @@ func watcherActivity(hostname string) (response string) {
 	}
 	slackSendMessage(message)
 	return ""
+
+}
+
+// Tell the instance to process a request
+func watcherSendRequest(hostname string, request string) (response string) {
+
+	// Unquote if quoted
+	s, err := strconv.Unquote(request)
+	if err == nil {
+		request = s
+	}
+
+	// Process hard-wired requests
+	switch request {
+	case "stop":
+		fallthrough
+	case "pause":
+		request = `{"req":"pause"}`
+	case "resume":
+		request = `{"req":"resume"}`
+	}
+
+	// Map name to address
+	hostaddr := ""
+	for _, v := range Config.MonitoredHosts {
+		if !v.Disabled {
+			if hostname == v.Name {
+				hostaddr = v.Addr
+				break
+			}
+		}
+	}
+	if hostaddr == "" {
+		return "host not found"
+	}
+
+	// Get the list of handlers on the host
+	_, _, serviceInstanceIDs, serviceInstanceAddrs, _, err := watcherGetServiceInstances(hostname, hostaddr)
+	if err != nil {
+		return err.Error()
+	}
+	if len(serviceInstanceAddrs) == 0 {
+		return "no instances found for host"
+	}
+
+	// Grab the activity from all the handlers
+	instances := int64(0)
+	for i, addr := range serviceInstanceAddrs {
+		_, err := getServiceInstanceInfo(addr, serviceInstanceIDs[i], request)
+		if err != nil {
+			fmt.Printf("getServiceInstanceInfo(%s, %s): %s\n", addr, serviceInstanceIDs[i], err)
+			continue
+		}
+		instances++
+	}
+
+	return fmt.Sprintf("sent request to %d instances on %s\n", instances, hostname)
 
 }
