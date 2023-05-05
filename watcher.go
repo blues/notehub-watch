@@ -302,6 +302,7 @@ func getServiceInstanceInfo(addr string, siid string, showWhat string) (pb PingB
 			Url = fmt.Sprintf("%s/ping?show=\"%s\"", addr, showWhat)
 		}
 	}
+	fmt.Printf("OZZIE %s\n", Url)
 
 	req, err2 := http.NewRequest("GET", Url, nil)
 	if err2 != nil {
