@@ -613,8 +613,12 @@ func watcherActivity(hostname string) (response string) {
 	if err != nil {
 		return err.Error()
 	}
+	if len(serviceInstanceAddrs) == 0 {
+		return "no instances found for host"
+	}
 
 	// Grab the activity from all the handlers
+	instances := int64(0)
 	handlersActive := int64(0)
 	eventsPending := int64(0)
 	for i, addr := range serviceInstanceAddrs {
@@ -629,6 +633,7 @@ func watcherActivity(hostname string) (response string) {
 			fmt.Printf("no lb info for (%s, %s)\n", addr, serviceInstanceIDs[i])
 			continue
 		}
+		instances++
 		sistats := *pb.Body.LBStatus
 		handlersActive += sistats[0].ContinuousHandlersActivated - sistats[0].ContinuousHandlersDeactivated
 		handlersActive += sistats[0].NotificationHandlersActivated - sistats[0].NotificationHandlersDeactivated
@@ -637,6 +642,6 @@ func watcherActivity(hostname string) (response string) {
 		eventsPending += sistats[0].EventsEnqueued - sistats[0].EventsDequeued
 	}
 
-	return fmt.Sprintf("%d active handlers & %d pending events\n", handlersActive, eventsPending)
+	return fmt.Sprintf("%d instances, %d active handlers, %d pending events\n", instances, handlersActive, eventsPending)
 
 }
