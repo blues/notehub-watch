@@ -650,13 +650,13 @@ func watcherActivity(hostname string) (response string) {
 				pendingMessage += fmt.Sprintf("%5d sessions ", sessions)
 			}
 			if events > 0 {
-				pendingMessage += fmt.Sprintf("%5d events ", events)
+				pendingMessage += fmt.Sprintf("%3d events ", events)
 			}
 			pendingMessage += "\n"
 		}
 	}
 
-	message := fmt.Sprintf("%s currently has %d instances with %d active sessions and %d pending events\n%s",
+	message := fmt.Sprintf("%s has %d instances hosting %d active sessions with %d events waiting to be processed\n%s",
 		hostname, instances, sessionsActive, eventsPending, pendingMessage)
 	fmt.Printf("%s", message)
 	return message
