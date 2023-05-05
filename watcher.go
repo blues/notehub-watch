@@ -619,8 +619,9 @@ func watcherActivity(hostname string) (response string) {
 
 	// Grab the activity from all the handlers
 	instances := int64(0)
-	handlersActive := int64(0)
+	sessionsActive := int64(0)
 	eventsPending := int64(0)
+	pendingMessage := ""
 	for i, addr := range serviceInstanceAddrs {
 
 		// Get the info from the service instance
@@ -635,15 +636,18 @@ func watcherActivity(hostname string) (response string) {
 		}
 		instances++
 		sistats := *pb.Body.LBStatus
-		handlersActive += sistats[0].ContinuousHandlersActivated - sistats[0].ContinuousHandlersDeactivated
-		handlersActive += sistats[0].NotificationHandlersActivated - sistats[0].NotificationHandlersDeactivated
-		handlersActive += sistats[0].EphemeralHandlersActivated - sistats[0].EphemeralHandlersDeactivated
-		handlersActive += sistats[0].DiscoveryHandlersActivated - sistats[0].DiscoveryHandlersDeactivated
-		eventsPending += sistats[0].EventsEnqueued - sistats[0].EventsDequeued
+		sessions := sistats[0].ContinuousHandlersActivated - sistats[0].ContinuousHandlersDeactivated
+		sessions += sistats[0].EphemeralHandlersActivated - sistats[0].EphemeralHandlersDeactivated
+		events := sistats[0].EventsEnqueued - sistats[0].EventsDequeued
+		sessionsActive += sessions
+		eventsPending += events
+		if sessions > 0 || events > 0 {
+			pendingMessage += fmt.Sprintf("    %s %d sessions %d events\n", serviceInstanceIDs[i], sessions, events)
+		}
 	}
 
-	message := fmt.Sprintf("%s currently has %d instances with %d active handlers and %d pending events\n",
-		hostname, instances, handlersActive, eventsPending)
+	message := fmt.Sprintf("%s currently has %d instances with %d active sessions and %d pending events\n%s",
+		hostname, instances, sessionsActive, eventsPending, pendingMessage)
 	fmt.Printf("%s", message)
 	return message
 
