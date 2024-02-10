@@ -108,16 +108,26 @@ func inboundWebCanaryHandler(httpRsp http.ResponseWriter, httpReq *http.Request)
 	if present {
 		d.sn = e.DeviceSN
 		device[e.DeviceUID] = d
+
+		var secsCapturedToReceived, secsReceivedToReceived int64
+		secsCapturedToReceived = 120
+		secsReceivedToReceived = 5 * 60
+		if strings.HasPrefix(d.sn, "ntn") {
+			// For NTN, the packet interval is 15m
+			secsCapturedToReceived = 20 * 60
+			secsReceivedToReceived = 25 * 60
+		}
+
 		l := last[e.DeviceUID]
 		if d.continuous && t.sessionID != l.sessionID {
 			errstr = "continuous session dropped and reconnected: " + t.sessionID
 		} else if t.seqNo != l.seqNo+1 {
 			errstr = fmt.Sprintf("sequence out of order (expected %d but received %d): %s", l.seqNo+1, t.seqNo, e.EventUID)
-		} else if (t.receivedTime - t.capturedTime) > 120 {
+		} else if (t.receivedTime - t.capturedTime) > secsCapturedToReceived {
 			errstr = fmt.Sprintf("event took %d secs to get from notecard to notehub: %s", t.receivedTime-t.capturedTime, e.EventUID)
 		} else if (t.routedTime - t.receivedTime) > 10 {
 			errstr = fmt.Sprintf("event took %d secs to be routed once it was received by notehub: %s", t.routedTime-t.receivedTime, e.EventUID)
-		} else if (t.receivedTime - l.receivedTime) > 5*60 {
+		} else if (t.receivedTime - l.receivedTime) > secsReceivedToReceived {
 			errstr = fmt.Sprintf("%d minutes between events received by notehub: %s", (t.routedTime-t.receivedTime)/60, e.EventUID)
 		}
 	}
@@ -156,7 +166,15 @@ func canarySweepDevices() {
 	now := time.Now().UTC().Unix()
 	for deviceUID, d := range deviceCopy {
 		l := lastCopy[deviceUID]
-		if now-l.receivedTime >= 6*60 {
+
+		var receivedInterval int64
+		receivedInterval = 6 * 60
+		if strings.HasPrefix(d.sn, "ntn") {
+			// For NTN, the packet interval is 15m
+			receivedInterval = 20 * 60
+		}
+
+		if now-l.receivedTime >= receivedInterval {
 			d.warnings++
 			deviceCopy[deviceUID] = d
 			canaryLock.Lock()
