@@ -93,8 +93,12 @@ func inboundWebCanaryHandler(httpRsp http.ResponseWriter, httpReq *http.Request)
 	// Determine the various latencies
 	var t lastEvent
 	t.sessionID = e.SessionUID
-	t.capturedTime = e.When
 	t.receivedTime = int64(e.Received)
+	if e.When == 0 {
+		t.capturedTime = t.receivedTime
+	} else {
+		t.capturedTime = e.When
+	}
 	t.routedTime = time.Now().UTC().Unix()
 	if e.Body != nil {
 		body := *e.Body
@@ -122,7 +126,11 @@ func inboundWebCanaryHandler(httpRsp http.ResponseWriter, httpReq *http.Request)
 		if d.continuous && t.sessionID != l.sessionID {
 			errstr = "continuous session dropped and reconnected: " + t.sessionID
 		} else if t.seqNo != l.seqNo+1 {
-			errstr = fmt.Sprintf("sequence out of order (expected %d but received %d): %s", l.seqNo+1, t.seqNo, e.EventUID)
+			if t.seqNo == l.seqNo+2 {
+				errstr = fmt.Sprintf("packet/event was dropped (#%d)", l.seqNo+1)
+			} else {
+				errstr = fmt.Sprintf("sequence out of order (expected %d but received %d): %s", l.seqNo+1, t.seqNo, e.EventUID)
+			}
 		} else if (t.receivedTime - t.capturedTime) > secsCapturedToReceived {
 			errstr = fmt.Sprintf("event took %d secs to get from notecard to notehub: %s", t.receivedTime-t.capturedTime, e.EventUID)
 		} else if (t.routedTime - t.receivedTime) > 10 {
