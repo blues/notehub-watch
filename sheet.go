@@ -168,6 +168,12 @@ func sheetGetHostStats(hostname string, hostaddr string) (response string) {
 		return err.Error()
 	}
 
+	// Change file permissions to 444 so we can read it
+	err = os.Chmod(configDataDirectory+filename, 0444)
+	if err != nil {
+		return err.Error()
+	}
+
 	// Generate response
 	response += "```"
 	response += fmt.Sprintf("      host: %s\n", hostCleaned)
