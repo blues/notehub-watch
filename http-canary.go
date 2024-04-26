@@ -38,6 +38,8 @@ var device map[string]deviceContext
 // Canary handler
 func inboundWebCanaryHandler(httpRsp http.ResponseWriter, httpReq *http.Request) {
 
+	AddAdditionalStat("canary_called", 1)
+
 	// Exit
 	if Config.CanaryDisabled {
 		return
