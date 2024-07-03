@@ -19,6 +19,7 @@ import (
 
 // Trace
 const watcherTrace = true
+const watcherHttpTrace = true
 
 // Synchronous vs asynchronous sheet request handling, because we're getting "operation timeout"
 const asyncSheetRequest = true
@@ -228,7 +229,17 @@ func getServiceInstances(hostaddr string) (serviceVersion string, serviceInstanc
 	httpclient := &http.Client{
 		Timeout: time.Second * time.Duration(30),
 	}
+	if watcherHttpTrace {
+		fmt.Printf("getServiceInstances: %s\n", url)
+	}
 	rsp, err2 := httpclient.Do(req)
+	if watcherHttpTrace {
+		if err2 != nil {
+			fmt.Printf("getServiceInstances: %s\n", err2)
+		} else {
+			fmt.Printf("getServiceInstances: OK\n")
+		}
+	}
 	if err2 != nil {
 		err = err2
 		return
@@ -310,8 +321,18 @@ func getServiceInstanceInfo(addr string, siid string, requestWhat string, showWh
 	httpclient := &http.Client{
 		Timeout: time.Second * time.Duration(60),
 	}
+	if watcherHttpTrace {
+		fmt.Printf("getServiceInstanceInfo: %s\n", Url)
+	}
 	rsp, err2 := httpclient.Do(req)
 	if err2 != nil {
+		if watcherHttpTrace {
+			if err2 != nil {
+				fmt.Printf("getServiceInstanceInfo: %s\n", err2)
+			} else {
+				fmt.Printf("getServiceInstanceInfo: OK\n")
+			}
+		}
 		err = fmt.Errorf("%s: %s", Url, err2)
 		return
 	}
