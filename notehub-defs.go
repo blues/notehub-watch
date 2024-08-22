@@ -53,6 +53,7 @@ type PingRequest struct {
 
 type AppHandler struct {
 	NodeID         string   `json:"node_id,omitempty"`
+	NodeName       string   `json:"node_name,omitempty"`
 	NodeTags       []string `json:"node_tags,omitempty"`
 	NodeStarted    int64    `json:"node_started,omitempty"`
 	DataCenter     string   `json:"datacenter,omitempty"`

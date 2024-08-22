@@ -641,7 +641,7 @@ func watcherActivity(hostname string) (response string) {
 	}
 
 	// Get the list of handlers on the host
-	_, _, serviceInstanceIDs, serviceInstanceAddrs, _, err := watcherGetServiceInstances(hostname, hostaddr)
+	_, _, serviceInstanceIDs, serviceInstanceAddrs, handlers, err := watcherGetServiceInstances(hostname, hostaddr)
 	if err != nil {
 		return err.Error()
 	}
@@ -655,6 +655,9 @@ func watcherActivity(hostname string) (response string) {
 	eventsPending := int64(0)
 	pendingMessage := ""
 	for i, addr := range serviceInstanceAddrs {
+
+		// Get the handler
+		h := handlers[serviceInstanceIDs[i]]
 
 		// Get the info from the service instance
 		pb, err := getServiceInstanceInfo(addr, serviceInstanceIDs[i], "", "lb")
@@ -675,8 +678,8 @@ func watcherActivity(hostname string) (response string) {
 		eventsPending += events
 		if sessions > 0 || events > 0 {
 			//			handlerID := strings.TrimSuffix(serviceInstanceIDs[i], ":notehandler-tcp")
-			handlerTags := strings.Join(pb.Body.NodeTags, " ")
-			handlerID := fmt.Sprintf("%s %s (%d)", pb.Body.NodeName, handlerTags, pb.Body.LoadLevel)
+			handlerTags := strings.Join(h.NodeTags, " ")
+			handlerID := fmt.Sprintf("%s %s (%d)", h.NodeName, handlerTags, h.LoadLevel)
 			pendingMessage += "    " + handlerID + " "
 			if sessions == 0 {
 				pendingMessage += "               "
