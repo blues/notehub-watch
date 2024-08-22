@@ -680,7 +680,7 @@ func watcherActivity(hostname string) (response string) {
 			//			handlerID := strings.TrimSuffix(serviceInstanceIDs[i], ":notehandler-tcp")
 			handlerTags := strings.Join(h.NodeTags, " ")
 			handlerTags = strings.ReplaceAll(handlerTags, "_igress", "")
-			handlerID := fmt.Sprintf("%s %-7s %8s", h.NodeName, handlerTags, fmt.Sprintf("(%d)", h.LoadLevel))
+			handlerID := fmt.Sprintf("%s %-7s %6s", h.NodeName, handlerTags, fmt.Sprintf("(%d)", h.LoadLevel))
 			pendingMessage += "    " + handlerID + " "
 			if sessions == 0 {
 				pendingMessage += "               "
