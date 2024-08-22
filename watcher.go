@@ -674,7 +674,9 @@ func watcherActivity(hostname string) (response string) {
 		sessionsActive += sessions
 		eventsPending += events
 		if sessions > 0 || events > 0 {
-			handlerID := strings.TrimSuffix(serviceInstanceIDs[i], ":notehandler-tcp")
+			//			handlerID := strings.TrimSuffix(serviceInstanceIDs[i], ":notehandler-tcp")
+			handlerTags := strings.Join(pb.Body.NodeTags, " ")
+			handlerID := fmt.Sprintf("%s %s (%d)", pb.Body.NodeName, handlerTags, pb.Body.LoadLevel)
 			pendingMessage += "    " + handlerID + " "
 			if sessions == 0 {
 				pendingMessage += "               "

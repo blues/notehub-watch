@@ -32,6 +32,9 @@ type PingRequest struct {
 	LegacyServiceVersion int64                   `json:"started,omitempty"`
 	NodeStarted          string                  `json:"node_started,omitempty"`
 	NodeID               string                  `json:"node_id,omitempty"`
+	NodeName             string                  `json:"node_name,omitempty"`
+	NodeTags             []string                `json:"node_tags,omitempty"`
+	LoadLevel            int                     `json:"load_level,omitempty"`
 	Time                 string                  `json:"time,omitempty"`
 	HeapSize             uint64                  `json:"heap_size,omitempty"`
 	HeapFree             uint64                  `json:"heap_free,omitempty"`
