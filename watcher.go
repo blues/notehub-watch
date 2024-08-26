@@ -679,7 +679,8 @@ func watcherActivity(hostname string) (response string) {
 		if sessions > 0 || events > 0 {
 			handlerTags := strings.Join(h.NodeTags, " ")
 			handlerTags = strings.ReplaceAll(handlerTags, "_igress", "")
-			handlerID := fmt.Sprintf("%s %s %-7s %6s", serviceInstanceIDs[i], h.NodeName, handlerTags, fmt.Sprintf("(%d)", h.LoadLevel))
+			//			handlerID := fmt.Sprintf("%s %s %-7s %6s", serviceInstanceIDs[i], h.NodeName, handlerTags, fmt.Sprintf("(%d)", h.LoadLevel))
+			handlerID := fmt.Sprintf("%s %s %-7s", serviceInstanceIDs[i], h.NodeName, handlerTags)
 			pendingMessage += handlerID + " "
 			if sessions == 0 {
 				pendingMessage += "               "
