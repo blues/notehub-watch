@@ -25,7 +25,7 @@ func (list statOccurrence) Less(i, j int) bool {
 }
 
 // Write new stats to DataDog
-func datadogUploadStats(hostname string, bucketSecs int64, addedStats map[string][]StatsStat) (err error) {
+func datadogUploadStats(hostname string, bucketSecs int64, addedStats map[string][]StatsStat, additionalStats map[string]AdditionalStat) (err error) {
 
 	// Generate the list of aggregated stats
 	aggregatedStats := statsAggregate(addedStats, bucketSecs)
@@ -159,6 +159,18 @@ func datadogUploadStats(hostname string, bucketSecs int64, addedStats map[string
 		series.Points = append(series.Points, point)
 	}
 	seriesArray = append(seriesArray, series)
+
+	for _, stat := range additionalStats {
+		series = datadog.Series{Metric: "notehub." + hostname + "." + stat.Name, Type: datadog.PtrString("gauge")}
+		for _, value := range stat.Values {
+			point := []*float64{
+				datadog.PtrFloat64(float64(value.Time)),
+				datadog.PtrFloat64(float64(value.Value)),
+			}
+			series.Points = append(series.Points, point)
+		}
+		seriesArray = append(seriesArray, series)
+	}
 
 	// Submit the metrics
 	ctx := context.Background()
