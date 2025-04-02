@@ -102,7 +102,11 @@ func inboundWebCanaryHandler(httpRsp http.ResponseWriter, httpReq *http.Request)
 	t.routedTime = time.Now().UTC().Unix()
 	if e.Body != nil {
 		body := *e.Body
-		t.seqNo = int64(body["count"].(float64))
+		if v, ok := body["count"]; ok {
+			if f, ok := v.(float64); ok {
+				t.seqNo = int64(f)
+			}
+		}
 	}
 
 	// Alert
