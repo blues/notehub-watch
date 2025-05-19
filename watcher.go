@@ -549,7 +549,7 @@ func ConvertStatsFromAbsoluteToRelative(stats []StatsStat, bucketSecs int64) (ou
 }
 
 // Retrieve a sample of data from the specified host, returning a vector of available stats indexed by SIID
-func watcherGetStats(hostname string, hostaddr string) (serviceVersionChanged bool, ss serviceSummary, handlers map[string]AppHandler, stats map[string][]StatsStat, err error) {
+func watcherGetStats(hostname string, hostaddr string, warnWhenPendingEventsPerHandlerExceed int) (serviceVersionChanged bool, ss serviceSummary, handlers map[string]AppHandler, stats map[string][]StatsStat, err error) {
 
 	if watcherTrace {
 		fmt.Printf("watcherGetStats: fetching stats for %s\n", hostaddr)
@@ -607,6 +607,15 @@ func watcherGetStats(hostname string, hostaddr string) (serviceVersionChanged bo
 		if len(sistats) < 3 {
 			fmt.Printf("node %s hasn't been up long enough to have useful stats\n", siid)
 			continue
+		}
+
+		// Warning
+		if warnWhenPendingEventsPerHandlerExceed > 0 {
+			eventsPending := int(sistats[0].EventsEnqueued - sistats[0].EventsDequeued)
+			if eventsPending > warnWhenPendingEventsPerHandlerExceed {
+				message := fmt.Sprintf("%s: %s exceeds %d pending events (%d)\n", hostname, h.NodeName, warnWhenPendingEventsPerHandlerExceed, eventsPending)
+				slackSendMessage(message)
+			}
 		}
 
 		// Extract all available stats, and convert them from absolute to per-bucket relative.

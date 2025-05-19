@@ -650,7 +650,8 @@ func statsUpdateHost(hostname string, hostaddr string, reload bool) (ss serviceS
 	var serviceVersionChanged bool
 	var statsLastHour map[string][]StatsStat
 	for retries := 0; ; retries++ {
-		serviceVersionChanged, ss, handlers, statsLastHour, err = watcherGetStats(hostname, hostaddr)
+		var warnWhenPendingEventsPerHandlerExceed = 1000
+		serviceVersionChanged, ss, handlers, statsLastHour, err = watcherGetStats(hostname, hostaddr, warnWhenPendingEventsPerHandlerExceed)
 		if err != nil {
 			return
 		}
