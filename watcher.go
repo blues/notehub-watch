@@ -627,10 +627,13 @@ func watcherGetStats(hostname string, hostaddr string, warnWhenPendingEventsPerH
 				lastEventsDequeuedTime[h.NodeName] = time.Now()
 				var eventsPerMinute float64
 				eventsPendingMinutes := eventsPendingSinceTimeDuration.Minutes()
+				var message string
 				if eventsPendingMinutes > 0 {
 					eventsPerMinute = float64(eventsPendingSinceLastTime) / eventsPendingMinutes
+					message = fmt.Sprintf("%s: %s exceeds %d pending events (%d pending, processed %d/minute since last warning)\n", hostname, h.NodeName, warnWhenPendingEventsPerHandlerExceed, eventsPending, int(eventsPerMinute))
+				} else {
+					message = fmt.Sprintf("%s: %s exceeds %d pending events (%d pending)\n", hostname, h.NodeName, warnWhenPendingEventsPerHandlerExceed, eventsPending)
 				}
-				message := fmt.Sprintf("%s: %s exceeds %d pending events (%d pending, %d/minute since last warning)\n", hostname, h.NodeName, warnWhenPendingEventsPerHandlerExceed, eventsPending, int(eventsPerMinute))
 				slackSendMessage(message)
 			}
 		}
