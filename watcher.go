@@ -621,6 +621,10 @@ func watcherGetStats(hostname string, hostaddr string, warnWhenPendingEventsPerH
 			}
 			eventsPending := sistats[0].EventsEnqueued - sistats[0].EventsDequeued
 			if eventsPending > int64(warnWhenPendingEventsPerHandlerExceed) {
+				first := false
+				if lastEventsDequeued[h.NodeName] == 0 {
+					first = true
+				}
 				eventsPendingSinceLastTime := eventsPending - lastEventsDequeued[h.NodeName]
 				eventsPendingSinceTimeDuration := time.Since(lastEventsDequeuedTime[h.NodeName])
 				lastEventsDequeued[h.NodeName] = eventsPending
@@ -628,7 +632,7 @@ func watcherGetStats(hostname string, hostaddr string, warnWhenPendingEventsPerH
 				var eventsPerMinute float64
 				eventsPendingMinutes := eventsPendingSinceTimeDuration.Minutes()
 				var message string
-				if eventsPendingMinutes > 0 {
+				if eventsPendingMinutes > 0 && !first {
 					eventsPerMinute = float64(eventsPendingSinceLastTime) / eventsPendingMinutes
 					message = fmt.Sprintf("%s: %s exceeds %d pending events (%d pending, processed %d/minute since last warning)\n", hostname, h.NodeName, warnWhenPendingEventsPerHandlerExceed, eventsPending, int(eventsPerMinute))
 				} else {
