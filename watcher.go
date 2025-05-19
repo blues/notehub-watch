@@ -592,8 +592,7 @@ func watcherGetStats(hostname string, hostaddr string) (serviceVersionChanged bo
 		}
 		sistats := *pb.Body.LBStatus
 		if pb.Body.ServiceVersion != ss.ServiceVersion {
-			err = fmt.Errorf("%s: node service version is incorrect: %s", siid, pb.Body.ServiceVersion)
-			return
+			err = fmt.Errorf("%s: node service version is incorrect: %s != %s", siid, pb.Body.ServiceVersion, ss.ServiceVersion)
 		}
 
 		// Update service summary
