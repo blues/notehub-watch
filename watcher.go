@@ -708,7 +708,7 @@ func watcherActivity(hostname string) (response string) {
 			if events > 0 {
 				pendingMessage += fmt.Sprintf("%4d events ", events)
 			} else {
-				pendingMessage += "  - events "
+				pendingMessage += "   - events "
 			}
 			if lastEventsThroughput[h.NodeName] > 0 {
 				pendingMessage += fmt.Sprintf("(%4d in last %2dm, %3.1f/min)", lastEventsCount[h.NodeName], int(lastEventsThroughputSecs[h.NodeName]/60), lastEventsThroughput[h.NodeName]*60)
