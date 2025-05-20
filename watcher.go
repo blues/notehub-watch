@@ -693,6 +693,7 @@ func watcherActivity(hostname string) (response string) {
 		events := sistats[0].EventsEnqueued - sistats[0].EventsDequeued
 		sessionsActive += sessions
 		eventsPending += events
+		throughputUpdate(h.NodeName, sistats)
 		if sessions > 0 || events > 0 {
 			handlerTags := strings.Join(h.NodeTags, " ")
 			handlerTags = strings.ReplaceAll(handlerTags, "_igress", "")
@@ -707,7 +708,6 @@ func watcherActivity(hostname string) (response string) {
 				pendingMessage += fmt.Sprintf("%4d events ", events)
 				if lastEventsThroughput[h.NodeName] > 0 {
 					pendingMessage += fmt.Sprintf("%.1f/min ", lastEventsThroughput[h.NodeName]/60)
-					throughputUpdate(h.NodeName, sistats)
 				}
 			}
 			pendingMessage += "\n"
