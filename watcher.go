@@ -616,19 +616,7 @@ func watcherGetStats(hostname string, hostaddr string, warnWhenPendingEventsPerH
 		}
 
 		// Keep per-handler throughput stats
-		_, exists := lastEventsDequeued[h.NodeName]
-		if exists {
-			lastEventsThroughputMins[h.NodeName] = time.Since(lastEventsDequeuedTime[h.NodeName]).Minutes()
-		} else {
-			lastEventsThroughputMins[h.NodeName] = 0
-		}
-		lastEventsDequeuedTime[h.NodeName] = time.Now()
-		if lastEventsThroughputMins[h.NodeName] > 0 {
-			lastEventsThroughput[h.NodeName] = float64(sistats[0].EventsDequeued-lastEventsDequeued[h.NodeName]) / lastEventsThroughputMins[h.NodeName]
-		} else {
-			lastEventsThroughput[h.NodeName] = 0
-		}
-		lastEventsDequeued[h.NodeName] = sistats[0].EventsDequeued
+		throughputUpdate(h.NodeName, sistats)
 
 		// Warning
 		if warnWhenPendingEventsPerHandlerExceed > 0 {
@@ -716,9 +704,10 @@ func watcherActivity(hostname string) (response string) {
 				pendingMessage += fmt.Sprintf("%5d sessions ", sessions)
 			}
 			if events > 0 {
-				pendingMessage += fmt.Sprintf("%3d events ", events)
+				pendingMessage += fmt.Sprintf("%4d events ", events)
 				if lastEventsThroughput[h.NodeName] > 0 {
 					pendingMessage += fmt.Sprintf("%3d/min ", int(lastEventsThroughput[h.NodeName]))
+					throughputUpdate(h.NodeName, sistats)
 				}
 			}
 			pendingMessage += "\n"
@@ -736,6 +725,23 @@ func watcherActivity(hostname string) (response string) {
 	slackSendMessage(message)
 	return ""
 
+}
+
+// Update throughput stats
+func throughputUpdate(nodeName string, sistats []StatsStat) {
+	_, exists := lastEventsDequeued[nodeName]
+	if exists {
+		lastEventsThroughputMins[nodeName] = time.Since(lastEventsDequeuedTime[nodeName]).Minutes()
+	} else {
+		lastEventsThroughputMins[nodeName] = 0
+	}
+	lastEventsDequeuedTime[nodeName] = time.Now()
+	if lastEventsThroughputMins[nodeName] > 0 {
+		lastEventsThroughput[nodeName] = float64(sistats[0].EventsDequeued-lastEventsDequeued[nodeName]) / lastEventsThroughputMins[nodeName]
+	} else {
+		lastEventsThroughput[nodeName] = 0
+	}
+	lastEventsDequeued[nodeName] = sistats[0].EventsDequeued
 }
 
 // Tell the instance to process a request
