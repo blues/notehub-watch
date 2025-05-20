@@ -616,7 +616,12 @@ func watcherGetStats(hostname string, hostaddr string, warnWhenPendingEventsPerH
 		}
 
 		// Keep per-handler throughput stats
-		lastEventsThroughputMins[h.NodeName] = time.Since(lastEventsDequeuedTime[h.NodeName]).Minutes()
+		_, exists := lastEventsDequeued[h.NodeName]
+		if exists {
+			lastEventsThroughputMins[h.NodeName] = time.Since(lastEventsDequeuedTime[h.NodeName]).Minutes()
+		} else {
+			lastEventsThroughputMins[h.NodeName] = 0
+		}
 		lastEventsDequeuedTime[h.NodeName] = time.Now()
 		if lastEventsThroughputMins[h.NodeName] > 0 {
 			lastEventsThroughput[h.NodeName] = float64(sistats[0].EventsDequeued-lastEventsDequeued[h.NodeName]) / lastEventsThroughputMins[h.NodeName]
