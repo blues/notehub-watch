@@ -39,6 +39,7 @@ type serviceSummary struct {
 // Throughput stats
 var lastEventsDequeued map[string]int64 = map[string]int64{}
 var lastEventsDequeuedTime map[string]time.Time = map[string]time.Time{}
+var lastEventsCount map[string]int64 = map[string]int64{}
 var lastEventsThroughput map[string]float64 = map[string]float64{}
 var lastEventsThroughputSecs map[string]float64 = map[string]float64{}
 
@@ -622,7 +623,7 @@ func watcherGetStats(hostname string, hostaddr string, warnWhenPendingEventsPerH
 		if warnWhenPendingEventsPerHandlerExceed > 0 {
 			eventsPending := sistats[0].EventsEnqueued - sistats[0].EventsDequeued
 			if eventsPending > int64(warnWhenPendingEventsPerHandlerExceed) {
-				message := fmt.Sprintf("%s: %s exceeds %d pending events (%d pending, processed %.1f/min in last %d mins)\n", hostname, h.NodeName, warnWhenPendingEventsPerHandlerExceed, eventsPending, lastEventsThroughput[h.NodeName]/60, int(lastEventsThroughputSecs[h.NodeName]/60))
+				message := fmt.Sprintf("%s: %s exceeds %d pending events (%d pending, routed %d %.1f/min in last %d mins)\n", hostname, h.NodeName, warnWhenPendingEventsPerHandlerExceed, eventsPending, lastEventsCount[h.NodeName], lastEventsThroughput[h.NodeName]/60, int(lastEventsThroughputSecs[h.NodeName]/60))
 				slackSendMessage(message)
 			}
 		}
@@ -706,9 +707,9 @@ func watcherActivity(hostname string) (response string) {
 			}
 			if events > 0 {
 				pendingMessage += fmt.Sprintf("%4d events ", events)
-				if lastEventsThroughput[h.NodeName] > 0 {
-					pendingMessage += fmt.Sprintf("%.1f/min ", lastEventsThroughput[h.NodeName]/60)
-				}
+			}
+			if lastEventsThroughput[h.NodeName] > 0 {
+				pendingMessage += fmt.Sprintf("%d routed %.1f/min ", lastEventsCount[h.NodeName], lastEventsThroughput[h.NodeName]/60)
 			}
 			pendingMessage += "\n"
 		}
@@ -737,7 +738,8 @@ func throughputUpdate(nodeName string, sistats []StatsStat) {
 	}
 	lastEventsDequeuedTime[nodeName] = time.Now()
 	if lastEventsThroughputSecs[nodeName] > 0 {
-		lastEventsThroughput[nodeName] = float64(sistats[0].EventsDequeued-lastEventsDequeued[nodeName]) / lastEventsThroughputSecs[nodeName]
+		lastEventsCount[nodeName] = sistats[0].EventsDequeued - lastEventsDequeued[nodeName]
+		lastEventsThroughput[nodeName] = float64(lastEventsCount[nodeName]) / lastEventsThroughputSecs[nodeName]
 	} else {
 		lastEventsThroughput[nodeName] = 0
 	}
