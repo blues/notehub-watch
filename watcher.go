@@ -40,7 +40,7 @@ type serviceSummary struct {
 var lastEventsDequeued map[string]int64 = map[string]int64{}
 var lastEventsDequeuedTime map[string]time.Time = map[string]time.Time{}
 var lastEventsThroughput map[string]float64 = map[string]float64{}
-var lastEventsThroughputMins map[string]float64 = map[string]float64{}
+var lastEventsThroughputSecs map[string]float64 = map[string]float64{}
 
 // Service instances the last time we looked
 var serviceLock sync.Mutex
@@ -622,7 +622,7 @@ func watcherGetStats(hostname string, hostaddr string, warnWhenPendingEventsPerH
 		if warnWhenPendingEventsPerHandlerExceed > 0 {
 			eventsPending := sistats[0].EventsEnqueued - sistats[0].EventsDequeued
 			if eventsPending > int64(warnWhenPendingEventsPerHandlerExceed) {
-				message := fmt.Sprintf("%s: %s exceeds %d pending events (%d pending, processed %d/minute in last %d mins)\n", hostname, h.NodeName, warnWhenPendingEventsPerHandlerExceed, eventsPending, int(lastEventsThroughput[h.NodeName]), int(lastEventsThroughputMins[h.NodeName]))
+				message := fmt.Sprintf("%s: %s exceeds %d pending events (%d pending, processed %.1f/min in last %d mins)\n", hostname, h.NodeName, warnWhenPendingEventsPerHandlerExceed, eventsPending, lastEventsThroughput[h.NodeName]/60, int(lastEventsThroughputSecs[h.NodeName]/60))
 				slackSendMessage(message)
 			}
 		}
@@ -706,7 +706,7 @@ func watcherActivity(hostname string) (response string) {
 			if events > 0 {
 				pendingMessage += fmt.Sprintf("%4d events ", events)
 				if lastEventsThroughput[h.NodeName] > 0 {
-					pendingMessage += fmt.Sprintf("%3d/min ", int(lastEventsThroughput[h.NodeName]))
+					pendingMessage += fmt.Sprintf("%.1f/min ", lastEventsThroughput[h.NodeName]/60)
 					throughputUpdate(h.NodeName, sistats)
 				}
 			}
@@ -731,13 +731,13 @@ func watcherActivity(hostname string) (response string) {
 func throughputUpdate(nodeName string, sistats []StatsStat) {
 	_, exists := lastEventsDequeued[nodeName]
 	if exists {
-		lastEventsThroughputMins[nodeName] = time.Since(lastEventsDequeuedTime[nodeName]).Minutes()
+		lastEventsThroughputSecs[nodeName] = time.Since(lastEventsDequeuedTime[nodeName]).Seconds()
 	} else {
-		lastEventsThroughputMins[nodeName] = 0
+		lastEventsThroughputSecs[nodeName] = 0
 	}
 	lastEventsDequeuedTime[nodeName] = time.Now()
-	if lastEventsThroughputMins[nodeName] > 0 {
-		lastEventsThroughput[nodeName] = float64(sistats[0].EventsDequeued-lastEventsDequeued[nodeName]) / lastEventsThroughputMins[nodeName]
+	if lastEventsThroughputSecs[nodeName] > 0 {
+		lastEventsThroughput[nodeName] = float64(sistats[0].EventsDequeued-lastEventsDequeued[nodeName]) / lastEventsThroughputSecs[nodeName]
 	} else {
 		lastEventsThroughput[nodeName] = 0
 	}
