@@ -623,7 +623,7 @@ func watcherGetStats(hostname string, hostaddr string, warnWhenPendingEventsPerH
 		if warnWhenPendingEventsPerHandlerExceed > 0 {
 			eventsPending := sistats[0].EventsEnqueued - sistats[0].EventsDequeued
 			if eventsPending > int64(warnWhenPendingEventsPerHandlerExceed) {
-				message := fmt.Sprintf("%s: %s exceeds %d pending events (%d pending, routed %d %.1f/min in last %d mins)\n", hostname, h.NodeName, warnWhenPendingEventsPerHandlerExceed, eventsPending, lastEventsCount[h.NodeName], lastEventsThroughput[h.NodeName]/60, int(lastEventsThroughputSecs[h.NodeName]/60))
+				message := fmt.Sprintf("%s: %s exceeds %d pending events (%d pending, routed %d [%.1f/min] in the last %d mins)\n", hostname, h.NodeName, warnWhenPendingEventsPerHandlerExceed, eventsPending, lastEventsCount[h.NodeName], lastEventsThroughput[h.NodeName]*60, int(lastEventsThroughputSecs[h.NodeName]/60))
 				slackSendMessage(message)
 			}
 		}
@@ -709,7 +709,7 @@ func watcherActivity(hostname string) (response string) {
 				pendingMessage += fmt.Sprintf("%4d events ", events)
 			}
 			if lastEventsThroughput[h.NodeName] > 0 {
-				pendingMessage += fmt.Sprintf("%d routed %.1f/min ", lastEventsCount[h.NodeName], lastEventsThroughput[h.NodeName]/60)
+				pendingMessage += fmt.Sprintf("%d routed %.1f/min ", lastEventsCount[h.NodeName], lastEventsThroughput[h.NodeName]*60)
 			}
 			pendingMessage += "\n"
 		}
