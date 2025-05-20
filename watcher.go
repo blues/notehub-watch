@@ -36,9 +36,11 @@ type serviceSummary struct {
 	ServiceInstanceAddrs []string
 }
 
-// Events dequeued last time we issued a warning
-var lastEventsDequeued map[string]int64
-var lastEventsDequeuedTime map[string]time.Time
+// Throughput stats
+var lastEventsDequeued map[string]int64 = map[string]int64{}
+var lastEventsDequeuedTime map[string]time.Time = map[string]time.Time{}
+var lastEventsThroughput map[string]float64 = map[string]float64{}
+var lastEventsThroughputMins map[string]float64 = map[string]float64{}
 
 // Service instances the last time we looked
 var serviceLock sync.Mutex
@@ -613,31 +615,21 @@ func watcherGetStats(hostname string, hostaddr string, warnWhenPendingEventsPerH
 			continue
 		}
 
+		// Keep per-handler throughput stats
+		lastEventsThroughputMins[h.NodeName] = time.Since(lastEventsDequeuedTime[h.NodeName]).Minutes()
+		lastEventsDequeuedTime[h.NodeName] = time.Now()
+		if lastEventsThroughputMins[h.NodeName] > 0 {
+			lastEventsThroughput[h.NodeName] = float64(sistats[0].EventsDequeued-lastEventsDequeued[h.NodeName]) / lastEventsThroughputMins[h.NodeName]
+		} else {
+			lastEventsThroughput[h.NodeName] = 0
+		}
+		lastEventsDequeued[h.NodeName] = sistats[0].EventsDequeued
+
 		// Warning
 		if warnWhenPendingEventsPerHandlerExceed > 0 {
-			if lastEventsDequeued == nil {
-				lastEventsDequeued = map[string]int64{}
-				lastEventsDequeuedTime = map[string]time.Time{}
-			}
 			eventsPending := sistats[0].EventsEnqueued - sistats[0].EventsDequeued
 			if eventsPending > int64(warnWhenPendingEventsPerHandlerExceed) {
-				first := false
-				if lastEventsDequeued[h.NodeName] == 0 {
-					first = true
-				}
-				eventsPendingSinceLastTime := eventsPending - lastEventsDequeued[h.NodeName]
-				eventsPendingSinceTimeDuration := time.Since(lastEventsDequeuedTime[h.NodeName])
-				lastEventsDequeued[h.NodeName] = eventsPending
-				lastEventsDequeuedTime[h.NodeName] = time.Now()
-				var eventsPerMinute float64
-				eventsPendingMinutes := eventsPendingSinceTimeDuration.Minutes()
-				var message string
-				if eventsPendingMinutes > 0 && !first {
-					eventsPerMinute = float64(eventsPendingSinceLastTime) / eventsPendingMinutes
-					message = fmt.Sprintf("%s: %s exceeds %d pending events (%d pending, processed %d/minute since last warning)\n", hostname, h.NodeName, warnWhenPendingEventsPerHandlerExceed, eventsPending, int(eventsPerMinute))
-				} else {
-					message = fmt.Sprintf("%s: %s exceeds %d pending events (%d pending)\n", hostname, h.NodeName, warnWhenPendingEventsPerHandlerExceed, eventsPending)
-				}
+				message := fmt.Sprintf("%s: %s exceeds %d pending events (%d pending, processed %d/minute in last %d mins)\n", hostname, h.NodeName, warnWhenPendingEventsPerHandlerExceed, eventsPending, int(lastEventsThroughput[h.NodeName]), int(lastEventsThroughputMins[h.NodeName]))
 				slackSendMessage(message)
 			}
 		}
@@ -720,6 +712,9 @@ func watcherActivity(hostname string) (response string) {
 			}
 			if events > 0 {
 				pendingMessage += fmt.Sprintf("%3d events ", events)
+				if lastEventsThroughput[h.NodeName] > 0 {
+					pendingMessage += fmt.Sprintf("%3d/min ", int(lastEventsThroughput[h.NodeName]))
+				}
 			}
 			pendingMessage += "\n"
 		}
