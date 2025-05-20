@@ -705,11 +705,11 @@ func watcherActivity(hostname string) (response string) {
 			} else {
 				pendingMessage += fmt.Sprintf("%5d sess ", sessions)
 			}
-			if lastEventsThroughput[h.NodeName] > 0 {
-				pendingMessage += fmt.Sprintf("%4d routed in %2dm (%3.1f/min) ", lastEventsCount[h.NodeName], int(lastEventsThroughputSecs[h.NodeName]/60), lastEventsThroughput[h.NodeName]*60)
-			}
 			if events > 0 {
-				pendingMessage += fmt.Sprintf("%4d evts pending ", events)
+				pendingMessage += fmt.Sprintf("%4d events ", events)
+			}
+			if lastEventsThroughput[h.NodeName] > 0 {
+				pendingMessage += fmt.Sprintf("(%4d in last %2dm, %3.1f/min)", lastEventsCount[h.NodeName], int(lastEventsThroughputSecs[h.NodeName]/60), lastEventsThroughput[h.NodeName]*60)
 			}
 			pendingMessage += "\n"
 		}
