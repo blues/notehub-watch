@@ -642,7 +642,7 @@ func watcherGetStats(hostname string, hostaddr string, warnWhenPendingEventsPerH
 }
 
 // Show activity about the host
-func watcherActivity(hostname string) (response string) {
+func watcherActivity(hostname string, instanceOfInterest string) (response string) {
 
 	// Map name to address
 	hostaddr := ""
@@ -698,7 +698,15 @@ func watcherActivity(hostname string) (response string) {
 		if sessions > 0 || events > 0 {
 			handlerTags := strings.Join(h.NodeTags, " ")
 			handlerTags = strings.ReplaceAll(handlerTags, "_igress", "")
-			handlerID := fmt.Sprintf("%s %s %-7s", strings.TrimSuffix(serviceInstanceIDs[i], ":notehandler-tcp"), h.NodeName, handlerTags)
+			handlerName := strings.TrimSuffix(serviceInstanceIDs[i], ":notehandler-tcp")
+			handlerID := fmt.Sprintf("%s %s %-7s", handlerName, h.NodeName, handlerTags)
+			if instanceOfInterest != "" {
+				if instanceOfInterest == handlerName || instanceOfInterest == h.NodeName {
+					pendingMessage += "-> "
+				} else {
+					pendingMessage += "   "
+				}
+			}
 			pendingMessage += handlerID + " "
 			if sessions == 0 {
 				pendingMessage += "               "
