@@ -672,6 +672,7 @@ func watcherActivity(hostname string, instanceOfInterest string, countOfInterest
 	sessionsActive := int64(0)
 	eventsPending := int64(0)
 	pendingMessage := ""
+	fixedTypefaceAlreadyTerminated := false
 	for i, addr := range serviceInstanceAddrs {
 
 		// Get the handler
@@ -752,6 +753,7 @@ func watcherActivity(hostname string, instanceOfInterest string, countOfInterest
 					count = 15
 				}
 				pendingMessage += "```"
+				fixedTypefaceAlreadyTerminated = true
 				for i, sess := range allSessions {
 					if i >= count {
 						break
@@ -773,7 +775,9 @@ func watcherActivity(hostname string, instanceOfInterest string, countOfInterest
 	if len(pendingMessage) > 0 {
 		message += "```"
 		message += pendingMessage
-		message += "```"
+		if !fixedTypefaceAlreadyTerminated {
+			message += "```"
+		}
 	}
 	slackSendMessage(message)
 	return ""
