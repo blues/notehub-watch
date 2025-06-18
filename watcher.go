@@ -760,8 +760,8 @@ func watcherActivity(hostname string, instanceOfInterest string, countOfInterest
 					if sess.EventsPending == 0 && countOfInterest == 0 {
 						break
 					}
-					line := fmt.Sprintf("    %s   <https://notehub.io/admin/device/%s|%s>   events routed:%-6d pending:%-6d\n",
-						sess.AppUID, sess.DeviceUID, sess.DeviceUID, sess.EventsRouted, sess.EventsPending)
+					line := fmt.Sprintf("    <https://notehub.io/admin/app/%s|%s>   <https://notehub.io/admin/device/%s|%s>   events routed:%d pending:%d\n",
+						sess.AppUID, sess.AppUID, sess.DeviceUID, sess.DeviceUID, sess.EventsRouted, sess.EventsPending)
 					pendingMessage += line
 				}
 			}
