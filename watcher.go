@@ -750,7 +750,6 @@ func watcherActivity(hostname string, instanceOfInterest string, countOfInterest
 				if countOfInterest == 0 {
 					countOfInterest = 15
 				}
-				pendingMessage += "```"
 				for i, sess := range allSessions {
 					if i >= countOfInterest {
 						break
