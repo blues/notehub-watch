@@ -732,12 +732,15 @@ func watcherActivity(hostname string, instanceOfInterest string, countOfInterest
 				allSessions := make([]StatsHandler, 0, len(sessionStats))
 				for id, s := range sessionStats {
 					s.SessionID = id
+					if s.EventsEnqueued > s.EventsDequeued {
+						s.EventsPending = s.EventsEnqueued - s.EventsDequeued
+					}
 					allSessions = append(allSessions, s)
 				}
 
 				// Sort by EventsRouted, largest first.
 				sort.Slice(allSessions, func(i, j int) bool {
-					return allSessions[i].EventsRouted > allSessions[j].EventsRouted
+					return allSessions[i].EventsPending > allSessions[j].EventsPending
 				})
 
 				// Show the top ones
@@ -748,8 +751,8 @@ func watcherActivity(hostname string, instanceOfInterest string, countOfInterest
 					if i >= countOfInterest {
 						break
 					}
-					line := fmt.Sprintf("  %s   %s   events enqueued:%-6d dequeued:%-6d routed:%-6d\n",
-						sess.AppUID, sess.DeviceUID, sess.EventsEnqueued, sess.EventsDequeued, sess.EventsRouted)
+					line := fmt.Sprintf("  %s   %s   events routed:%-6d pending:%-6d\n",
+						sess.AppUID, sess.DeviceUID, sess.EventsRouted, sess.EventsPending)
 					pendingMessage += line
 				}
 			}

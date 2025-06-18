@@ -74,7 +74,8 @@ type AppHandler struct {
 
 // A handler statistic
 type StatsHandler struct {
-	SessionID      string
+	SessionID      string // temporary in watcher.go
+	EventsPending  int64  // temporary in watcher.go
 	DeviceUID      string `json:"device,omitempty"`
 	AppUID         string `json:"app,omitempty"`
 	Discovery      bool   `json:"discovery,omitempty"`
