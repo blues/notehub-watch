@@ -752,7 +752,6 @@ func watcherActivity(hostname string, instanceOfInterest string, countOfInterest
 				if countOfInterest == 0 {
 					count = 15
 				}
-				pendingMessage += "```"
 				instanceOfInterestFound = true
 				for i, sess := range allSessions {
 					if i >= count {
@@ -761,7 +760,7 @@ func watcherActivity(hostname string, instanceOfInterest string, countOfInterest
 					if sess.EventsPending == 0 && countOfInterest == 0 {
 						break
 					}
-					line := fmt.Sprintf("  %s   <https://notehub.io/admin/device/%s|%s>   events routed:%-6d pending:%-6d\n",
+					line := fmt.Sprintf("    %s   <https://notehub.io/admin/device/%s|%s>   events routed:%-6d pending:%-6d\n",
 						sess.AppUID, sess.DeviceUID, sess.DeviceUID, sess.EventsRouted, sess.EventsPending)
 					pendingMessage += line
 				}
@@ -780,7 +779,6 @@ func watcherActivity(hostname string, instanceOfInterest string, countOfInterest
 			message += "```"
 		} else {
 			if instanceOfInterestFound {
-				message = "```"
 				message += pendingMessage
 			} else {
 				message += "instance not found"
