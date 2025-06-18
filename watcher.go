@@ -740,7 +740,10 @@ func watcherActivity(hostname string, instanceOfInterest string, countOfInterest
 
 				// Sort by EventsRouted, largest first.
 				sort.Slice(allSessions, func(i, j int) bool {
-					return allSessions[i].EventsPending > allSessions[j].EventsPending
+					if allSessions[i].EventsPending != allSessions[j].EventsPending {
+						return allSessions[i].EventsPending > allSessions[j].EventsPending // primary key ↓
+					}
+					return allSessions[i].EventsRouted > allSessions[j].EventsRouted // secondary key ↓
 				})
 
 				// Show the top ones
