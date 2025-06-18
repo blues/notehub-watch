@@ -642,7 +642,7 @@ func watcherGetStats(hostname string, hostaddr string, warnWhenPendingEventsPerH
 }
 
 // Show activity about the host
-func watcherActivity(hostname string, instanceOfInterest string) (response string) {
+func watcherActivity(hostname string, instanceOfInterest string, countOfInterest int) (response string) {
 
 	// Map name to address
 	hostaddr := ""
@@ -740,13 +740,18 @@ func watcherActivity(hostname string, instanceOfInterest string) (response strin
 					return allSessions[i].EventsRouted > allSessions[j].EventsRouted
 				})
 
-				// Show the top 25
-				for _, sess := range allSessions {
-					line := fmt.Sprintf("%s %s %s events enqueued:%d dequeued:%d routed:%d\n",
-						sess.SessionID, sess.AppUID, sess.DeviceUID, sess.EventsEnqueued, sess.EventsDequeued, sess.EventsRouted)
+				// Show the top ones
+				if countOfInterest == 0 {
+					countOfInterest = 15
+				}
+				for i, sess := range allSessions {
+					if i >= countOfInterest {
+						break
+					}
+					line := fmt.Sprintf("%s %s events enqueued:%d dequeued:%d routed:%d\n",
+						sess.AppUID, sess.DeviceUID, sess.EventsEnqueued, sess.EventsDequeued, sess.EventsRouted)
 					pendingMessage += line
 				}
-
 			}
 		}
 	}

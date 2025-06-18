@@ -10,6 +10,7 @@ import (
 	"flag"
 	"fmt"
 	"net/http"
+	"strconv"
 	"strings"
 
 	"github.com/slack-go/slack"
@@ -111,7 +112,8 @@ func slackCommandWatcher(s slack.SlashCommand) (response string) {
 		return watcherShow(f.Arg(0), f.Arg(2))
 
 	case "activity":
-		go watcherActivity(f.Arg(0), f.Arg(2))
+		count, _ := strconv.Atoi(f.Arg(3))
+		go watcherActivity(f.Arg(0), f.Arg(2), count)
 		return ""
 
 	case "request":
