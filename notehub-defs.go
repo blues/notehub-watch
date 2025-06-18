@@ -74,6 +74,7 @@ type AppHandler struct {
 
 // A handler statistic
 type StatsHandler struct {
+	SessionID      string
 	DeviceUID      string `json:"device,omitempty"`
 	AppUID         string `json:"app,omitempty"`
 	Discovery      bool   `json:"discovery,omitempty"`

@@ -700,28 +700,54 @@ func watcherActivity(hostname string, instanceOfInterest string) (response strin
 			handlerTags = strings.ReplaceAll(handlerTags, "_igress", "")
 			handlerName := strings.TrimSuffix(serviceInstanceIDs[i], ":notehandler-tcp")
 			handlerID := fmt.Sprintf("%s %s %-7s", handlerName, h.NodeName, handlerTags)
-			if instanceOfInterest != "" {
-				if instanceOfInterest == handlerName || instanceOfInterest == h.NodeName {
-					pendingMessage += "-> "
+			showRow := false
+			showExtendedInfo := false
+			if instanceOfInterest == "" {
+				showRow = true
+			} else if instanceOfInterest == handlerName || instanceOfInterest == h.NodeName {
+				showRow = true
+				showExtendedInfo = true
+			}
+			if showRow {
+				pendingMessage += handlerID + " "
+				if sessions == 0 {
+					pendingMessage += "               "
 				} else {
-					pendingMessage += "   "
+					pendingMessage += fmt.Sprintf("%5d sess ", sessions)
 				}
+				if events > 0 {
+					pendingMessage += fmt.Sprintf("%4d events ", events)
+				} else {
+					pendingMessage += "   - events "
+				}
+				if lastEventsThroughput[h.NodeName] > 0 {
+					pendingMessage += fmt.Sprintf("(%4d in last %2dm, %5.1f/min)", lastEventsCount[h.NodeName], int(lastEventsThroughputSecs[h.NodeName]/60), lastEventsThroughput[h.NodeName]*60)
+				}
+				pendingMessage += "\n"
 			}
-			pendingMessage += handlerID + " "
-			if sessions == 0 {
-				pendingMessage += "               "
-			} else {
-				pendingMessage += fmt.Sprintf("%5d sess ", sessions)
+			if showExtendedInfo {
+
+				// Get all session stats
+				sessionStats := sistats[0].Handlers
+				allSessions := make([]StatsHandler, 0, len(sessionStats))
+				for id, s := range sessionStats {
+					s.SessionID = id
+					allSessions = append(allSessions, s)
+				}
+
+				// Sort by EventsRouted, largest first.
+				sort.Slice(allSessions, func(i, j int) bool {
+					return allSessions[i].EventsRouted > allSessions[j].EventsRouted
+				})
+
+				// Show the top 25
+				for _, sess := range allSessions {
+					line := fmt.Sprintf("%s %s %s events enqueued:%d dequeued:%d routed:%d\n",
+						sess.SessionID, sess.AppUID, sess.DeviceUID, sess.EventsEnqueued, sess.EventsDequeued, sess.EventsRouted)
+					pendingMessage += line
+				}
+
 			}
-			if events > 0 {
-				pendingMessage += fmt.Sprintf("%4d events ", events)
-			} else {
-				pendingMessage += "   - events "
-			}
-			if lastEventsThroughput[h.NodeName] > 0 {
-				pendingMessage += fmt.Sprintf("(%4d in last %2dm, %5.1f/min)", lastEventsCount[h.NodeName], int(lastEventsThroughputSecs[h.NodeName]/60), lastEventsThroughput[h.NodeName]*60)
-			}
-			pendingMessage += "\n"
 		}
 	}
 
