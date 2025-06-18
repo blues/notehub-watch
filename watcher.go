@@ -748,7 +748,7 @@ func watcherActivity(hostname string, instanceOfInterest string, countOfInterest
 					if i >= countOfInterest {
 						break
 					}
-					line := fmt.Sprintf("%s %s events enqueued:%d dequeued:%d routed:%d\n",
+					line := fmt.Sprintf("  %s   %s   events enqueued:%-6d dequeued:%-6d routed:%-6d\n",
 						sess.AppUID, sess.DeviceUID, sess.EventsEnqueued, sess.EventsDequeued, sess.EventsRouted)
 					pendingMessage += line
 				}
