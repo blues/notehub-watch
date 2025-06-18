@@ -672,7 +672,7 @@ func watcherActivity(hostname string, instanceOfInterest string, countOfInterest
 	sessionsActive := int64(0)
 	eventsPending := int64(0)
 	pendingMessage := ""
-	fixedTypefaceAlreadyTerminated := false
+	showExtendedInfo := false
 	for i, addr := range serviceInstanceAddrs {
 
 		// Get the handler
@@ -702,7 +702,6 @@ func watcherActivity(hostname string, instanceOfInterest string, countOfInterest
 			handlerName := strings.TrimSuffix(serviceInstanceIDs[i], ":notehandler-tcp")
 			handlerID := fmt.Sprintf("%s %s %-7s", handlerName, h.NodeName, handlerTags)
 			showRow := false
-			showExtendedInfo := false
 			if instanceOfInterest == "" {
 				showRow = true
 			} else if instanceOfInterest == handlerName || instanceOfInterest == h.NodeName {
@@ -753,7 +752,6 @@ func watcherActivity(hostname string, instanceOfInterest string, countOfInterest
 					count = 15
 				}
 				pendingMessage += "```"
-				fixedTypefaceAlreadyTerminated = true
 				for i, sess := range allSessions {
 					if i >= count {
 						break
@@ -770,16 +768,20 @@ func watcherActivity(hostname string, instanceOfInterest string, countOfInterest
 	}
 
 	// Send it as a slack message to all, rather than a response, because it times out for prod
-	message := fmt.Sprintf("%s has %d instances hosting %d active sessions with %d events waiting to be processed\n",
-		hostname, instances, sessionsActive, eventsPending)
 	if len(pendingMessage) > 0 {
-		message += "```"
-		message += pendingMessage
-		if !fixedTypefaceAlreadyTerminated {
+		message := ""
+		if !showExtendedInfo {
+			message = fmt.Sprintf("%s has %d instances hosting %d active sessions with %d events waiting to be processed\n",
+				hostname, instances, sessionsActive, eventsPending)
 			message += "```"
+			message += pendingMessage
+			message += "```"
+		} else {
+			message = "```"
+			message += pendingMessage
 		}
+		slackSendMessage(message)
 	}
-	slackSendMessage(message)
 	return ""
 
 }
