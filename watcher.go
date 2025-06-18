@@ -747,15 +747,16 @@ func watcherActivity(hostname string, instanceOfInterest string, countOfInterest
 				})
 
 				// Show the top ones
+				count := countOfInterest
 				if countOfInterest == 0 {
-					countOfInterest = 15
+					count = 15
 				}
 				pendingMessage += "```"
 				for i, sess := range allSessions {
-					if i >= countOfInterest {
+					if i >= count {
 						break
 					}
-					if sess.EventsPending == 0 {
+					if sess.EventsPending == 0 && countOfInterest == 0 {
 						break
 					}
 					line := fmt.Sprintf("  %s   <https://notehub.io/admin/device/%s|%s>   events routed:%-6d pending:%-6d\n",
