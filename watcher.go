@@ -624,7 +624,7 @@ func watcherGetStats(hostname string, hostaddr string, warnWhenPendingEventsPerH
 			eventsPending := sistats[0].EventsEnqueued - sistats[0].EventsDequeued
 			if eventsPending > int64(warnWhenPendingEventsPerHandlerExceed) {
 				message := fmt.Sprintf("%s: %s %d pending events (%d routed [%.1f/min] in the last %d mins)\n", hostname, h.NodeName, eventsPending, lastEventsCount[h.NodeName], lastEventsThroughput[h.NodeName]*60, int(lastEventsThroughputSecs[h.NodeName]/60))
-				slackSendMessage(message)
+				slackSendVerboseMessage(message)
 			}
 		}
 
@@ -784,7 +784,7 @@ func watcherActivity(hostname string, instanceOfInterest string, countOfInterest
 				message += "instance not found"
 			}
 		}
-		slackSendMessage(message)
+		slackSendVerboseMessage(message)
 	}
 	return ""
 

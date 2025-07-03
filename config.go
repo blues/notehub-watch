@@ -46,6 +46,7 @@ type ServiceConfig struct {
 
 	// Slack app integration
 	SlackWebhookURL string `json:"slack_webhook_url,omitempty"`
+	SlackVerboseWebhookURL string `json:"slack_verbose_webhook_url,omitempty"`
 
 	// AWS info used for S3 upload
 	AWSRegion      string `json:"aws_region,omitempty"`
