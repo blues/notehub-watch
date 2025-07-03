@@ -29,6 +29,17 @@ func slackSendMessage(message string) (err error) {
 
 }
 
+// Sends to the verbose Slack channel, which is used for debugging
+func slackSendVerboseMessage(message string) (err error) {
+
+	payload := &slack.WebhookMessage{
+		Text: message,
+	}
+
+	return slack.PostWebhook(Config.SlackVerboseWebhookURL, payload)
+
+}
+
 // Slack inbound 'slash command' request handler
 func inboundWebSlackRequestHandler(w http.ResponseWriter, r *http.Request) {
 
