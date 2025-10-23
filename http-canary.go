@@ -63,6 +63,7 @@ func inboundWebCanaryHandler(httpRsp http.ResponseWriter, httpReq *http.Request)
 	if err != nil {
 		eventJSON = []byte("{}")
 	}
+	fmt.Printf("%s\n", string(eventJSON))
 
 	// Unmarshal to an event
 	var e note.Event

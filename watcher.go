@@ -19,7 +19,7 @@ import (
 
 // Trace
 const watcherTrace = true
-const watcherHttpTrace = true
+const watcherHttpTrace = false
 
 // Synchronous vs asynchronous sheet request handling, because we're getting "operation timeout"
 const asyncSheetRequest = true
