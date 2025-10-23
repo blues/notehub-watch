@@ -71,7 +71,6 @@ func inboundWebCanaryHandler(httpRsp http.ResponseWriter, httpReq *http.Request)
 		fmt.Printf("canary error: %s\n%s\n", err, string(eventJSON))
 		return
 	}
-	fmt.Printf("%s\n", string(eventJSON))
 
 	// Remember info about the last session
 	if e.NotefileID == "_session.qo" {
@@ -115,7 +114,10 @@ func inboundWebCanaryHandler(httpRsp http.ResponseWriter, httpReq *http.Request)
 	canaryLock.Lock()
 	errstr := ""
 	d, present := device[e.DeviceUID]
-	if present {
+	if !present {
+		d.sn = e.DeviceSN
+		device[e.DeviceUID] = d
+	} else {
 		d.sn = e.DeviceSN
 		device[e.DeviceUID] = d
 
