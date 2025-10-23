@@ -127,6 +127,7 @@ func inboundWebCanaryHandler(httpRsp http.ResponseWriter, httpReq *http.Request)
 		}
 
 		l := last[e.DeviceUID]
+		fmt.Printf("seq: %s expected:%d got:%d\n", map[bool]string{true: e.DeviceSN, false: e.DeviceUID}[e.DeviceSN != ""], l.seqNo+1, t.seqNo)
 		if d.continuous && t.sessionID != l.sessionID {
 			errstr = "continuous session dropped and reconnected: " + t.sessionID
 		} else if t.seqNo != l.seqNo+1 {
