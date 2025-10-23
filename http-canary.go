@@ -134,7 +134,7 @@ func inboundWebCanaryHandler(httpRsp http.ResponseWriter, httpReq *http.Request)
 		} else if t.seqNo != expectedSeqNo {
 			if t.seqNo < expectedSeqNo {
 				errstr = fmt.Sprintf("event sequence out of order (expected %d but received %d): %s", expectedSeqNo, t.seqNo, e.EventUID)
-			} else if t.seqNo > expectedSeqNo+3 { // Allow up to 3 dropped packets because NTN & LoRa
+			} else if t.seqNo > expectedSeqNo+5 { // Allow up to 5 dropped packets because UDP & LoRa
 				errstr = fmt.Sprintf("dropped %d events (expected %d but received %d): %s", t.seqNo-expectedSeqNo, l.seqNo+1, t.seqNo, e.EventUID)
 			}
 		} else if (t.receivedTime - t.capturedTime) > secsCapturedToReceived {
