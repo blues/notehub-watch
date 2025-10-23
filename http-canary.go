@@ -114,13 +114,9 @@ func inboundWebCanaryHandler(httpRsp http.ResponseWriter, httpReq *http.Request)
 	canaryLock.Lock()
 	errstr := ""
 	d, present := device[e.DeviceUID]
-	if !present {
-		d.sn = e.DeviceSN
-		device[e.DeviceUID] = d
-	} else {
-		d.sn = e.DeviceSN
-		device[e.DeviceUID] = d
-
+	d.sn = e.DeviceSN
+	device[e.DeviceUID] = d
+	if present {
 		var secsCapturedToReceived, secsReceivedToReceived int64
 		secsCapturedToReceived = 120
 		secsReceivedToReceived = 5 * 60
