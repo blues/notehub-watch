@@ -127,14 +127,15 @@ func inboundWebCanaryHandler(httpRsp http.ResponseWriter, httpReq *http.Request)
 		}
 
 		l := last[e.DeviceUID]
+		expectedSeqNo := l.seqNo + 1
 		fmt.Printf("seq: %s expected:%d got:%d\n", map[bool]string{true: e.DeviceSN, false: e.DeviceUID}[e.DeviceSN != ""], l.seqNo+1, t.seqNo)
 		if d.continuous && t.sessionID != l.sessionID {
 			errstr = "continuous session dropped and reconnected: " + t.sessionID
-		} else if t.seqNo != l.seqNo+1 {
-			if t.seqNo == l.seqNo+2 {
-				errstr = fmt.Sprintf("packet/event was dropped (#%d)", l.seqNo+1)
-			} else {
-				errstr = fmt.Sprintf("sequence out of order (expected %d but received %d): %s", l.seqNo+1, t.seqNo, e.EventUID)
+		} else if t.seqNo != expectedSeqNo {
+			if t.seqNo < expectedSeqNo {
+				errstr = fmt.Sprintf("event sequence out of order (expected %d but received %d): %s", expectedSeqNo, t.seqNo, e.EventUID)
+			} else if t.seqNo > expectedSeqNo+3 { // Allow up to 3 dropped packets because NTN & LoRa
+				errstr = fmt.Sprintf("dropped %d events (expected %d but received %d): %s", t.seqNo-expectedSeqNo, l.seqNo+1, t.seqNo, e.EventUID)
 			}
 		} else if (t.receivedTime - t.capturedTime) > secsCapturedToReceived {
 			errstr = fmt.Sprintf("event took %d secs to get from notecard to notehub: %s", t.receivedTime-t.capturedTime, e.EventUID)
