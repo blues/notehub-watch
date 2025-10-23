@@ -68,6 +68,7 @@ func inboundWebCanaryHandler(httpRsp http.ResponseWriter, httpReq *http.Request)
 	var e note.Event
 	err = json.Unmarshal(eventJSON, &e)
 	if err != nil {
+		fmt.Printf("canary error: %s\n%s\n", err, string(eventJSON))
 		return
 	}
 	fmt.Printf("%s\n", string(eventJSON))
