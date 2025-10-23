@@ -63,7 +63,6 @@ func inboundWebCanaryHandler(httpRsp http.ResponseWriter, httpReq *http.Request)
 	if err != nil {
 		eventJSON = []byte("{}")
 	}
-	fmt.Printf("%s\n", string(eventJSON))
 
 	// Unmarshal to an event
 	var e note.Event
@@ -71,6 +70,7 @@ func inboundWebCanaryHandler(httpRsp http.ResponseWriter, httpReq *http.Request)
 	if err != nil {
 		return
 	}
+	fmt.Printf("%s\n", string(eventJSON))
 
 	// Remember info about the last session
 	if e.NotefileID == "_session.qo" {
