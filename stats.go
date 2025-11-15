@@ -911,9 +911,6 @@ func statsAggregate(allStats map[string][]StatsStat, bucketSecs int64) (aggregat
 					if db.WriteMsMax > v.WriteMsMax {
 						v.WriteMsMax = db.WriteMsMax
 					}
-					if db.Reads > 0 || db.Writes > 0 {
-						fmt.Printf("db %s: r:%d w:%d rmax:%d wmax:%d\n", key, v.Reads, v.Writes, v.ReadMsMax, v.WriteMsMax)
-					}
 					as.Databases[key] = v
 				}
 			}

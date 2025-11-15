@@ -658,10 +658,24 @@ func sheetAddTab(f *excelize.File, sheetName string, siid string, ss serviceSumm
 		}
 		row++
 
+		f.SetCellValue(sheetName, cell(col, row), "queryMsMax")
+		f.SetCellStyle(sheetName, cell(col, row), cell(col, row), styleMetric)
+		for i, stat := range stats {
+			f.SetCellValue(sheetName, cell(col+1+i, row), stat.Databases[k].ReadMsMax)
+		}
+		row++
+
 		f.SetCellValue(sheetName, cell(col, row), "execMsAvg")
 		f.SetCellStyle(sheetName, cell(col, row), cell(col, row), styleMetric)
 		for i, stat := range stats {
 			f.SetCellValue(sheetName, cell(col+1+i, row), stat.Databases[k].WriteMs)
+		}
+		row++
+
+		f.SetCellValue(sheetName, cell(col, row), "execMsMax")
+		f.SetCellStyle(sheetName, cell(col, row), cell(col, row), styleMetric)
+		for i, stat := range stats {
+			f.SetCellValue(sheetName, cell(col+1+i, row), stat.Databases[k].WriteMsMax)
 		}
 		row++
 
