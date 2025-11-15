@@ -905,14 +905,16 @@ func statsAggregate(allStats map[string][]StatsStat, bucketSecs int64) (aggregat
 					v := as.Databases[key]
 					v.Reads += db.Reads
 					v.Writes += db.Writes
-					if db.Reads > 0 {
-						v.ReadMs = db.ReadMs / db.Reads
+					// Accumulate total milliseconds (db.ReadMs * db.Reads converts avg to total)
+					v.ReadMs += db.ReadMs * db.Reads
+					v.WriteMs += db.WriteMs * db.Writes
+					// Track maximum across all instances
+					if db.ReadMsMax > v.ReadMsMax {
+						v.ReadMsMax = db.ReadMsMax
 					}
-					if db.Writes > 0 {
-						v.WriteMs = db.WriteMs / db.Writes
+					if db.WriteMsMax > v.WriteMsMax {
+						v.WriteMsMax = db.WriteMsMax
 					}
-					v.ReadMsMax = db.ReadMsMax
-					v.WriteMsMax = db.WriteMsMax
 					as.Databases[key] = v
 				}
 			}
@@ -959,6 +961,20 @@ func statsAggregate(allStats map[string][]StatsStat, bucketSecs int64) (aggregat
 			aggregatedStatsByBucket[bucketID] = as
 
 		}
+	}
+
+	// Post-process: convert accumulated totals to averages
+	for bucketID, as := range aggregatedStatsByBucket {
+		for key, v := range as.Databases {
+			if v.Reads > 0 {
+				v.ReadMs = v.ReadMs / v.Reads
+			}
+			if v.Writes > 0 {
+				v.WriteMs = v.WriteMs / v.Writes
+			}
+			as.Databases[key] = v
+		}
+		aggregatedStatsByBucket[bucketID] = as
 	}
 
 	// Generate a flat array of stats
