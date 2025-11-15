@@ -911,12 +911,8 @@ func statsAggregate(allStats map[string][]StatsStat, bucketSecs int64) (aggregat
 					if db.Writes > 0 {
 						v.WriteMs = db.WriteMs / db.Writes
 					}
-					if db.ReadMsMax > v.ReadMsMax {
-						v.ReadMsMax = db.ReadMsMax
-					}
-					if db.WriteMsMax > v.WriteMsMax {
-						v.WriteMsMax = db.WriteMsMax
-					}
+					v.ReadMsMax = db.ReadMsMax
+					v.WriteMsMax = db.WriteMsMax
 					as.Databases[key] = v
 				}
 			}
