@@ -80,6 +80,30 @@ var statsLock sync.Mutex
 var stats map[string]HostStats
 var statsServiceVersions map[string]string
 
+type AdditionalStat struct {
+	Name	string
+	Values	[]StatValue
+}
+
+type StatValue struct {
+	Time	int64
+	Value	int64
+}
+
+var AdditionalStats map[string]AdditionalStat
+
+func AddAdditionalStat(name string, value int64) {
+    stat, ok := AdditionalStats[name]
+    if !ok {
+        // If the stat does not exist, create it
+        stat = AdditionalStat{Name: name}
+    }
+    // Add the new value
+    stat.Values = append(stat.Values, StatValue{Time: todayTime(), Value: value})
+    // Put the stat back into the map
+    AdditionalStats[name] = stat
+}
+
 // Trace
 const addStatsTrace = true
 
@@ -710,7 +734,9 @@ func statsUpdateHost(hostname string, hostaddr string, reload bool) (ss serviceS
 	// If this is just the initial set of stats that were being loaded from the file system, ignore it,
 	// else write the stats to datadog
 	if len(addedStats) > 0 && time.Now().UTC().Unix() > statsInitCompleted+60 {
-		datadogUploadStats(hostname, ss.BucketSecs, addedStats)
+		datadogUploadStats(hostname, ss.BucketSecs, addedStats, AdditionalStats)
+		// Clean up the additional stats so it doesn't keep growing.
+		AdditionalStats = map[string]AdditionalStat{}
 	}
 
 	// Done
